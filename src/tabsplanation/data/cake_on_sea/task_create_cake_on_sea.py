@@ -1,4 +1,5 @@
 import json
+from datetime import datetime
 
 import numpy as np
 import pytask
@@ -69,6 +70,7 @@ def task_create_cake_on_sea(produces):
     points = np.c_[points, correlated_features]
 
     metadata = {
+        "generated_at": _get_time(),
         "seed": seed,
         "gaussian": gaussian,
         "class_0": class_0,
@@ -86,6 +88,10 @@ def task_create_cake_on_sea(produces):
     np.save(produces["coefs"], coefficients)
     np.save(produces["xs"], points)
     np.save(produces["ys"], ys)
+
+
+def _get_time() -> str:
+    return datetime.now().isoformat()
 
 
 # Take out dead zone
