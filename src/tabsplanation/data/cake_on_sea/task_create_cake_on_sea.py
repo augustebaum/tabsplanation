@@ -6,16 +6,17 @@ import pytask
 from tabsplanation.config import BLD
 
 _produces_dir = BLD / "data" / "cake_on_sea" / "uniform"
-produces = {
-    "xs": _produces_dir / "xs.npy",
-    "ys": _produces_dir / "ys.npy",
-    "coefs": _produces_dir / "coefs.npy",
-    "config": _produces_dir / "config.json",
-}
 
 
-@pytask.mark.produces(produces)
-def task_create_cake_on_sea(depends_on, produces):
+@pytask.mark.produces(
+    {
+        "xs": _produces_dir / "xs.npy",
+        "ys": _produces_dir / "ys.npy",
+        "coefs": _produces_dir / "coefs.npy",
+        "config": _produces_dir / "config.json",
+    }
+)
+def task_create_cake_on_sea(produces):
     seed = 42
     gaussian = False
     nb_dims = 250
