@@ -1,4 +1,5 @@
 """Load training and test data usable in training the classifier and the autoencoder."""
+
 from pathlib import Path
 from typing import Optional, Tuple, TypeAlias
 

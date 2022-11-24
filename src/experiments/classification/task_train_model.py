@@ -1,7 +1,7 @@
 import pytask
 import torch
 
-from tabsplanation.config import BLD
+from config import BLD
 
 
 dataset_dir = BLD / "data" / "cake_on_sea" / "dataset_id"

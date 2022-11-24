@@ -1,10 +1,13 @@
-@pytask.mark.depends_on(
-    {
-        "model": "model.pt",
-        "data": {"a": SRC / "data" / "a.pkl", "b": SRC / "data" / "b.pkl"},
-    }
-)
-def task_create_plot_data():
+import pytask
+import torch
+
+from tabsplanation.types import Tensor
+
+
+@pytask.mark.depends_on({})
+def task_create_plot_data(depends_on):
+    raise NotImplementedError()
+
     pl.seed_everything(cfg.seed, workers=True)
     clf = clfs[0]
 

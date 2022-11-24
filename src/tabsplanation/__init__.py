@@ -1,6 +1,6 @@
 """This module contains the main namespace of tabsplanation."""
-# Import the version from _version.py which is dynamically created by setuptools-scm
-# when the project is installed with ``pip install -e .``. Do not put it into version
+# Import the version from _version.py which is dynamically created by setuptoolsscm
+# when the project is installed with ``pip install e .``. Do not put it into version
 # control!
 from __future__ import annotations
 

@@ -3,8 +3,8 @@ import pytorch_lightning as pl
 import torch
 from omegaconf import OmegaConf
 
-from tabsplanation.config import BLD
-from tabsplanation.tabsplanation.classifier import Classifier
+from config import BLD
+from tabsplanation.models.classifier import Classifier
 
 models_dict = {"Classifier": Classifier}
 
@@ -42,12 +42,7 @@ models_dict = {"Classifier": Classifier}
 #     max_epochs: -1
 #     patience: 5
 # """
-
-
-@pytask.mark.produces(BLD / "models" / "classifier" / "model.pt")
-def task_create_untrained_model(produces):
-
-    cfg_string = """
+cfg_string = """
 seed: 42
 dataset:
   distribution: uniform
@@ -66,7 +61,14 @@ training:
   patience: 5
 """
 
-    cfg = OmegaConf.create(cfg_string)
+depends_on = {"config": OmegaConf.create(cfg_string)}
+
+
+@pytask.mark.depends_on(depends_on)
+@pytask.mark.produces(BLD / "models" / "classifier" / "model.pt")
+def task_create_untrained_model(depends_on, produces):
+
+    cfg = depends_on["config"]
 
     pl.seed_everything(cfg.seed, workers=True)
 

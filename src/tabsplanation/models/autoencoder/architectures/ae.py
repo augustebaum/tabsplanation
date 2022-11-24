@@ -7,12 +7,12 @@ Credits to:
 
 from torch import nn
 
-from .base_ae import AutoEncoder, LossFn, ReconstructionLoss
+from .base_ae import BaseAutoEncoder, LossFn, ReconstructionLoss
 from .decoder import Decoder
 from .encoder import Encoder
 
 
-class AE(AutoEncoder):
+class AE(BaseAutoEncoder):
     def __init__(
         self,
         encoder: Encoder,

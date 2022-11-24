@@ -35,7 +35,7 @@ pytest = "^7.1.3"
 ipdb = "^0.13.9"
 
 [tool.pytask.ini_options]
-paths = "./src/tabsplanation"
+paths = "./src"
 
 [tool.setuptools_scm]
 write_to = "src/tabsplanation/_version.py"
@@ -54,3 +54,6 @@ warn_unused_ignores = true
 module = "tests.*"
 disallow_untyped_defs = false
 ignore_errors = true
+
+[tool.usort.known]
+first_party = ["config", "tabsplanation"]

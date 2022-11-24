@@ -3,37 +3,48 @@ from datetime import datetime
 
 import numpy as np
 import pytask
+from omegaconf import OmegaConf
 
-from tabsplanation.config import BLD
-
-_produces_dir = BLD / "data" / "cake_on_sea" / "uniform"
+from config import BLD
 
 
-@pytask.mark.produces(
-    {
-        "xs": _produces_dir / "xs.npy",
-        "ys": _produces_dir / "ys.npy",
-        "coefs": _produces_dir / "coefs.npy",
-        "config": _produces_dir / "config.json",
-    }
+cfg = OmegaConf.create(
+    dict(
+        seed=42,
+        gaussian=False,
+        nb_dims=250,
+        nb_uncorrelated_dims=2,
+        nb_points_initial=100_000,
+    )
 )
-def task_create_cake_on_sea(produces):
-    seed = 42
-    gaussian = False
-    nb_dims = 250
-    nb_uncorrelated_dims = 2
-    nb_points_initial = 100_000
 
-    rng = np.random.default_rng(seed)
+depends_on = {"config": cfg}
+
+produces_dir = BLD / "data" / "cake_on_sea" / "uniform"
+produces = {
+    "xs": produces_dir / "xs.npy",
+    "ys": produces_dir / "ys.npy",
+    "coefs": produces_dir / "coefs.npy",
+    "config": produces_dir / "config.yaml",
+    "metadata": produces_dir / "metadata.json",
+}
+
+
+@pytask.mark.depends_on(depends_on)
+@pytask.mark.produces(produces)
+def task_create_cake_on_sea(depends_on, produces):
+    cfg = depends_on["config"]
+
+    rng = np.random.default_rng(cfg.seed)
 
     # Uncorrelated dims
-    if gaussian:
+    if cfg.gaussian:
         points = rng.normal(
-            loc=25, scale=25 / 3, size=(nb_points_initial, nb_uncorrelated_dims)
+            loc=25, scale=25 / 3, size=(cfg.nb_points_initial, cfg.nb_uncorrelated_dims)
         )
     else:
         points = rng.uniform(
-            low=0, high=50, size=(nb_points_initial, nb_uncorrelated_dims)
+            low=0, high=50, size=(cfg.nb_points_initial, cfg.nb_uncorrelated_dims)
         )
 
     # Remove dead zone
@@ -57,11 +68,11 @@ def task_create_cake_on_sea(produces):
     ys[np.where(_in_zone(points, class_2))[0]] = 2
 
     # Add correlated dims
-    nb_correlated_dims = nb_dims - nb_uncorrelated_dims
+    nb_correlated_dims = cfg.nb_dims - cfg.nb_uncorrelated_dims
 
     # TODO: Should the coefficients be distributed some way?
     coefficients = rng.uniform(
-        low=-10, high=10, size=(nb_uncorrelated_dims, nb_correlated_dims)
+        low=-10, high=10, size=(cfg.nb_uncorrelated_dims, cfg.nb_correlated_dims)
     )
     noise = rng.normal(loc=0, scale=1, size=(nb_points, nb_correlated_dims))
     # x_i = coef_i,1 * x_1 + coef_i,2 * x_2 + ... + coef_i,m * x_m + e_i
@@ -71,23 +82,26 @@ def task_create_cake_on_sea(produces):
 
     metadata = {
         "generated_at": _get_time(),
-        "seed": seed,
-        "gaussian": gaussian,
+        "seed": cfg.seed,
+        "gaussian": cfg.gaussian,
         "class_0": class_0,
         "class_1": class_1,
         "class_2": class_2,
         "dead_zone": dead_zone,
-        "nb_dims": nb_dims,
-        "nb_uncorrelated_dims": nb_uncorrelated_dims,
-        "nb_points_initial": nb_points_initial,
+        "nb_dims": cfg.nb_dims,
+        "nb_uncorrelated_dims": cfg.nb_uncorrelated_dims,
+        "nb_points_initial": cfg.nb_points_initial,
         "nb_points": nb_points,
     }
-    with open(produces["config"], "w") as f:
+    with open(produces["metadata"], "w") as f:
         json.dump(metadata, f, indent=2)
 
     np.save(produces["coefs"], coefficients)
     np.save(produces["xs"], points)
     np.save(produces["ys"], ys)
+
+    with open(produces["config"], "w") as f:
+        OmegaConf.save(cfg, f)
 
 
 def _get_time() -> str:
