@@ -1,9 +1,10 @@
+import hashlib
 import json
 from datetime import datetime
 
 import numpy as np
 import pytask
-from omegaconf import OmegaConf
+from omegaconf import DictConfig, OmegaConf
 
 from config import BLD
 
@@ -38,16 +39,14 @@ def task_create_cake_on_sea(depends_on, produces):
     rng = np.random.default_rng(cfg.seed)
 
     # Uncorrelated dims
+    size = (cfg.nb_points_initial, cfg.nb_uncorrelated_dims)
     if cfg.gaussian:
-        points = rng.normal(
-            loc=25, scale=25 / 3, size=(cfg.nb_points_initial, cfg.nb_uncorrelated_dims)
-        )
+        points = rng.normal(loc=25, scale=25 / 3, size=size)
     else:
-        points = rng.uniform(
-            low=0, high=50, size=(cfg.nb_points_initial, cfg.nb_uncorrelated_dims)
-        )
+        points = rng.uniform(low=0, high=50, size=size)
 
     # Remove dead zone
+    # Left, right, lower, upper
     dead_zone = [35, 45, 25, 35]
     points = _filter_zone(points, dead_zone)
     # Recompute number of points
@@ -82,16 +81,12 @@ def task_create_cake_on_sea(depends_on, produces):
 
     metadata = {
         "generated_at": _get_time(),
-        "seed": cfg.seed,
-        "gaussian": cfg.gaussian,
         "class_0": class_0,
         "class_1": class_1,
         "class_2": class_2,
         "dead_zone": dead_zone,
-        "nb_dims": cfg.nb_dims,
-        "nb_uncorrelated_dims": cfg.nb_uncorrelated_dims,
-        "nb_points_initial": cfg.nb_points_initial,
         "nb_points": nb_points,
+        **cfg,
     }
     with open(produces["metadata"], "w") as f:
         json.dump(metadata, f, indent=2)
@@ -118,10 +113,9 @@ def _in_zone(points, zone):
 
 
 def _not_in_zone(points, zone):
-    return np.logical_not(_in_zone(points, zone))
+    return ~_in_zone(points, zone)
 
 
 def _filter_zone(points, zone):
-    """Take out the points in that are in the `zone`."""
-    idx = np.where(_not_in_zone(points, zone))[0]
-    return points[idx]
+    """Take out the points in `points` that are in the `zone`."""
+    return points[_not_in_zone(points, zone)]
