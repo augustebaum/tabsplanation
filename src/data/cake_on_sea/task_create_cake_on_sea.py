@@ -1,40 +1,27 @@
-import hashlib
 import json
 from datetime import datetime
 
 import numpy as np
 import pytask
-from omegaconf import DictConfig, OmegaConf
+from omegaconf import OmegaConf
 
 from config import BLD
+from data.cake_on_sea.utils import hash_
 
 
-cfg = OmegaConf.create(
-    dict(
-        seed=42,
-        gaussian=False,
-        nb_dims=250,
-        nb_uncorrelated_dims=2,
-        nb_points_initial=100_000,
-    )
-)
+cfg_path = BLD / "config.yaml"
 
-cfgs = [cfg]
+cfg = OmegaConf.load(cfg_path)
+
+# if cfg is a dict, do
+cfg = cfg.data
+# if cfg is a list, extract all keys called "data" and
+# process each of them as dicts
 
 
-def get_hash(dict_) -> str:
-    """Combine all the information about the model and
-    hyperparameters into a unique identifier."""
-    # Produce a string from the model_dict reproducibly
-    dict_str = json.dumps(dict_, sort_keys=True, ensure_ascii=True)
-    # Hash the resulting string
-    hash = hashlib.sha256(dict_str.encode("ascii")).hexdigest()
-    # Maybe ambitious?
-    return hash
-
-
-for cfg, id_ in zip(cfgs, (get_hash(cfg) for cfg in cfgs)):
-    produces_dir = BLD / "data" / "cake_on_sea" / str(id_)
+for cfg in [cfg]:
+    id_ = hash_(cfg)
+    produces_dir = BLD / "data" / "cake_on_sea" / id_
     produces = {
         "xs": produces_dir / "xs.npy",
         "ys": produces_dir / "ys.npy",
