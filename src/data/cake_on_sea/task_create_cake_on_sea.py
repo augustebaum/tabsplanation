@@ -5,21 +5,21 @@ import numpy as np
 import pytask
 from omegaconf import OmegaConf
 
-from config import BLD
+from config import BLD, get_configs
 from data.cake_on_sea.utils import hash_
 
 
-cfg_path = BLD / "config.yaml"
-
-cfg = OmegaConf.load(cfg_path)
+cfgs = get_configs()
 
 # if cfg is a dict, do
-cfg = cfg.data
+# cfg = cfg.data
 # if cfg is a list, extract all keys called "data" and
 # process each of them as dicts
 
 
-for cfg in [cfg]:
+for cfg in cfgs:
+    cfg = cfg.data
+
     id_ = hash_(cfg)
     produces_dir = BLD / "data" / "cake_on_sea" / id_
     produces = {

@@ -3,23 +3,21 @@ import pytask
 import torch
 from omegaconf import OmegaConf
 
-from config import BLD, BLD_PLOT_DATA, BLD_PLOTS
+from config import BLD_PLOT_DATA, BLD_PLOTS, get_configs
 from data.cake_on_sea.utils import hash_
 
 
-cfg_path = BLD / "config.yaml"
-
-cfg = OmegaConf.load(cfg_path)
+cfgs = get_configs()
 
 # if cfg is a dict, do
 # cfg = cfg.model
 # if cfg is a list, extract all keys called "model" and
 # process each of them as dicts
 
-for cfg in [cfg]:
     plot_name = "classification_predictions"
 
     plot_data_dir = BLD_PLOT_DATA / plot_name / hash_(cfg)
+for cfg in cfgs:
     depends_on = {
         "config": plot_data_dir / "config.yaml",
         "inputs": plot_data_dir / "inputs.pt",

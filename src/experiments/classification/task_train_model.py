@@ -4,11 +4,11 @@ import pytask
 import pytorch_lightning as pl
 import torch
 from omegaconf import OmegaConf
-from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
+from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.loggers import TensorBoardLogger
 
 import tabsplanation.models.classifier
-from config import BLD
+from config import BLD_DATA, BLD_MODELS, get_configs
 from data.cake_on_sea.utils import hash_
 from tabsplanation.data import split_dataset, SyntheticDataset
 
@@ -17,17 +17,15 @@ def get_time() -> str:
     return datetime.now().isoformat()
 
 
-cfg_path = BLD / "config.yaml"
-
-cfg = OmegaConf.load(cfg_path)
+cfgs = get_configs()
 
 # if cfg is a dict, do
 # cfg = cfg.model
 # if cfg is a list, extract all keys called "model" and
 # process each of them as dicts
 
-for cfg in [cfg]:
-    data_dir = BLD / "data" / "cake_on_sea" / hash_(cfg.data)
+for cfg in cfgs:
+    data_dir = BLD_DATA / "cake_on_sea" / hash_(cfg.data)
     depends_on = {
         "xs": data_dir / "xs.npy",
         "ys": data_dir / "ys.npy",
@@ -36,9 +34,9 @@ for cfg in [cfg]:
 
     id_ = hash_(cfg.model)
     produces = {
-        "tensorboard_logger": BLD / "models",
-        "model": BLD / "models" / id_ / "model.pt",
-        "config": BLD / "models" / id_ / "config.yaml",
+        "tensorboard_logger": BLD_MODELS,
+        "model": BLD_MODELS / id_ / "model.pt",
+        "config": BLD_MODELS / id_ / "config.yaml",
     }
 
     @pytask.mark.task(id=id_)

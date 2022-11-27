@@ -2,22 +2,20 @@ import pytask
 import torch
 from omegaconf import OmegaConf
 
-from config import BLD
+from config import BLD, get_configs
 from data.cake_on_sea.utils import hash_
 from tabsplanation.data import SyntheticDataset
 from tabsplanation.types import Tensor
 
 
-cfg_path = BLD / "config.yaml"
-
-cfg = OmegaConf.load(cfg_path)
+cfgs = get_configs()
 
 # if cfg is a dict, do
 # cfg = cfg.model
 # if cfg is a list, extract all keys called "model" and
 # process each of them as dicts
 
-for cfg in [cfg]:
+for cfg in cfgs:
     data_dir = BLD / "data" / "cake_on_sea" / hash_(cfg.data)
     depends_on = {
         "xs": data_dir / "xs.npy",
@@ -29,20 +27,20 @@ for cfg in [cfg]:
     depends_on |= {"model": model_dir}
 
     id_ = hash_(cfg)
-    plot_data_dir = BLD / "plot_data" / "classification_predictions" / id_
+    plot_data_dir = BLD / "plot_data" / "classification_logits" / id_
     produces = {
         "config": plot_data_dir / "config.yaml",
-        "inputs": plot_data_dir / "inputs.pt",
-        "outputs": plot_data_dir / "outputs.pt",
+        "x0": plot_data_dir / "x0.pt",
+        "logits": plot_data_dir / "logits.pt",
     }
 
     @pytask.mark.task(id=id_)
     @pytask.mark.depends_on(depends_on)
     @pytask.mark.produces(produces)
-    def task_create_plot_data_classification_predictions(depends_on, produces, cfg=cfg):
+    def task_create_plot_data_classification_logits(depends_on, produces, cfg=cfg):
         # pl.seed_everything(cfg.seed, workers=True)
         # device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        plot_data_cfg = cfg.plot_data_classification_predictions
+        plot_data_cfg = cfg.plot_data_classification_logits
 
         # Make a grid of points in two dimensions
         x = torch.linspace(
@@ -56,11 +54,11 @@ for cfg in [cfg]:
         dataset = SyntheticDataset(
             depends_on["xs"],
             depends_on["ys"],
-            # depends_on["coefs"],
+            depends_on["coefs"],
             cfg.data.nb_dims,
             "cpu",
         )
-        # Fill the rest of the dimensions using the coefficients
+        # TODO: Fill the rest of the dimensions using the coefficients
         # inputs = dataset.fill_2d_point(inputs_x)
         inputs = torch.hstack(
             [inputs_x, torch.zeros((len(inputs_x), cfg.data.nb_dims - 2))]
@@ -69,9 +67,9 @@ for cfg in [cfg]:
         normalized_inputs = dataset.normalize(inputs)
 
         model = torch.load(depends_on["model"])
-        outputs = model.softmax(normalized_inputs).detach()
+        logits = model(normalized_inputs).detach()
 
-        torch.save(inputs, produces["inputs"])
-        torch.save(outputs, produces["outputs"])
+        torch.save(x, produces["x0"])
+        torch.save(logits, produces["logits"])
 
         OmegaConf.save(cfg, produces["config"])
