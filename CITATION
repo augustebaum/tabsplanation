@@ -1,5 +1,5 @@
 @Unpublished{tabsplanation2022,
-    Title  = {A project for ...},
+    Title  = {Latent shift applied to tabular data},
     Author = {Auguste Baum},
     Year   = {2022},
     Url    = {https://github.com/augustebaum/tabsplanation}

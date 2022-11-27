@@ -55,7 +55,7 @@ for cfg in cfgs:
         dataset = SyntheticDataset(
             depends_on["xs"],
             depends_on["ys"],
-            # depends_on["coefs"],
+            depends_on["coefs"],
             cfg.data.nb_dims,
             device,
         )
