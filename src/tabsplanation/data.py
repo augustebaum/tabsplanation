@@ -1,5 +1,4 @@
 """Load training and test data usable in training the classifier and the autoencoder."""
-
 from pathlib import Path
 from typing import Optional, Tuple, TypeAlias
 
@@ -7,7 +6,8 @@ import numpy as np
 import pandas as pd
 import torch
 from torch.utils.data import DataLoader, Dataset, random_split, WeightedRandomSampler
-from torchtyping import TensorType
+
+from tabsplanation.types import Tensor
 
 
 class SyntheticDataset(Dataset):
@@ -22,6 +22,7 @@ class SyntheticDataset(Dataset):
         self,
         xs_path: Path,
         ys_path: Path,
+        coefs_path: Path,
         nb_dims: int,
         device: torch.device,
     ):
@@ -31,12 +32,16 @@ class SyntheticDataset(Dataset):
 
         Inputs:
         -------
-        `nb_dims`: Number of columns to keep (from left to right -- the first
+        * `xs_path`: Path where the input data are stored.
+        * `ys_path`: Path where the class data are stored.
+        * `coefs_path`: Path where the coefficients used to generate the extra
+            columns are stored.
+        * `nb_dims`: Number of columns to keep (from left to right -- the first
             and second columns being the relevant features for classification).
             If negative or zero, take all columns.
         """
 
-        def load_from(path: Path, dtype) -> torch.Tensor:
+        def load_from(path: Path, dtype) -> Tensor:
             arr = np.load(path)
             return torch.tensor(arr).to(device).to(dtype)
 
@@ -50,14 +55,28 @@ class SyntheticDataset(Dataset):
         self.input_dim = self.X.shape[1]
         self.output_dim = len(np.unique(self.y))
 
+        self.coefs = load_from(coefs_path, torch.float)
+        if nb_dims > 0:
+            self.coefs = self.coefs[:, : (nb_dims - 2)]
+
     def __len__(self):
-        return len(self.y)
+        return len(self.X)
 
     def __getitem__(self, idx):
         input, target = self.normalize(self.X[idx]), self.y[idx]
         # if self.transform is not None:
         #     input = self.transform(self.X[idx])
         return input, target
+
+    def fill_from_2d_point(
+        self, x: Tensor["nb_points", 2]
+    ) -> Tensor["nb_points", "nb_dims"]:
+        """Take $x_0$ and $x_1$ (un-normalized) and re-create the other columns using
+        the same coefficients that were originally used.
+        """
+        correlated_columns = x @ self.coefs
+        points = torch.hstack([x, correlated_columns])
+        return points
 
     @property
     def normalize_inverse(self):
@@ -175,9 +194,11 @@ def make_dataloaders(
         sampler = WeightedRandomSampler(
             weights=weights, num_samples=len(train_dataset), replacement=True
         )
-        train_loader = DataLoader(train_dataset, sampler=sampler, **kwargs)
+        train_loader = DataLoader(
+            train_dataset, sampler=sampler, drop_last=True, **kwargs
+        )
     else:
-        train_loader = DataLoader(train_dataset, shuffle=True, **kwargs)
+        train_loader = DataLoader(train_dataset, shuffle=True, drop_last=True, **kwargs)
     validation_loader = DataLoader(validation_dataset, shuffle=False, **kwargs)
     test_loader = DataLoader(test_dataset, shuffle=False, **kwargs)
     return train_loader, validation_loader, test_loader
@@ -214,13 +235,11 @@ def split_dataset(
 
 
 class Normalize:
-    def __init__(
-        self, mean: TensorType[1, "input_dim"], stddev: TensorType[1, "input_dim"]
-    ):
+    def __init__(self, mean: Tensor[1, "input_dim"], stddev: Tensor[1, "input_dim"]):
         self.mean = mean
         self.stddev = stddev
 
-    def __call__(self, tensor: TensorType["nb_points", "input_dim"]):
+    def __call__(self, tensor: Tensor["nb_points", "input_dim"]):
         """Normalize `tensor`."""
         # TODO: What if there are zeros in self.stddev?
         # In theory, if that is the case all number are equal to the mean so
@@ -228,7 +247,7 @@ class Normalize:
         return (tensor - self.mean) / self.stddev
 
     @staticmethod
-    def new(tensor: TensorType["nb_points", "input_dim"]) -> "Normalize":
+    def new(tensor: Tensor["nb_points", "input_dim"]) -> "Normalize":
         """Make a new `Normalize` instance from computing the
         mean and standard deviation of `tensor`."""
         stddev, mean = torch.std_mean(tensor, dim=0, unbiased=True)
@@ -237,13 +256,11 @@ class Normalize:
 
 
 class NormalizeInverse:
-    def __init__(
-        self, mean: TensorType[1, "input_dim"], stddev: TensorType[1, "input_dim"]
-    ):
+    def __init__(self, mean: Tensor[1, "input_dim"], stddev: Tensor[1, "input_dim"]):
         self.mean = mean
         self.stddev = stddev
 
-    def __call__(self, tensor: TensorType["nb_points", "input_dim"]):
+    def __call__(self, tensor: Tensor["nb_points", "input_dim"]):
         """Unnormalize `tensor`."""
         return tensor * self.stddev + self.mean
 

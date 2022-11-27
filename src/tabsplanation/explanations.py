@@ -66,7 +66,7 @@ def find_max_shift(
     # Take out the probabilities that don't interest us
     if target_class is None:
         nb_classes = prbs.shape[1]
-        column_selector = set(range(nb_classes)) - {output_class}
+        column_selector = list(set(range(nb_classes)) - {output_class})
         prbs = prbs[:, column_selector]
     else:
         prbs = prbs[:, [target_class]]
@@ -126,6 +126,11 @@ def make_path(
         input point along with its associated prediction probability.
     """
 
+    # Switch AE to evaluation mode (influences model behaviour in some
+    # cases, e.g. `BatchNorm` doesn't compute the mean and standard deviation
+    # which means the model can be applied to just one point)
+    ae.eval()
+
     # 1) Make a way to perform latent shift by a given shift
 
     output = clf.softmax(input).detach()
@@ -146,7 +151,7 @@ def make_path(
     # We expect that when we go in the direction of the gradient,
     # the probability of the current class decreases.
     def clf_decode(z: LatentPoint) -> Logit:
-        ps = clf(ae.decode(z))
+        ps = clf(ae.decode(z)).squeeze()
         if target_class is None:
             # The probability of the current class should _decrease_
             # as the shift increases

@@ -22,25 +22,31 @@ Latent: TypeAlias = Union[LatentPoint, LatentBatch]
 
 
 @dataclass
-class ValueBetween:
+class NumberBetween:
     """Annotation to specify bounds on a numerical value.
 
     Attributes:
     -----------
     lo: Lower bound. `None` means there is no lower bound.
     hi: Upper bound. `None` means there is no upper bound.
-    exclude_lo: Whether or not `lo` is a valid value.
-    exclude_hi: Whether or not `hi` is a valid value.
+    exclude_lo: Whether or not `lo` is a valid value. Default is false.
+    exclude_hi: Whether or not `hi` is a valid value. Default is false.
     """
 
-    lo: Optional[float]
-    hi: Optional[float]
+    lo: float | None
+    hi: float | None
     exclude_lo: bool = False
     exclude_hi: bool = False
 
+    def __hash__(self):
+        return hash(repr(self))
 
-PositiveFloat: TypeAlias = Annotated[float, ValueBetween(0, None)]
-RelativeFloat: TypeAlias = Annotated[float, ValueBetween(0, 1)]
+
+PositiveFloat: TypeAlias = Annotated[float, NumberBetween(0, None)]
+RelativeFloat: TypeAlias = Annotated[float, NumberBetween(0, 1)]
+
+PositiveInt: TypeAlias = Annotated[int, NumberBetween(0, None)]
+StrictPositiveInt: TypeAlias = Annotated[int, NumberBetween(1, None)]
 
 AbsoluteDistance: TypeAlias = PositiveFloat
 Distance: TypeAlias = RelativeFloat
@@ -49,7 +55,7 @@ Logit: TypeAlias = float
 Probability: TypeAlias = RelativeFloat
 
 AbsoluteShift: TypeAlias = float
-Shift: TypeAlias = Annotated[float, ValueBetween(-1, 1)]
+Shift: TypeAlias = Annotated[float, NumberBetween(-1, 1)]
 
 
 @dataclass

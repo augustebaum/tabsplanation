@@ -7,12 +7,12 @@ Credits to:
 
 from torch import nn
 
-from .base_ae import BaseAutoEncoder, LossFn, ReconstructionLoss
+from .base_ae import AutoEncoder, LossFn, ReconstructionLoss
 from .decoder import Decoder
 from .encoder import Encoder
 
 
-class AE(BaseAutoEncoder):
+class AE(AutoEncoder):
     def __init__(
         self,
         encoder: Encoder,
@@ -42,7 +42,7 @@ class AE(BaseAutoEncoder):
 
     def step(self, batch, batch_idx):
         x, y = batch
-        z, x_hat = self._run_step(x)
+        _, x_hat = self._run_step(x)
 
         roundtrip_loss = self.loss_fn(x_hat, x)
         logs = {"roundtrip_loss": roundtrip_loss, "loss": roundtrip_loss}
