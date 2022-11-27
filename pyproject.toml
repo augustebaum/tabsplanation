@@ -56,4 +56,4 @@ disallow_untyped_defs = false
 ignore_errors = true
 
 [tool.usort.known]
-first_party = ["config", "tabsplanation", "data", "experiments"]
+first_party = ["config", "tabsplanation", "data", "experiments", "utils"]

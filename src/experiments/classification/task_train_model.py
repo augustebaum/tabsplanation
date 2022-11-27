@@ -1,5 +1,3 @@
-from datetime import datetime
-
 import pytask
 import pytorch_lightning as pl
 import torch
@@ -8,13 +6,9 @@ from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.loggers import TensorBoardLogger
 
 import tabsplanation.models.classifier
-from config import BLD_DATA, BLD_MODELS, get_configs
-from data.cake_on_sea.utils import hash_
+from config import BLD_DATA, BLD_MODELS
 from tabsplanation.data import split_dataset, SyntheticDataset
-
-
-def get_time() -> str:
-    return datetime.now().isoformat()
+from utils import get_configs, get_time, hash_
 
 
 cfgs = get_configs()

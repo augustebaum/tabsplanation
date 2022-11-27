@@ -3,8 +3,8 @@ import pytask
 import torch
 from omegaconf import OmegaConf
 
-from config import BLD_PLOT_DATA, BLD_PLOTS, get_configs
-from data.cake_on_sea.utils import hash_
+from config import BLD_PLOT_DATA, BLD_PLOTS
+from utils import get_configs, hash_
 
 
 cfgs = get_configs()

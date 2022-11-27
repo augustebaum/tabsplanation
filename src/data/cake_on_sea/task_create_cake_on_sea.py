@@ -5,8 +5,8 @@ import numpy as np
 import pytask
 from omegaconf import OmegaConf
 
-from config import BLD, get_configs
-from data.cake_on_sea.utils import hash_
+from config import BLD
+from utils import get_configs, hash_
 
 
 cfgs = get_configs()
