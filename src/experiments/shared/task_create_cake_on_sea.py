@@ -1,39 +1,38 @@
 import json
-from datetime import datetime
 
 import numpy as np
 import pytask
 from omegaconf import OmegaConf
 
-from config import BLD
-from utils import get_configs, hash_
+from config import BLD_DATA
+from experiments.shared.utils import get_configs, get_time, hash_
 
 
 cfgs = get_configs()
 
-# if cfg is a dict, do
-# cfg = cfg.data
-# if cfg is a list, extract all keys called "data" and
-# process each of them as dicts
+
+class TaskCreateCakeOnSea:
+    def __init__(self, cfg):
+        self.cfg = cfg.data
+
+        self.id_ = hash_(self.cfg)
+
+        produces_dir = BLD_DATA / "cake_on_sea" / self.id_
+        self.produces = {
+            "xs": produces_dir / "xs.npy",
+            "ys": produces_dir / "ys.npy",
+            "coefs": produces_dir / "coefs.npy",
+            "config": produces_dir / "config.yaml",
+            "metadata": produces_dir / "metadata.json",
+        }
 
 
 for cfg in cfgs:
-    cfg = cfg.data
+    task = TaskCreateCakeOnSea(cfg)
 
-    id_ = hash_(cfg)
-    produces_dir = BLD / "data" / "cake_on_sea" / id_
-    produces = {
-        "xs": produces_dir / "xs.npy",
-        "ys": produces_dir / "ys.npy",
-        "coefs": produces_dir / "coefs.npy",
-        "config": produces_dir / "config.yaml",
-        "metadata": produces_dir / "metadata.json",
-    }
-
-    @pytask.mark.task(id=id_)
-    @pytask.mark.produces(produces)
-    def task_create_cake_on_sea(produces, cfg=cfg):
-        print(cfg)
+    @pytask.mark.task(id=task.id_)
+    @pytask.mark.produces(task.produces)
+    def task_create_cake_on_sea(produces, cfg=task.cfg):
 
         rng = np.random.default_rng(cfg.seed)
 
@@ -83,7 +82,7 @@ for cfg in cfgs:
         points = np.c_[points, correlated_features]
 
         metadata = {
-            "generated_at": _get_time(),
+            "generated_at": get_time(),
             "class_0": class_0,
             "class_1": class_1,
             "class_2": class_2,
@@ -100,10 +99,6 @@ for cfg in cfgs:
 
         with open(produces["config"], "w") as f:
             OmegaConf.save(cfg, f)
-
-
-def _get_time() -> str:
-    return datetime.now().isoformat()
 
 
 # Take out dead zone

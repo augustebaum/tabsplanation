@@ -5,40 +5,37 @@ from omegaconf import OmegaConf
 from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.loggers import TensorBoardLogger
 
-import tabsplanation.models.classifier
-from config import BLD_DATA, BLD_MODELS
+from config import BLD_MODELS
+from experiments.shared.task_create_cake_on_sea import TaskCreateCakeOnSea
+from experiments.shared.utils import get_configs, get_time, hash_, setup
 from tabsplanation.data import split_dataset, SyntheticDataset
-from utils import get_configs, get_time, hash_
-
 
 cfgs = get_configs()
 
-# if cfg is a dict, do
-# cfg = cfg.model
-# if cfg is a list, extract all keys called "model" and
-# process each of them as dicts
+
+class TaskTrainModel:
+    def __init__(self, cfg):
+        self.cfg = cfg
+        task_create_cake_on_sea = TaskCreateCakeOnSea(self.cfg)
+        self.depends_on = task_create_cake_on_sea.produces
+
+        self.id_ = hash_(cfg.model)
+        produces_dir = BLD_MODELS / self.id_
+        self.produces = {
+            "tensorboard_logger": BLD_MODELS,
+            "model": produces_dir / "model.pt",
+            "config": produces_dir / "config.yaml",
+        }
+
 
 for cfg in cfgs:
-    data_dir = BLD_DATA / "cake_on_sea" / hash_(cfg.data)
-    depends_on = {
-        "xs": data_dir / "xs.npy",
-        "ys": data_dir / "ys.npy",
-        "coefs": data_dir / "coefs.npy",
-    }
+    task = TaskTrainModel(cfg)
 
-    id_ = hash_(cfg.model)
-    produces = {
-        "tensorboard_logger": BLD_MODELS,
-        "model": BLD_MODELS / id_ / "model.pt",
-        "config": BLD_MODELS / id_ / "config.yaml",
-    }
-
-    @pytask.mark.task(id=id_)
-    @pytask.mark.depends_on(depends_on)
-    @pytask.mark.produces(produces)
-    def task_train_model(depends_on, produces, cfg=cfg):
-        pl.seed_everything(cfg.seed, workers=True)
-        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    @pytask.mark.task(id=task.id_)
+    @pytask.mark.depends_on(task.depends_on)
+    @pytask.mark.produces(task.produces)
+    def task_train_model(depends_on, produces, cfg=task.cfg):
+        device = setup(cfg.seed)
 
         # TODO: Replace with DataModule
         # Note that I no longer need to specify nb_dims here
@@ -61,7 +58,9 @@ for cfg in cfgs:
             weighted_sampler=False,
         )
 
-        # TODO: Read this from model.class
+        # TODO: Read model from model.class
+        import tabsplanation.models.classifier
+
         model_class = tabsplanation.models.classifier.Classifier
         model = model_class(**cfg.model.args)
 
