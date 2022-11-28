@@ -3,17 +3,12 @@ import torch
 from omegaconf import OmegaConf
 
 from config import BLD_DATA, BLD_MODELS, BLD_PLOT_DATA
+from experiments.shared.utils import get_configs, hash_
 from tabsplanation.data import SyntheticDataset
 from tabsplanation.types import Tensor
-from utils import get_configs, hash_
 
 
-cfgs = get_configs()
-
-# if cfg is a dict, do
-# cfg = cfg.model
-# if cfg is a list, extract all keys called "model" and
-# process each of them as dicts
+cfgs = get_configs("classification")
 
 for cfg in cfgs:
     data_dir = BLD_DATA / "cake_on_sea" / hash_(cfg.data)
@@ -58,11 +53,8 @@ for cfg in cfgs:
             cfg.data.nb_dims,
             "cpu",
         )
-        # TODO: Fill the rest of the dimensions using the coefficients
-        # inputs = dataset.fill_2d_point(inputs_x)
-        inputs = torch.hstack(
-            [inputs_x, torch.zeros((len(inputs_x), cfg.data.nb_dims - 2))]
-        )
+
+        inputs = dataset.fill_from_2d_point(inputs_x)
 
         normalized_inputs = dataset.normalize(inputs)
 

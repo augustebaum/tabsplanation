@@ -1,0 +1,27 @@
+seed: 42
+data:
+  seed: ${seed}
+  gaussian: false
+  nb_points_initial: 100000
+  nb_dims: 250
+  nb_uncorrelated_dims: 2
+data_module:
+  validation_data_proportion: 0.2
+  test_data_proportion: 0.2
+  batch_size: 200
+model:
+  class: tabsplanation.model.Classifier
+  # name: ???
+  args:
+    output_dim: 3
+    hidden_dims: [50, 50]
+    batch_norm: False
+    dropout: null
+    learning_rate: 1e-3
+training:
+  patience: 5
+  max_epochs: -1
+plot_data_classification_logits:
+  lo: -20
+  hi: 70
+  nb_steps: 25

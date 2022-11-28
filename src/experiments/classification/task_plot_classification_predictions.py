@@ -4,15 +4,11 @@ import torch
 from omegaconf import OmegaConf
 
 from config import BLD_PLOT_DATA, BLD_PLOTS
-from utils import get_configs, hash_
+from experiments.shared.utils import get_configs, get_map_img, hash_, setup
 
 
-cfgs = get_configs()
+cfgs = get_configs("classification")
 
-# if cfg is a dict, do
-# cfg = cfg.model
-# if cfg is a list, extract all keys called "model" and
-# process each of them as dicts
 
 for cfg in cfgs:
     plot_data_dir = BLD_PLOT_DATA / "classification_logits" / hash_(cfg)
@@ -34,7 +30,7 @@ for cfg in cfgs:
     @pytask.mark.produces(produces)
     def task_plot_classification_predictions(depends_on, produces):
 
-        # set_matplotlib_style()
+        setup(cfg.seed)
         fig, ax = plt.subplots(layout="constrained")
 
         x = torch.load(depends_on["x"])
@@ -43,7 +39,9 @@ for cfg in cfgs:
 
         inputs = torch.cartesian_prod(x, x)
         ax.scatter(inputs[:, 0], inputs[:, 1], c=prbs, alpha=0.5, marker="s", zorder=1)
-        # ax.imshow(get_map_img(), origin="upper", extent=[0, 50, 0, 50], zorder=2)
+
+        ax.imshow(get_map_img(), origin="upper", extent=[0, 50, 0, 50], zorder=2)
+
         cfg_plot_data = cfg.plot_data_classification_logits
         ax.axis(
             [cfg_plot_data.lo, cfg_plot_data.hi, cfg_plot_data.lo, cfg_plot_data.hi]

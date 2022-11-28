@@ -5,15 +5,10 @@ from matplotlib.colors import LinearSegmentedColormap
 from omegaconf import OmegaConf
 
 from config import BLD_PLOT_DATA, BLD_PLOTS
-from utils import get_configs, hash_
+from experiments.shared.utils import get_configs, get_map_img, hash_, setup
 
 
-cfgs = get_configs()
-
-# if cfg is a dict, do
-# cfg = cfg.model
-# if cfg is a list, extract all keys called "model" and
-# process each of them as dicts
+cfgs = get_configs("classification")
 
 for cfg in cfgs:
     plot_data_dir = BLD_PLOT_DATA / "classification_logits" / hash_(cfg)
@@ -37,7 +32,7 @@ for cfg in cfgs:
         x = torch.load(depends_on["x"])
         logits = torch.load(depends_on["logits"])
 
-        # set_matplotlib_style()
+        setup(cfg.seed)
 
         nb_steps = len(x)
 
@@ -56,7 +51,8 @@ for cfg in cfgs:
         )
         plt.colorbar(cs)
 
-        # ax.imshow(get_map_img(), origin="upper", extent=[0, 50, 0, 50], zorder=2)
+        ax.imshow(get_map_img(), origin="upper", extent=[0, 50, 0, 50], zorder=2)
+
         lo = x[0]
         hi = x[-1]
         ax.axis([lo, hi, lo, hi])
