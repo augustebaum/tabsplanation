@@ -20,7 +20,7 @@ class TaskCreatePlotDataClass2Paths:
         self.depends_on |= task_train_model.produces
 
 
-cfgs = get_configs("classification")
+cfgs = get_configs("latent_shift")
 
 for cfg in cfgs:
     data_dir = BLD_DATA / "cake_on_sea" / hash_(cfg.data)

@@ -1,3 +1,5 @@
+import sys
+
 import pytask
 import pytorch_lightning as pl
 import torch
@@ -22,7 +24,6 @@ class TaskTrainModel:
         self.id_ = hash_(cfg.model)
         produces_dir = BLD_MODELS / self.id_
         self.produces = {
-            "tensorboard_logger": BLD_MODELS,
             "model": produces_dir / "model.pt",
             "config": produces_dir / "config.yaml",
         }
@@ -58,10 +59,7 @@ for cfg in cfgs:
             weighted_sampler=False,
         )
 
-        # TODO: Read model from model.class
-        import tabsplanation.models.classifier
-
-        model_class = tabsplanation.models.classifier.Classifier
+        model_class = _get_class(cfg.model.class_name)
         model = model_class(**cfg.model.args)
 
         early_stopping_cb = EarlyStopping(
@@ -69,10 +67,7 @@ for cfg in cfgs:
         )
 
         version = f"{model.__class__.__name__}_{hash_(cfg.model)}_{get_time()}"
-        tb_logger = TensorBoardLogger(
-            save_dir=produces["tensorboard_logger"],
-            version=version,
-        )
+        tb_logger = TensorBoardLogger(save_dir=BLD_MODELS, version=version)
 
         trainer = pl.Trainer(
             max_epochs=cfg.training.max_epochs,
@@ -89,3 +84,9 @@ for cfg in cfgs:
 
         OmegaConf.save(cfg, produces["config"])
         torch.save(model, produces["model"])
+
+
+def _get_class(class_name: str):
+    import tabsplanation.models  # ignore
+
+    return getattr(sys.modules["tabsplanation.models"], class_name)

@@ -10,7 +10,9 @@ data_module:
   test_data_proportion: 0.2
   batch_size: 200
 model:
-  class: tabsplanation.model.Classifier
+  # The name of the class, must be exported by `tabsplanation.models`
+  class_name: Classifier
+  # An optional name to recognize the model (not used yet)
   # name: ???
   args:
     output_dim: 3

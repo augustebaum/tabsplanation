@@ -7,13 +7,13 @@ from typing import List, Optional
 import torch
 from torch import nn
 
-from tabsplanation.autoencoder.architectures.base_ae import (
+from tabsplanation.models.autoencoder.architectures.base_ae import (
     BaseModel,
     ReconstructionLoss,
 )
-from tabsplanation.classifier import Classifier
-from tabsplanation.normalizing_flow.coupling_layers import AdditiveCouplingLayer
-from tabsplanation.normalizing_flow.losses import GaussianPriorLoss
+from tabsplanation.models.classifier import Classifier
+from tabsplanation.models.normalizing_flow.coupling_layers import AdditiveCouplingLayer
+from tabsplanation.models.normalizing_flow.losses import GaussianPriorLoss
 from tabsplanation.types import (
     Input,
     Latent,
