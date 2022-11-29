@@ -1,4 +1,6 @@
 seed: 42
+# Using variable interpolation, we can
+# define common dependencies just once and re-use them
 data:
   seed: ${seed}
   gaussian: false
@@ -9,19 +11,39 @@ data_module:
   validation_data_proportion: 0.2
   test_data_proportion: 0.2
   batch_size: 200
-model:
-  class: tabsplanation.model.Classifier
-  # name: ???
-  args:
-    output_dim: 3
-    hidden_dims: [50, 50]
-    batch_norm: False
-    dropout: null
-    learning_rate: 1e-3
 training:
   patience: 5
   max_epochs: -1
-plot_data_classification_logits:
-  lo: -20
-  hi: 70
-  nb_steps: 25
+models:
+  classifier:
+    seed: ${seed}
+    data: ${data}
+    data_module: ${data_module}
+    training: ${training}
+    model:
+      class_name: Classifier
+      # name: ???
+      args:
+        # TODO: Make this parameter given by data?
+        output_dim: 3
+        hidden_dims: [50, 50]
+        batch_norm: False
+        dropout: null
+        learning_rate: 1e-3
+  autoencoder:
+    seed: ${seed}
+    data: ${data}
+    data_module: ${data_module}
+    training: ${training}
+    model:
+      class_name: NICEModel
+      # name: ???
+      args:
+        # Go get the input dim from autoencoder.data
+        input_dim: ${...data.nb_dims}
+        mlp_hidden_dims: [50, 50]
+        batch_norm: False
+        dropout: null
+        learning_rate: 1e-3
+plot_data_class_2_paths:
+  nb_points: 20

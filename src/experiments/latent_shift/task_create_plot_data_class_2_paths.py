@@ -1,12 +1,16 @@
+import pickle
+
+import numpy as np
 import pytask
 import torch
 from omegaconf import OmegaConf
 
-from config import BLD_DATA, BLD_MODELS, BLD_PLOT_DATA
+from config import BLD_PLOT_DATA
 from experiments.shared.task_create_cake_on_sea import TaskCreateCakeOnSea
 from experiments.shared.task_train_model import TaskTrainModel
 from experiments.shared.utils import get_configs, hash_, save_config, setup
 from tabsplanation.data import SyntheticDataset
+from tabsplanation.explanations import make_path
 
 
 class TaskCreatePlotDataClass2Paths:
@@ -14,73 +18,69 @@ class TaskCreatePlotDataClass2Paths:
         self.cfg = cfg
 
         task_create_cake_on_sea = TaskCreateCakeOnSea(self.cfg)
-        self.depends_on = task_create_cake_on_sea.produces
+        task_train_autoencoder = TaskTrainModel(self.cfg.models.autoencoder)
+        task_train_classifier = TaskTrainModel(self.cfg.models.classifier)
 
-        task_train_model = TaskTrainModel(self.cfg)
-        self.depends_on |= task_train_model.produces
+        self.depends_on = (
+            task_create_cake_on_sea.produces
+            | {"autoencoder": task_train_autoencoder.produces}
+            | {"classifier": task_train_classifier.produces}
+        )
+
+        self.id_ = hash_(self.cfg)
+        plot_data_dir = BLD_PLOT_DATA / "class_2_paths" / self.id_
+        self.produces = {"config": plot_data_dir / "config.yaml", "paths": "paths.pkl"}
 
 
 cfgs = get_configs("latent_shift")
 
 for cfg in cfgs:
-    data_dir = BLD_DATA / "cake_on_sea" / hash_(cfg.data)
-    depends_on = {
-        "xs": data_dir / "xs.npy",
-        "ys": data_dir / "ys.npy",
-        "coefs": data_dir / "coefs.npy",
-    }
+    task = TaskCreatePlotDataClass2Paths(cfg)
 
-    model_dir = BLD_MODELS / hash_(cfg.model) / "model.pt"
-    depends_on |= {"model": model_dir}
+    @pytask.mark.task(id=task.id_)
+    @pytask.mark.depends_on(task.depends_on)
+    @pytask.mark.produces(task.produces)
+    def task_create_plot_data_class_2_paths(depends_on, produces, cfg=task.cfg):
 
-    id_ = hash_(cfg)
-    plot_data_dir = BLD_PLOT_DATA / "class_2_paths" / id_
-    produces = {
-        "config": plot_data_dir / "config.yaml",
-        "paths": "paths.pkl"
-        # "x0": plot_data_dir / "x0.pt",
-        # "logits": plot_data_dir / "logits.pt",
-    }
+        device = setup(cfg.seed)
 
-    @pytask.mark.task(id=id_)
-    @pytask.mark.depends_on(depends_on)
-    @pytask.mark.produces(produces)
-    def task_create_plot_data_class_2_paths(depends_on, produces, cfg=cfg):
+        dataset = SyntheticDataset(
+            depends_on["xs"],
+            depends_on["ys"],
+            depends_on["coefs"],
+            cfg.data.nb_dims,
+            device,
+        )
+        normalize = dataset.normalize
+        normalize_inverse = dataset.normalize_inverse
 
         inputs_denorm = []
 
         # Cover class 2 (4 corners and middle)
         margin = 2
+        nb_points = cfg.plot_data_class_2_paths.nb_points
+        inputs_denorm = torch.tensor(
+            np.c_[
+                np.linspace(35 + margin, 45 - margin, num=nb_points),
+                np.ones(nb_points) * 43,
+            ],
+            dtype=torch.float,
+        )
+        inputs_denorm = dataset.fill_from_2d_point(inputs_denorm)
 
-        inputs_denorm = np.c_[np.linspace(35 + margin, 45 - margin), np.ones(50) * 43]
+        # torch.set_printoptions(precision=3, sci_mode=False)
+        inputs = normalize(inputs_denorm)
 
-        inputs = dataset.normalize(torch.tensor(inputs_denorm).to(torch.float))
-
-        # ae = [ae for ae in aes if ae.model_name == "VAE"][0]
-        # clf = clfs[0]
-
-        # target_map = {0: 2, 1: None, 2: 0}
-
-        # def get_target_class(input):
-        #     return target_map[np.argmax(clf.softmax(input).detach()).item()]
-
-        torch.set_printoptions(precision=3, sci_mode=False)
+        clf = torch.load(depends_on["classifier"]["model"])
+        ae = torch.load(depends_on["autoencoder"]["model"])
         paths = [
-            make_path(
-                input=input,
-                target_class=get_target_class(input),
-                clf=clf,
-                ae=ae,
-            )
-            for input in inputs
+            make_path(input=input, target_class=0, clf=clf, ae=ae) for input in inputs
         ]
 
         for path in paths:
-            path.explained_input.input = dataset.normalize_inverse(
-                path.explained_input.input
-            )
-            path.xs = dataset.normalize_inverse(path.xs)
+            path.explained_input.input = normalize_inverse(path.explained_input.input)
+            path.xs = normalize_inverse(path.xs)
 
-        torch.save(logits, produces["logits"])
+        pickle.dump(paths, produces["paths"])
 
         save_config(cfg, produces["config"])

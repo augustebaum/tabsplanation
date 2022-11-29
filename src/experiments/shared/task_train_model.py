@@ -11,7 +11,8 @@ from experiments.shared.task_create_cake_on_sea import TaskCreateCakeOnSea
 from experiments.shared.utils import get_configs, get_time, hash_, save_config, setup
 from tabsplanation.data import split_dataset, SyntheticDataset
 
-cfgs = get_configs()
+cfgs = get_configs("latent_shift")
+cfg = cfgs[0]
 
 
 class TaskTrainModel:
@@ -28,8 +29,9 @@ class TaskTrainModel:
         }
 
 
-for cfg in cfgs:
-    task = TaskTrainModel(cfg)
+for model_name, model_cfg in cfg.models.items():
+    # for cfg in cfgs:
+    task = TaskTrainModel(model_cfg)
 
     @pytask.mark.task(id=task.id_)
     @pytask.mark.depends_on(task.depends_on)
