@@ -1,4 +1,4 @@
-def task_plot_class_2_paths():
+def plot_class_2_paths():
     fig, ax = plt.subplots(figsize=(5, 5), layout="constrained")
     for i, path in enumerate(paths):
         map_plot(ax, [path])

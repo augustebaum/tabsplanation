@@ -13,9 +13,9 @@ from matplotlib import colors as mcolors
 from matplotlib.collections import LineCollection
 from torchtyping import TensorType
 
-from .autoencoder.architectures import AutoEncoder
-from .classifier import Classifier
-from .types import (
+from tabsplanation.models.autoencoder.architectures import AutoEncoder
+from tabsplanation.models.classifier import Classifier
+from tabsplanation.types import (
     AbsoluteShift,
     Input,
     InputOutputPair,
