@@ -3,7 +3,6 @@ import pickle
 import numpy as np
 import pytask
 import torch
-from omegaconf import OmegaConf
 
 from config import BLD_PLOT_DATA
 from experiments.shared.task_create_cake_on_sea import TaskCreateCakeOnSea
@@ -29,7 +28,10 @@ class TaskCreatePlotDataClass2Paths:
 
         self.id_ = hash_(self.cfg)
         plot_data_dir = BLD_PLOT_DATA / "class_2_paths" / self.id_
-        self.produces = {"config": plot_data_dir / "config.yaml", "paths": "paths.pkl"}
+        self.produces = {
+            "config": plot_data_dir / "config.yaml",
+            "paths": plot_data_dir / "paths.pkl",
+        }
 
 
 cfgs = get_configs("latent_shift")
@@ -81,6 +83,7 @@ for cfg in cfgs:
             path.explained_input.input = normalize_inverse(path.explained_input.input)
             path.xs = normalize_inverse(path.xs)
 
-        pickle.dump(paths, produces["paths"])
+        with open(produces["paths"], "wb") as paths_file:
+            pickle.dump(paths, paths_file)
 
         save_config(cfg, produces["config"])

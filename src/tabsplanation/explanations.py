@@ -141,7 +141,7 @@ def make_path(
         )
 
     # Send the input to the latent space
-    z = ae.encode(input)
+    z = ae.encode(input.reshape((1, -1)))
 
     # Set up the gradient computation
     input.requires_grad = True
