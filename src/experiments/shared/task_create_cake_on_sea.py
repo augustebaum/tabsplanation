@@ -2,10 +2,9 @@ import json
 
 import numpy as np
 import pytask
-from omegaconf import OmegaConf
 
 from config import BLD_DATA
-from experiments.shared.utils import get_configs, get_time, hash_
+from experiments.shared.utils import get_configs, get_time, hash_, save_config
 
 
 cfgs = get_configs()
@@ -97,8 +96,7 @@ for cfg in cfgs:
         np.save(produces["xs"], points)
         np.save(produces["ys"], ys)
 
-        with open(produces["config"], "w") as f:
-            OmegaConf.save(cfg, f)
+        save_config(cfg, produces["config"])
 
 
 # Take out dead zone

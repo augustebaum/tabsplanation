@@ -3,13 +3,12 @@ import sys
 import pytask
 import pytorch_lightning as pl
 import torch
-from omegaconf import OmegaConf
 from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.loggers import TensorBoardLogger
 
 from config import BLD_MODELS
 from experiments.shared.task_create_cake_on_sea import TaskCreateCakeOnSea
-from experiments.shared.utils import get_configs, get_time, hash_, setup
+from experiments.shared.utils import get_configs, get_time, hash_, save_config, setup
 from tabsplanation.data import split_dataset, SyntheticDataset
 
 cfgs = get_configs()
@@ -82,8 +81,8 @@ for cfg in cfgs:
             val_dataloaders=loaders["validation"],
         )
 
-        OmegaConf.save(cfg, produces["config"])
         torch.save(model, produces["model"])
+        save_config(cfg, produces["config"])
 
 
 def _get_class(class_name: str):

@@ -5,7 +5,7 @@ from matplotlib.colors import LinearSegmentedColormap
 from omegaconf import OmegaConf
 
 from config import BLD_PLOT_DATA, BLD_PLOTS
-from experiments.shared.utils import get_configs, get_map_img, hash_, setup
+from experiments.shared.utils import get_configs, get_map_img, hash_, save_config, setup
 
 
 cfgs = get_configs("classification")
@@ -60,4 +60,4 @@ for cfg in cfgs:
         fig.savefig(produces["plot"])
         plt.show(block=True)
 
-        OmegaConf.save(cfg, produces["config"])
+        save_config(cfg, produces["config"])

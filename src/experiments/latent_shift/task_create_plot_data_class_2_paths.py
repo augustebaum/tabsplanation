@@ -5,7 +5,7 @@ from omegaconf import OmegaConf
 from config import BLD_DATA, BLD_MODELS, BLD_PLOT_DATA
 from experiments.shared.task_create_cake_on_sea import TaskCreateCakeOnSea
 from experiments.shared.task_train_model import TaskTrainModel
-from experiments.shared.utils import get_configs, hash_
+from experiments.shared.utils import get_configs, hash_, save_config, setup
 from tabsplanation.data import SyntheticDataset
 
 
@@ -83,4 +83,4 @@ for cfg in cfgs:
 
         torch.save(logits, produces["logits"])
 
-        OmegaConf.save(cfg, produces["config"])
+        save_config(cfg, produces["config"])

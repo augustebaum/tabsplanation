@@ -1,9 +1,8 @@
 import pytask
 import torch
-from omegaconf import OmegaConf
 
 from config import BLD_DATA, BLD_MODELS, BLD_PLOT_DATA
-from experiments.shared.utils import get_configs, hash_
+from experiments.shared.utils import get_configs, hash_, save_config
 from tabsplanation.data import SyntheticDataset
 from tabsplanation.types import Tensor
 
@@ -64,4 +63,4 @@ for cfg in cfgs:
         torch.save(x, produces["x0"])
         torch.save(logits, produces["logits"])
 
-        OmegaConf.save(cfg, produces["config"])
+        save_config(cfg, produces["config"])

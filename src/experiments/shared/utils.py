@@ -68,3 +68,7 @@ def get_configs(experiment_name: Optional[ExperimentName] = None) -> List[DictCo
         cfg_names = [f"{experiment_name}.yaml"]
     cfgs = [OmegaConf.load(cfgs_dir / name) for name in cfg_names]
     return cfgs
+
+
+def save_config(cfg: DictConfig, path: Path) -> None:
+    OmegaConf.save(cfg, path, resolve=True)
