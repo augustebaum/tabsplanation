@@ -1,0 +1,5 @@
+defaults:
+  - config
+  - _self_
+classifier:
+  hidden_dims: [50, 50, 50]

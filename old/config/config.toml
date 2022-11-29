@@ -1,0 +1,22 @@
+seed = 42
+
+[model]
+hidden_size = 10
+output_size = 1
+num_layers = 3
+
+[training]
+train_data_proportion = 0.8
+batch_size = 1
+learning_rate = 0.001
+nb_epochs = 20
+loss_fn = "MSELoss"
+
+[autoencoder]
+latent_dim = 3
+
+[autoencoder.training]
+train_data_proportion = 0.8
+batch_size = 100
+learning_rate = 1e-3
+nb_epochs = 200
