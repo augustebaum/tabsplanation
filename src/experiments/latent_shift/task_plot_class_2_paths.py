@@ -73,7 +73,7 @@ def _plot_path(ax: Axes, path: LatentShiftPath):
     ax.scatter(x[0], x[1], c="red")
 
     # Show CF path
-    cfs = path.xs[:, [0, 1]]
+    cfs = path.xs.squeeze()[:, [0, 1]]
     ax.add_collection(
         LineCollection(segments=[cfs], linestyles="dashed", linewidths=1, label="cf")
     )

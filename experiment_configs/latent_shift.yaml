@@ -5,14 +5,14 @@ data:
   seed: ${seed}
   gaussian: false
   nb_points_initial: 100000
-  nb_dims: 250
+  nb_dims: 2
   nb_uncorrelated_dims: 2
 data_module:
   validation_data_proportion: 0.2
   test_data_proportion: 0.2
   batch_size: 200
 training:
-  patience: 5
+  patience: 2
   max_epochs: -1
 models:
   classifier:
@@ -41,9 +41,10 @@ models:
       args:
         # Go get the input dim from autoencoder.data
         input_dim: ${...data.nb_dims}
-        mlp_hidden_dims: [50, 50]
+        mlp_hidden_dims: [50, 50, 50, 50]
         batch_norm: False
         dropout: null
         learning_rate: 1e-3
 plot_data_class_2_paths:
   nb_points: 20
+  path_algorithm: make_path

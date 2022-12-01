@@ -1,4 +1,5 @@
 import pickle
+import sys
 
 import numpy as np
 import pytask
@@ -9,7 +10,6 @@ from experiments.shared.task_create_cake_on_sea import TaskCreateCakeOnSea
 from experiments.shared.task_train_model import TaskTrainModel
 from experiments.shared.utils import get_configs, hash_, save_config, setup
 from tabsplanation.data import SyntheticDataset
-from tabsplanation.explanations import make_path
 
 
 class TaskCreatePlotDataClass2Paths:
@@ -44,6 +44,8 @@ for cfg in cfgs:
     @pytask.mark.produces(task.produces)
     def task_create_plot_data_class_2_paths(depends_on, produces, cfg=task.cfg):
 
+        cfg_plot = cfg.plot_data_class_2_paths
+
         device = setup(cfg.seed)
 
         dataset = SyntheticDataset(
@@ -60,7 +62,7 @@ for cfg in cfgs:
 
         # Cover class 2 (4 corners and middle)
         margin = 2
-        nb_points = cfg.plot_data_class_2_paths.nb_points
+        nb_points = cfg_plot.nb_points
         inputs_denorm = torch.tensor(
             np.c_[
                 np.linspace(35 + margin, 45 - margin, num=nb_points),
@@ -75,6 +77,7 @@ for cfg in cfgs:
 
         clf = torch.load(depends_on["classifier"]["model"])
         ae = torch.load(depends_on["autoencoder"]["model"])
+        make_path = _get_make_path_fn(cfg_plot.path_algorithm)
         paths = [
             make_path(input=input, target_class=0, clf=clf, ae=ae) for input in inputs
         ]
@@ -87,3 +90,9 @@ for cfg in cfgs:
             pickle.dump(paths, paths_file)
 
         save_config(cfg, produces["config"])
+
+
+def _get_make_path_fn(function_name: str):
+    import tabsplanation.explanations  # ignore
+
+    return getattr(sys.modules["tabsplanation.explanations"], function_name)

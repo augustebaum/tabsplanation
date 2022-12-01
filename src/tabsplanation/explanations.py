@@ -185,48 +185,122 @@ def make_path(
     )
 
 
-def add_legend(fig, handles):
-    fig.legend(
-        handles=handles,
-        loc="upper center",
-        bbox_to_anchor=(0.5, 1.01),
-        ncol=2,
-        # loc=9,
-        fancybox=True,
-        shadow=True,
+def make_path_recompute_gradient(
+    input: InputPoint,
+    target_class: Optional[int],
+    clf: Classifier,
+    ae: AutoEncoder,
+) -> LatentShiftPath:
+    """Produce counterfactual explanations for the given input point.
+
+    As opposed the `make_path`, here we recompute the gradient in latent
+    space at each step, to mitigate the effect of the gradient having
+    less significance the further away we perturb.
+
+    Inputs:
+    -------
+    input: Base input point to be perturbed. The point should be consistent
+        with the pre-processing used to train the auto-encoder and classifier.
+    target_class: Optional desired target class of the counterfactual. Should
+        be different from the originally predicted class.
+    clf: Classifier model to be explained.
+    ae: Auto-encoder model used to learn the latent representation. It should
+        implement an `encode` and a `decode` method.
+
+    Returns:
+    --------
+    explanations: Iterable of tuples, each of which containing a perturbed
+        input point along with its associated prediction probability.
+    """
+
+    # Switch AE to evaluation mode (influences model behaviour in some
+    # cases, e.g. `BatchNorm` doesn't compute the mean and standard deviation
+    # which means the model can be applied to just one point)
+    ae.eval()
+
+    # 1) Make a way to perform latent shift by a given shift
+
+    output = clf.softmax(input).detach()
+    output_class = np.argmax(output)
+    if target_class == output_class:
+        raise ValueError(
+            f"The target class is equal to the output class (class {output_class})."
+        )
+
+    # Send the input to the latent space
+    z_x = ae.encode(input.reshape((1, -1)))
+
+    # Set up the gradient computation
+    input.requires_grad = True
+
+    # This is the function of which we take the gradient.
+    # The gradient is the direction of steepest ascent.
+    # We expect that when we go in the direction of the gradient,
+    # the probability of the current class decreases.
+    def clf_decode(z: LatentPoint) -> Logit:
+        ps = clf(ae.decode(z)).squeeze()
+        if target_class is None:
+            # The probability of the current class should _decrease_
+            # as the shift increases
+            return -ps[output_class]
+        else:
+            # The probability of the current class should _decrease_
+            # and the probability of the target class should _increase_
+            # as the shift increases
+            return ps[target_class] - ps[output_class]
+
+    # Compute gradient of classifier at `z` in latent space
+    def get_gradient(z: LatentPoint):
+        return torch.autograd.grad(clf_decode(z), z)[0]
+
+    # 2) Apply latent shift, recomputing the gradient at each step
+
+    # Forward (make target class more probable)
+    forward_cfs = []
+    forward_shifts = []
+    shift = 0
+    shift_step = 0.001
+    criterion = True
+    z = z_x
+    while criterion:
+        z = z + shift * get_gradient(z)
+        cf_x = ae.decode(z)
+        cf_y = clf.softmax(cf_x)
+
+        forward_cfs.append(InputOutputPair(cf_x, cf_y))
+        forward_shifts.append(shift)
+
+        criterion = (cf_y.squeeze()[target_class] < 0.5) and shift < 1
+
+        shift = shift + shift_step
+
+    max_shift = shift
+
+    # Backward (make target class less probable)
+    backward_cfs = []
+    backward_shifts = []
+    shift_step = -shift_step
+    # Don't start at 0, we already have it
+    shift = 0 + shift_step
+    nb_forward_shifts = len(forward_shifts)
+    z = z_x
+    for _ in range(nb_forward_shifts - 1):
+        z = z + shift * get_gradient(z)
+        cf_x = ae.decode(z)
+        cf_y = clf.softmax(cf_x)
+        backward_cfs.append(InputOutputPair(cf_x, cf_y))
+        backward_shifts.append(shift)
+
+        shift = shift + shift_step
+
+    cfs = list(reversed(backward_cfs)) + forward_cfs
+    shifts = list(reversed(backward_shifts)) + forward_shifts
+
+    # 3) Pack explanations together neatly
+    return LatentShiftPath(
+        explained_input=InputOutputPair(input, output),
+        target_class=target_class,
+        maximum_shift=max_shift,
+        shifts=torch.tensor([shift / max_shift for shift in shifts], dtype=torch.float),
+        cfs=cfs,
     )
-
-
-# TODO: Annotate
-def make_line_collection(shifts, values, color, label):
-    """Make a `LineCollection` from some shifts and the corresponding
-    values."""
-    n = len(values)
-    segments = [torch.cat((s, v), dim=1) for s, v in zip(shifts, values)]
-    colors = [mcolors.to_rgba(color, alpha=0.2)] * n
-    line_widths = [2] * n
-
-    line_collection = LineCollection(
-        segments=segments, colors=colors, linewidths=line_widths, label=label
-    )
-    return line_collection
-
-
-# TODO: Annotate
-def make_explanations_measurements(explanations):
-    """For each input in `inputs`, generate some explanations and record the
-    shifts and other information."""
-
-    distances = []
-    probabilities = []
-    shifts = []
-
-    for explanation in explanations:
-
-        shifts_one, probabilities_one = explanation.as_tuple()
-
-        distances.append(explanation.distances)
-        shifts.append(shifts_one)
-        probabilities.append(probabilities_one)
-
-    return shifts, probabilities, distances
