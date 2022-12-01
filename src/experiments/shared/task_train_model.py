@@ -21,7 +21,7 @@ class TaskTrainModel:
         task_create_cake_on_sea = TaskCreateCakeOnSea(self.cfg)
         self.depends_on = task_create_cake_on_sea.produces
 
-        self.id_ = hash_(cfg.model)
+        self.id_ = hash_(cfg)
         produces_dir = BLD_MODELS / self.id_
         self.produces = {
             "model": produces_dir / "model.pt",
@@ -67,7 +67,7 @@ for model_name, model_cfg in cfg.models.items():
             monitor="val_loss", mode="min", patience=cfg.training.patience
         )
 
-        version = f"{model.__class__.__name__}_{hash_(cfg.model)}_{get_time()}"
+        version = f"{cfg.model.class_name}_{hash_(cfg)}_{get_time()}"
         tb_logger = TensorBoardLogger(save_dir=BLD_MODELS, version=version)
 
         trainer = pl.Trainer(
