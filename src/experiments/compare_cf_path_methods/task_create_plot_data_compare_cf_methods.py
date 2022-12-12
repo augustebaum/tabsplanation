@@ -1,9 +1,8 @@
-import pickle
+# import pickle
+import re
 import sys
 
-import numpy as np
 import pytask
-import torch
 
 from config import BLD_PLOT_DATA
 from experiments.shared.task_create_cake_on_sea import TaskCreateCakeOnSea
@@ -12,7 +11,27 @@ from experiments.shared.utils import get_configs, hash_, save_config, setup
 from tabsplanation.data import SyntheticDataset
 
 
-class TaskCreatePlotDataCFPathMethods:
+def camel_to_snake(str):
+    """
+    <https://www.geeksforgeeks.org/python-program-to-convert-camel-case-string-to-snake-case/>
+    No shame!
+    """
+    s1 = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", str)
+    return re.sub("([a-z0-9])([A-Z])", r"\1_\2", s1).lower()
+
+
+def get_module_object(module_path: str, object_name: str):
+    """Import module given by `module_path` and return a function
+    or class defined in that module with the name `object_name`."""
+    exec(f"import {module_path}")
+    return getattr(sys.modules[module_path], object_name)
+
+
+def _get_method(method_name):
+    return get_module_object("tabsplanation.explanations", method_name)
+
+
+class TaskCreatePlotDataCfPathMethods:
     def __init__(self, cfg):
         self.cfg = cfg
 
@@ -33,18 +52,10 @@ class TaskCreatePlotDataCFPathMethods:
             "results": plot_data_dir / "results.csv",
         }
 
+    @classmethod
+    def task_function(cls, depends_on, produces, cfg):
 
-cfgs = get_configs("latent_shift")
-
-for cfg in cfgs:
-    task = TaskCreatePlotDataCFPathMethods(cfg)
-
-    @pytask.mark.task(id=task.id_)
-    @pytask.mark.depends_on(task.depends_on)
-    @pytask.mark.produces(task.produces)
-    def task_create_plot_data_class_2_paths(depends_on, produces, cfg=task.cfg):
-
-        cfg_plot = cfg.plot_data_class_2_paths
+        # cfg_plot = cfg.plot_data_class_2_paths
 
         device = setup(cfg.seed)
 
@@ -60,50 +71,28 @@ for cfg in cfgs:
 
         results = {}
 
-        for method_name in cfg.methods:
-            method = _get_method(method_name)
+        for method_cfg in cfg.methods:
+            method_class = _get_method(method_cfg.class_name)
 
-            path = method.get_counterfactuals(x, y_target, clf, ae)
-            measurements = _measure(path)
-            results[method_name] = measurements
+            # for x in dataset:
+            #     path = method.get_counterfactuals(x, y_target, clf, ae)
+            #     measurements = _measure(path)
+            #     results[method_cfg.class_name] = measurements
 
-        # inputs_denorm = []
-
-        # # Cover class 2 (4 corners and middle)
-        # margin = 2
-        # nb_points = cfg_plot.nb_points
-        # inputs_denorm = torch.tensor(
-        #     np.c_[
-        #         np.linspace(35 + margin, 45 - margin, num=nb_points),
-        #         np.ones(nb_points) * 43,
-        #     ],
-        #     dtype=torch.float,
-        # )
-        # inputs_denorm = dataset.fill_from_2d_point(inputs_denorm)
-
-        # # torch.set_printoptions(precision=3, sci_mode=False)
-        # inputs = normalize(inputs_denorm)
-
-        # clf = torch.load(depends_on["classifier"]["model"])
-        # ae = torch.load(depends_on["autoencoder"]["model"])
-        # make_path = _get_make_path_fn(cfg_plot.path_algorithm)
-        # paths = [
-        #     make_path(input=input, target_class=0, clf=clf, ae=ae) for input in inputs
-        # ]
-
-        # for path in paths:
-        #     path.explained_input.input = normalize_inverse(path.explained_input.input)
-        #     path.xs = normalize_inverse(path.xs)
-
-        with open(produces["paths"], "wb") as paths_file:
-            pickle.dump(paths, paths_file)
+        # with open(produces["paths"], "wb") as paths_file:
+        #     pickle.dump(paths, paths_file)
 
         save_config(cfg, produces["config"])
 
 
-def _get_make_path_fn(function_name: str):
-    import tabsplanation.explanations.latent_shift  # ignore
+_task_class = TaskCreatePlotDataCfPathMethods
+cfgs = get_configs("compare_cf_methods")
 
-    return getattr(
-        sys.modules["tabsplanation.explanations.latent_shift"], function_name
-    )
+for cfg in cfgs:
+    _task = _task_class(cfg)
+
+    @pytask.mark.task(id=_task.id_)
+    @pytask.mark.depends_on(_task.depends_on)
+    @pytask.mark.produces(_task.produces)
+    def task_create_plot_data_cf_path_methods(depends_on, produces, cfg=_task.cfg):
+        _task_class.task_function(depends_on, produces, cfg)
