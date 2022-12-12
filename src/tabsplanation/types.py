@@ -1,11 +1,11 @@
 from dataclasses import dataclass
-from typing import Annotated, List, Optional, Tuple, TypeAlias, Union
+from typing import Annotated, Any, List, Optional, Tuple, TypeAlias, Union
 
 import numpy as np
 import torch
-from torchtyping import TensorType  # type: ignore
 
-Tensor: TypeAlias = TensorType
+# from torchtyping import TensorType  # type: ignore
+Tensor: TypeAlias = Any  # TensorType
 
 InputPoint: TypeAlias = Tensor["input_dim"]
 InputBatch: TypeAlias = Tensor["batch", "input_dim"]
@@ -93,10 +93,10 @@ class LatentShiftPath:
         self.maximum_shift = maximum_shift
         self.target_class = target_class
 
-        # TensorType["nb_explanations", "input_dim"]
+        # Tensor["nb_explanations", "input_dim"]
         self.xs = torch.cat([cf.x.unsqueeze(0) for cf in cfs])
 
-        # TensorType["nb_explanations", "input_dim"]
+        # Tensor["nb_explanations", "input_dim"]
         self.ys = torch.cat([cf.y.unsqueeze(0) for cf in cfs])
 
         self.shifts = shifts.reshape(-1, 1)

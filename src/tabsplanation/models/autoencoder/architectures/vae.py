@@ -8,15 +8,14 @@ from typing import Optional, Tuple, TypeAlias
 
 import torch
 from torch import nn
-from torchtyping import TensorType  # type: ignore
 
-from tabsplanation.types import Input, Latent, Output, PositiveFloat
+from tabsplanation.types import Input, Latent, Output, PositiveFloat, Tensor
 from .base_ae import AutoEncoder
 from .decoder import Decoder, DecoderNormalized, DecoderSigmoid
 from .encoder import Encoder
 
-Mu: TypeAlias = TensorType["batch", "latent_dim"]
-LogVar: TypeAlias = TensorType["batch", "latent_dim"]
+Mu: TypeAlias = Tensor["batch", "latent_dim"]
+LogVar: TypeAlias = Tensor["batch", "latent_dim"]
 
 
 class ELBOLoss(nn.Module):

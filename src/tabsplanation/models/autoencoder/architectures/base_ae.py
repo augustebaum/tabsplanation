@@ -4,11 +4,10 @@ from typing import Type, TypeAlias
 
 import pytorch_lightning as pl
 from torch import nn, optim
-from torchtyping import TensorType
 
+from tabsplanation.types import Tensor
 from .decoder import Decoder
 from .encoder import Encoder
-
 
 # PyTorch loss function
 LossFn: TypeAlias = Type["_LossFn"]
@@ -77,8 +76,8 @@ class ReconstructionLoss(nn.Module):
 
     def forward(
         self,
-        x: TensorType["batch", "input_dim"],
-        x_hat: TensorType["batch", "input_dim"],
+        x: Tensor["batch", "input_dim"],
+        x_hat: Tensor["batch", "input_dim"],
     ):
         return self.loss(x, x_hat) / len(x)
 

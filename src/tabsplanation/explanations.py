@@ -9,9 +9,6 @@ from typing import Optional, Union
 
 import numpy as np
 import torch
-from matplotlib import colors as mcolors
-from matplotlib.collections import LineCollection
-from torchtyping import TensorType
 
 from tabsplanation.models.autoencoder.architectures import AutoEncoder
 from tabsplanation.models.classifier import Classifier
@@ -23,6 +20,7 @@ from tabsplanation.types import (
     LatentPoint,
     LatentShiftPath,
     Logit,
+    Tensor,
 )
 
 
@@ -30,7 +28,7 @@ def latent_shift(
     ae: AutoEncoder,
     z: LatentPoint,
     gradient: LatentPoint,
-    shift: Union[AbsoluteShift, TensorType["nb_shifts", 1]],
+    shift: Union[AbsoluteShift, Tensor["nb_shifts", 1]],
 ) -> Input:
     if not isinstance(shift, torch.Tensor):
         shift = torch.tensor(shift)
