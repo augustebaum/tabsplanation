@@ -4,8 +4,14 @@ from typing import Annotated, Any, List, Optional, Tuple, TypeAlias, Union
 import numpy as np
 import torch
 
+
+class MyTensorTypeMock:
+    def __class_getitem__(cls, item: Any):
+        pass
+
+
 # from torchtyping import TensorType  # type: ignore
-Tensor: TypeAlias = Any  # TensorType
+Tensor: TypeAlias = MyTensorTypeMock  # TensorType
 
 InputPoint: TypeAlias = Tensor["input_dim"]
 InputBatch: TypeAlias = Tensor["batch", "input_dim"]
@@ -85,7 +91,7 @@ class LatentShiftPath:
         self,
         explained_input: InputOutputPair,
         target_class: Optional[int],
-        maximum_shift: Tensor["nb_shifts"] | Tensor["nb_shifts", 1],
+        maximum_shift: Union[Tensor["nb_shifts"], Tensor["nb_shifts", 1]],
         shifts: List[Shift],
         cfs: List[InputOutputPair],
     ):
