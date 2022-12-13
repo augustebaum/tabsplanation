@@ -10,6 +10,7 @@ from experiments.shared.utils import (
     get_module_object,
     hash_,
     save_config,
+    save_full_config,
     setup,
 )
 from tabsplanation.data import SyntheticDataset
@@ -42,6 +43,7 @@ class TaskCreatePlotDataCfPathMethods:
         self.produces = {
             "config": plot_data_dir / "config.yaml",
             # "results": plot_data_dir / "results.csv",
+            "full_config": plot_data_dir / "full_config.yaml",
         }
 
     @classmethod
@@ -106,4 +108,5 @@ for cfg in cfgs:
     @pytask.mark.produces(task.produces)
     def task_create_plot_data_cf_path_methods(depends_on, produces, cfg=task.cfg):
         _task_class.task_function(depends_on, produces, cfg)
+        save_full_config(cfg, produces["full_config"])
         save_config(cfg, produces["config"])

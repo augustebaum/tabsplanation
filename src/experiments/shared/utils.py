@@ -72,8 +72,12 @@ def get_configs(experiment_name: Optional[ExperimentName] = None) -> List[DictCo
     return cfgs
 
 
-def save_config(cfg: DictConfig, path: Path) -> None:
+def save_full_config(cfg: DictConfig, path: Path) -> None:
     OmegaConf.save(cfg, path, resolve=True)
+
+
+def save_config(cfg: DictConfig, path: Path) -> None:
+    OmegaConf.save(cfg, path, resolve=False)
 
 
 def get_module_object(module_path: str, object_name: str):
