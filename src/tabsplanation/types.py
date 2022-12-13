@@ -91,21 +91,24 @@ class ExplanationPath:
         self,
         explained_input: InputOutputPair,
         target_class: Optional[int],
-        maximum_shift: Union[Tensor["nb_shifts"], Tensor["nb_shifts", 1]],
-        shifts: List[Shift],
+        # maximum_shift: Union[Tensor["nb_shifts"], Tensor["nb_shifts", 1]],
+        # shifts: List[Shift],
+        shift_step: AbsoluteShift,
+        max_iter: PositiveInt,
         cfs: List[InputOutputPair],
     ):
         self.explained_input = explained_input
-        self.maximum_shift = maximum_shift
+        # self.maximum_shift = maximum_shift
         self.target_class = target_class
 
         # Tensor["nb_explanations", "input_dim"]
-        self.xs = torch.cat([cf.x.unsqueeze(0) for cf in cfs])
+
+        self.xs = torch.cat([cf.x.reshape(1, -1) for cf in cfs])
 
         # Tensor["nb_explanations", "input_dim"]
-        self.ys = torch.cat([cf.y.unsqueeze(0) for cf in cfs])
+        self.ys = torch.cat([cf.y.reshape(1, -1) for cf in cfs])
 
-        self.shifts = shifts.reshape(-1, 1)
+        # self.shifts = shifts.reshape(-1, 1)
 
     @property
     def distances(self) -> Tensor:
@@ -114,7 +117,7 @@ class ExplanationPath:
 
         x = self.explained_input.x
         # 1-by-N
-        distances = torch.cdist(x.unsqueeze(0), self.xs)
+        distances = torch.cdist(x.reshape(1, -1), self.xs)
         # distances = distances / max(distances)
         distances = torch.reshape(distances, (-1, 1))
         return distances

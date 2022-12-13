@@ -29,6 +29,9 @@ class LatentShift:
         self.classifier = classifier
         self.autoencoder = autoencoder
 
+        self._shift_step = hparams["shift_step"]
+        self._max_iter = hparams["max_iter"]
+
     def get_counterfactuals(
         self,
         input: InputPoint,
@@ -68,8 +71,8 @@ class LatentShift:
 
         # 1) Make a way to perform latent shift by a given shift
 
-        output = clf.softmax(input).detach()
-        output_class = np.argmax(output)
+        output = clf.predict_proba(input).detach()
+        output_class = torch.argmax(output, dim=-1)
         if target_class == output_class:
             raise ValueError(
                 f"The target class is equal to the output class (class {output_class})."
@@ -103,21 +106,26 @@ class LatentShift:
         # 2) Apply latent shift
 
         # 2a) Figure out how far we should shift
-        max_shift = self._find_max_shift(
-            ae, clf, z, gradient, output_class, target_class
-        )
+        # max_shift = self._find_max_shift(
+        #     ae, clf, z, gradient, output_class, target_class
+        # )
 
         # 2b) Compute latent shifts
-        shifts = np.linspace(-max_shift, max_shift).reshape(-1, 1)
+        # shifts = np.linspace(-max_shift, max_shift).reshape(-1, 1)
+        shifts = torch.tensor(
+            [i * self._shift_step for i in range(self._max_iter)]
+        ).reshape(-1, 1)
         cf_xs = self._latent_shift(ae, z, gradient, shifts)
-        cf_ys = clf.softmax(cf_xs)
+        cf_ys = clf.predict_proba(cf_xs)
 
         # 3) Pack explanations together neatly
         return ExplanationPath(
             explained_input=InputOutputPair(input, output),
             target_class=target_class,
-            maximum_shift=max_shift,
-            shifts=shifts / max_shift,
+            # maximum_shift=max_shift,
+            # shifts=shifts / max_shift,
+            shift_step=self._shift_step,
+            max_iter=self._max_iter,
             cfs=[InputOutputPair(cf_x, cf_y) for cf_x, cf_y in zip(cf_xs, cf_ys)],
         )
 
@@ -157,7 +165,7 @@ class LatentShift:
         # Increasing sequence of shifts
         shifts = np.logspace(-3, 1).reshape(-1, 1)
         xs = self._latent_shift(ae, z, gradient, shifts)
-        prbs = clf.softmax(xs)
+        prbs = clf.predict_proba(xs)
 
         # Take out the probabilities that don't interest us
         if target_class is None:
@@ -229,7 +237,7 @@ class LatentShiftRecomputeGradient(LatentShift):
 
         # 1) Make a way to perform latent shift by a given shift
 
-        output = clf.softmax(input).detach()
+        output = clf.predict_proba(input).detach()
         output_class = np.argmax(output)
         if target_class == output_class:
             raise ValueError(
@@ -274,7 +282,7 @@ class LatentShiftRecomputeGradient(LatentShift):
         while criterion:
             z = z + shift * get_gradient(z)
             cf_x = ae.decode(z)
-            cf_y = clf.softmax(cf_x)
+            cf_y = clf.predict_proba(cf_x)
 
             forward_cfs.append(InputOutputPair(cf_x, cf_y))
             forward_shifts.append(shift)
@@ -296,7 +304,7 @@ class LatentShiftRecomputeGradient(LatentShift):
         for _ in range(nb_forward_shifts - 1):
             z = z + shift * get_gradient(z)
             cf_x = ae.decode(z)
-            cf_y = clf.softmax(cf_x)
+            cf_y = clf.predict_proba(cf_x)
             backward_cfs.append(InputOutputPair(cf_x, cf_y))
             backward_shifts.append(shift)
 

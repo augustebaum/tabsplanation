@@ -6,7 +6,7 @@ import torch
 from torch import nn
 
 from tabsplanation.models.base_model import BaseModel
-from tabsplanation.types import RelativeFloat, StrictPositiveInt
+from tabsplanation.types import RelativeFloat, StrictPositiveInt, Tensor
 
 
 class Classifier(BaseModel):
@@ -59,12 +59,15 @@ class Classifier(BaseModel):
 
         self.loss_fn = nn.CrossEntropyLoss(reduction="mean")
 
-    def forward(self, X: torch.Tensor):
+    def forward(self, X: Tensor):
         return self.layers(X)
 
-    def softmax(self, X: torch.Tensor):
+    def predict_proba(self, X: Tensor):
         logits = self.layers(X)
         return torch.softmax(logits, dim=-1)
+
+    def predict(self, X: Tensor):
+        return self.predict_proba(X).argmax(dim=-1)
 
     def step(self, batch, batch_idx):
         x, y = batch
