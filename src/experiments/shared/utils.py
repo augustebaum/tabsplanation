@@ -63,7 +63,7 @@ def get_configs(experiment_name: Optional[ExperimentName] = None) -> List[DictCo
     """Read experiment configuration files."""
     cfgs_dir = ROOT / "experiment_configs"
     if experiment_name is None:
-        cfg_names = os.listdir(cfgs_dir)
+        cfg_names = [file for file in os.listdir(cfgs_dir) if file.endswith(".yaml")]
     else:
         cfg_names = [f"{experiment_name}.yaml"]
     cfgs = [OmegaConf.load(cfgs_dir / name) for name in cfg_names]

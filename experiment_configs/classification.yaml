@@ -9,20 +9,23 @@ data_module:
   validation_data_proportion: 0.2
   test_data_proportion: 0.2
   batch_size: 200
-model:
-  # The name of the class, must be exported by `tabsplanation.models`
-  class_name: Classifier
-  # An optional name to recognize the model (not used yet)
-  # name: ???
-  args:
-    output_dim: 3
-    hidden_dims: [50, 50]
-    batch_norm: False
-    dropout: null
-    learning_rate: 1e-3
 training:
   patience: 5
   max_epochs: -1
+classifier:
+  seed: ${seed}
+  data: ${data}
+  data_module: ${data_module}
+  training: ${training}
+  model:
+    # The name of the class, must be exported by `tabsplanation.models`
+    class_name: Classifier
+    args:
+      output_dim: 3
+      hidden_dims: [50, 50]
+      batch_norm: False
+      dropout: null
+      learning_rate: 1e-3
 plot_data_classification_logits:
   lo: -20
   hi: 70

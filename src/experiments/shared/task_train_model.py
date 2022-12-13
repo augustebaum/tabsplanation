@@ -1,18 +1,38 @@
-import sys
+"""
+Train a model based on a model config, which contains information on
+the data to use for training, the training parameters (batch size, number
+of epochs...) and the model to use (including its hyperparameters).
+
+Assuming the shape of a model config is unlikely to change,
+in order for this module to be versatile we need to parse all config
+files for model configs, where the model configs are identified by
+the key names (either "autoencoder" or "classifier").
+"""
+from typing import Dict, List
 
 import pytask
 import pytorch_lightning as pl
 import torch
+
+from omegaconf import OmegaConf
 from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.loggers import TensorBoardLogger
 
 from config import BLD_MODELS
 from experiments.shared.task_create_cake_on_sea import TaskCreateCakeOnSea
-from experiments.shared.utils import get_configs, get_time, hash_, save_config, setup
+from experiments.shared.utils import (
+    get_configs,
+    get_module_object,
+    get_time,
+    hash_,
+    save_config,
+    setup,
+)
 from tabsplanation.data import split_dataset, SyntheticDataset
 
-cfgs = get_configs("latent_shift")
-cfg = cfgs[0]
+
+def _get_class(class_name: str):
+    return get_module_object("tabsplanation.models", class_name)
 
 
 class TaskTrainModel:
@@ -28,15 +48,8 @@ class TaskTrainModel:
             "config": produces_dir / "config.yaml",
         }
 
-
-for model_name, model_cfg in cfg.models.items():
-    # for cfg in cfgs:
-    task = TaskTrainModel(model_cfg)
-
-    @pytask.mark.task(id=task.id_)
-    @pytask.mark.depends_on(task.depends_on)
-    @pytask.mark.produces(task.produces)
-    def task_train_model(depends_on, produces, cfg=task.cfg):
+    @classmethod
+    def task_function(cls, depends_on, produces, cfg):
         device = setup(cfg.seed)
 
         # TODO: Replace with DataModule
@@ -84,10 +97,39 @@ for model_name, model_cfg in cfg.models.items():
         )
 
         torch.save(model, produces["model"])
-        save_config(cfg, produces["config"])
 
 
-def _get_class(class_name: str):
-    import tabsplanation.models  # ignore
+def find_model_cfgs(cfg: Dict) -> List:
+    """Given a config dict, recover all the values where the key
+    is "autoencoder" or "classifier"."""
 
-    return getattr(sys.modules["tabsplanation.models"], class_name)
+    # Alter the Depth-First-Search (DFS) algorithm slightly
+    def modified_dfs(dict_: Dict, result: List) -> List:
+        for k, v in dict_.items():
+            # If the key fits, we don't need to go inside
+            if k in ["autoencoder", "classifier"]:
+                result.append(v)
+            elif isinstance(v, dict):
+                result = modified_dfs(v, result)
+        return result
+
+    return modified_dfs(cfg, [])
+
+
+cfgs = get_configs()
+
+_task_class = TaskTrainModel
+
+for cfg in cfgs:
+    model_cfgs: List[Dict] = find_model_cfgs(OmegaConf.to_object(cfg))
+
+    for model_cfg in model_cfgs:
+        # Task classes take an omegaconf, not a dict
+        task = _task_class(OmegaConf.create(model_cfg))
+
+        @pytask.mark.task(id=task.id_)
+        @pytask.mark.depends_on(task.depends_on)
+        @pytask.mark.produces(task.produces)
+        def task_train_model(depends_on, produces, cfg=task.cfg):
+            _task_class.task_function(depends_on, produces, cfg)
+            save_config(cfg, produces["config"])

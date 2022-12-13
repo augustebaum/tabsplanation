@@ -17,7 +17,7 @@ for cfg in cfgs:
         "coefs": data_dir / "coefs.npy",
     }
 
-    model_dir = BLD_MODELS / hash_(cfg.model) / "model.pt"
+    model_dir = BLD_MODELS / hash_(cfg.classifier) / "model.pt"
     depends_on |= {"model": model_dir}
 
     id_ = hash_(cfg)
