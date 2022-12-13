@@ -5,7 +5,7 @@ from typing import List, Optional
 import torch
 from torch import nn
 
-from tabsplanation.models.autoencoder.architectures.base_ae import BaseModel
+from tabsplanation.models.base_model import BaseModel
 from tabsplanation.types import RelativeFloat, StrictPositiveInt
 
 

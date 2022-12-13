@@ -7,7 +7,7 @@ Credits to:
 
 from torch import nn
 
-from .base_ae import AutoEncoder, LossFn, ReconstructionLoss
+from .base_ae import AutoEncoder, ReconstructionLoss
 from .decoder import Decoder
 from .encoder import Encoder
 
@@ -23,7 +23,7 @@ class AE(AutoEncoder):
     ):
         super(AE, self).__init__(encoder, decoder, learning_rate)
 
-        self.loss_fn: LossFn = ReconstructionLoss()
+        self.loss_fn = ReconstructionLoss()
         self.embedding = nn.Linear(encoder.hidden_dim, decoder.latent_dim)
 
     def encode(self, x):
