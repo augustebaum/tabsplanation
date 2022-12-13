@@ -5,12 +5,12 @@ autoencoder.
 `prb` stands for "probability".
 """
 
-from typing import Optional, Union
+from typing import Dict, Optional, Union
 
 import numpy as np
 import torch
 
-from tabsplanation.models.autoencoder.architectures import AutoEncoder
+from tabsplanation.models.autoencoder import AutoEncoder
 from tabsplanation.models.classifier import Classifier
 from tabsplanation.types import (
     AbsoluteShift,
@@ -25,7 +25,7 @@ from tabsplanation.types import (
 
 
 class LatentShift:
-    def __init__(self, classifier: Classifier, autoencoder: AutoEncoder):
+    def __init__(self, classifier: Classifier, autoencoder: AutoEncoder, hparams: Dict):
         self.classifier = classifier
         self.autoencoder = autoencoder
 
@@ -33,8 +33,6 @@ class LatentShift:
         self,
         input: InputPoint,
         target_class: Optional[int],
-        clf: Classifier,
-        ae: AutoEncoder,
     ) -> LatentShiftPath:
         """Produce counterfactual explanations for the given input point.
 
@@ -60,6 +58,8 @@ class LatentShift:
         explanations: Iterable of tuples, each of which containing a perturbed
             input point along with its associated prediction probability.
         """
+        ae = self.autoencoder
+        clf = self.classifier
 
         # Switch AE to evaluation mode (influences model behaviour in some
         # cases, e.g. `BatchNorm` doesn't compute the mean and standard deviation

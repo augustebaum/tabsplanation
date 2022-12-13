@@ -50,6 +50,7 @@ methods:
     args:
       classifier: ${models.classifier}
       autoencoder: ${models.autoencoder}
+      hparams:
   - class_name: Revise
     args:
       classifier: ${models.classifier}

@@ -1,6 +1,8 @@
 import hashlib
 import json
 import os
+import re
+import sys
 from datetime import datetime
 from pathlib import Path
 from typing import List, Literal, Optional, Tuple, TypeAlias
@@ -72,3 +74,22 @@ def get_configs(experiment_name: Optional[ExperimentName] = None) -> List[DictCo
 
 def save_config(cfg: DictConfig, path: Path) -> None:
     OmegaConf.save(cfg, path, resolve=True)
+
+
+def get_module_object(module_path: str, object_name: str):
+    """Import module given by `module_path` and return a function
+    or class defined in that module with the name `object_name`."""
+    exec(f"import {module_path}")
+    return getattr(sys.modules[module_path], object_name)
+
+
+# This is to generate task functions dynamically from a task class
+# But this doesn't work yet: <https://github.com/pytask-dev/pytask/issues/324>
+def camel_to_snake(str):
+    """
+    <https://www.geeksforgeeks.org/python-program-to-convert-camel-case-string-to-snake-case/>
+    No shame!
+    """
+
+    s1 = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", str)
+    return re.sub("([a-z0-9])([A-Z])", r"\1_\2", s1).lower()

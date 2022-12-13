@@ -15,6 +15,9 @@ import pandas as pd
 import torch
 from torch import nn
 
+from tabsplanation.models.autoencoder import AutoEncoder
+from tabsplanation.models.classifier import Classifier
+
 
 class Revise:
     """
@@ -93,9 +96,11 @@ class Revise:
     #     },
     # }
 
-    def __init__(self, ml_model, data, hyperparams: Dict = None) -> None:
+    def __init__(
+        self, classifier: Classifier, autoencoder: AutoEncoder, hparams: Dict
+    ) -> None:
 
-        super().__init__(ml_model)
+        super().__init__(classifier)
         # self._params = merge_default_parameters(hyperparams, self._DEFAULT_HYPERPARAMS)
 
         # self._target_column = data.target
@@ -126,6 +131,8 @@ class Revise:
         #         raise FileNotFoundError(
         #             "Loading of Autoencoder failed. {}".format(str(exc))
         #         )
+        self.classifier = classifier
+        self.autoencoder = autoencoder
 
     def get_counterfactuals(self, factuals: pd.DataFrame) -> pd.DataFrame:
         device = "cuda" if torch.cuda.is_available() else "cpu"
