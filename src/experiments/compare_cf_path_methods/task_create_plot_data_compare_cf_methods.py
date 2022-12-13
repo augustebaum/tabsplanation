@@ -1,3 +1,5 @@
+import pickle
+
 import pytask
 import torch
 from omegaconf import OmegaConf
@@ -14,10 +16,37 @@ from experiments.shared.utils import (
     setup,
 )
 from tabsplanation.data import SyntheticDataset
+from tabsplanation.models.autoencoder import AutoEncoder
+from tabsplanation.types import ExplanationPath
 
 
-def _get_method(method_name):
+def _get_method(method_name: str):
     return get_module_object("tabsplanation.explanations", method_name)
+
+
+# This assumes the AutoEncoder is really a normalizing flow,
+# and that `step` computes the log-likelihood.
+def _make_path_result(autoencoder: AutoEncoder, path: ExplanationPath):
+    path_result = {}
+
+    path_result["explained_input"] = path.explained_input
+    path_result["target_class"] = path.target_class
+    path_result["cf_xs"] = path.xs
+    path_result["cf_ys"] = path.ys
+
+    # Get distances
+    path_result["distances_to_input"] = path.distances
+
+    # Get likelihoods
+    # TODO: ys are not necessary
+    log_likelihoods = []
+    for x in path.xs:
+        nll, _ = autoencoder.step((x.reshape(1, -1), None), None)
+        log_likelihoods.append(-nll)
+
+    path_result["likelihoods_nf"] = torch.exp(torch.stack(log_likelihoods))
+
+    return path_result
 
 
 class TaskCreatePlotDataCfPathMethods:
@@ -42,8 +71,8 @@ class TaskCreatePlotDataCfPathMethods:
         plot_data_dir = BLD_PLOT_DATA / "cf_path_methods" / self.id_
         self.produces = {
             "config": plot_data_dir / "config.yaml",
-            # "results": plot_data_dir / "results.csv",
             "full_config": plot_data_dir / "full_config.yaml",
+            "results": plot_data_dir / "results.pkl",
         }
 
     @classmethod
@@ -66,17 +95,15 @@ class TaskCreatePlotDataCfPathMethods:
         for method_cfg in cfg.methods:
             # Recover the class from its name
             method_class = _get_method(method_cfg.class_name)
-            # import pdb
+            results[method_cfg.class_name] = []
 
-            # pdb.set_trace()
-
+            # Instantiate method
             autoencoder = torch.load(
                 depends_on[f"autoencoder_{method_cfg.class_name}"]["model"]
             )
             classifier = torch.load(
                 depends_on[f"classifier_{method_cfg.class_name}"]["model"]
             )
-            # Instantiate method using parameters from config
             kwargs = OmegaConf.to_object(method_cfg.args) | {
                 "autoencoder": autoencoder,
                 "classifier": classifier,
@@ -88,13 +115,16 @@ class TaskCreatePlotDataCfPathMethods:
             # for i, x in test_data:
             for x in xs:
                 # path = method.get_counterfactuals(x, target_map[i])
-                path = method.get_counterfactuals(x, 2)
-                # measurements = _measure(path)
-                print(path)
-                # results[method_cfg.class_name] = measurements
+                y_pred = classifier.predict(x)
+                y_target = (y_pred + 1) % 3
+                # TODO: Use context to measure time taken
+                path = method.get_counterfactuals(x, y_target)
 
-        # with open(produces["paths"], "wb") as paths_file:
-        #     pickle.dump(paths, paths_file)
+                path_result = _make_path_result(autoencoder, path)
+                results[method_cfg.class_name].append(path_result)
+
+        with open(produces["results"], "wb") as paths_file:
+            pickle.dump(results, paths_file)
 
 
 cfgs = get_configs("compare_cf_methods")
