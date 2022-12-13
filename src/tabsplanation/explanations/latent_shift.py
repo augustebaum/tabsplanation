@@ -14,11 +14,11 @@ from tabsplanation.models.autoencoder import AutoEncoder
 from tabsplanation.models.classifier import Classifier
 from tabsplanation.types import (
     AbsoluteShift,
+    ExplanationPath,
     Input,
     InputOutputPair,
     InputPoint,
     LatentPoint,
-    LatentShiftPath,
     Logit,
     Tensor,
 )
@@ -33,7 +33,7 @@ class LatentShift:
         self,
         input: InputPoint,
         target_class: Optional[int],
-    ) -> LatentShiftPath:
+    ) -> ExplanationPath:
         """Produce counterfactual explanations for the given input point.
 
         The class of the explanation should be different from the originally
@@ -113,7 +113,7 @@ class LatentShift:
         cf_ys = clf.softmax(cf_xs)
 
         # 3) Pack explanations together neatly
-        return LatentShiftPath(
+        return ExplanationPath(
             explained_input=InputOutputPair(input, output),
             target_class=target_class,
             maximum_shift=max_shift,
@@ -199,7 +199,7 @@ class LatentShiftRecomputeGradient(LatentShift):
         target_class: Optional[int],
         clf: Classifier,
         ae: AutoEncoder,
-    ) -> LatentShiftPath:
+    ) -> ExplanationPath:
         """Produce counterfactual explanations for the given input point.
 
         As opposed the `make_path`, here we recompute the gradient in latent
@@ -306,7 +306,7 @@ class LatentShiftRecomputeGradient(LatentShift):
         shifts = list(reversed(backward_shifts)) + forward_shifts
 
         # 3) Pack explanations together neatly
-        return LatentShiftPath(
+        return ExplanationPath(
             explained_input=InputOutputPair(input, output),
             target_class=target_class,
             maximum_shift=max_shift,

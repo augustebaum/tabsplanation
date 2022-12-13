@@ -10,7 +10,7 @@ from experiments.latent_shift.task_create_plot_data_class_2_paths import (
     TaskCreatePlotDataClass2Paths,
 )
 from experiments.shared.utils import get_configs, get_map_img, hash_, save_config, setup
-from tabsplanation.types import LatentShiftPath
+from tabsplanation.types import ExplanationPath
 
 
 class TaskPlotClass2Paths:
@@ -61,7 +61,7 @@ for cfg in cfgs:
         save_config(cfg, produces["config"])
 
 
-def _plot_path(ax: Axes, path: LatentShiftPath):
+def _plot_path(ax: Axes, path: ExplanationPath):
 
     margin = 5
     ax.axis([0 - margin, 50 + margin, 0 - margin, 50 + margin])

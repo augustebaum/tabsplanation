@@ -17,6 +17,7 @@ from torch import nn
 
 from tabsplanation.models.autoencoder import AutoEncoder
 from tabsplanation.models.classifier import Classifier
+from tabsplanation.types import ExplanationPath, InputOutputPair, InputPoint
 
 
 class Revise:

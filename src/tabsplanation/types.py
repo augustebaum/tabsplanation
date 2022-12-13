@@ -86,7 +86,7 @@ class InputOutputPair:
         return self.output.detach()
 
 
-class LatentShiftPath:
+class ExplanationPath:
     def __init__(
         self,
         explained_input: InputOutputPair,
