@@ -8,10 +8,8 @@ You can find the original implementation here:
 <https://github.com/carla-recourse/CARLA/blob/9595d4f6609ff604bc22d9b8e6cd728ecf18737b/carla/recourse_methods/catalog/revise/model.py>
 """
 
-from typing import Dict
+from typing import Dict, Optional
 
-import numpy as np
-import pandas as pd
 import torch
 from torch import nn
 
@@ -41,7 +39,8 @@ class Revise:
     Notes
     -----
     - Hyperparams
-        Hyperparameter contains important information for the recourse method to initialize.
+        Hyperparameter contains important information for the recourse method to
+        initialize.
         Please make sure to pass all values as dict with the following keys.
 
         * "data_name": str
@@ -75,7 +74,7 @@ class Revise:
                 Batch-size for VAE training
 
     .. [1] Shalmali Joshi, Oluwasanmi Koyejo, Warut Vijitbenjaronk, Been Kim, and Joydeep Ghosh.2019.
-            Towards Realistic  Individual Recourse  and Actionable Explanations  in Black-BoxDecision Making Systems.
+            Towards Realistic Individual Recourse and Actionable Explanations in Black-Box Decision Making Systems.
             arXiv preprint arXiv:1907.09615(2019).
     """
 
@@ -101,14 +100,14 @@ class Revise:
         self, classifier: Classifier, autoencoder: AutoEncoder, hparams: Dict
     ) -> None:
 
-        super().__init__(classifier)
+        # super().__init__(classifier)
         # self._params = merge_default_parameters(hyperparams, self._DEFAULT_HYPERPARAMS)
 
         # self._target_column = data.target
-        # self._lambda = self._params["lambda"]
-        # self._optimizer = self._params["optimizer"]
-        # self._lr = self._params["lr"]
-        # self._max_iter = self._params["max_iter"]
+        self._distance_reg = hparams["distance_regularization"]
+        self._optimizer = hparams["optimizer"]
+        self._lr = hparams["lr"]
+        self._max_iter = hparams["max_iter"]
         # self._target_class = self._params["target_class"]
         # self._binary_cat_features = self._params["binary_cat_features"]
 
@@ -135,108 +134,133 @@ class Revise:
         self.classifier = classifier
         self.autoencoder = autoencoder
 
-    def get_counterfactuals(self, factuals: pd.DataFrame) -> pd.DataFrame:
+    # def get_counterfactuals(self, factuals: pd.DataFrame) -> pd.DataFrame:
+    def get_counterfactuals(
+        self,
+        input: InputPoint,
+        target_class: Optional[int],
+    ) -> ExplanationPath:
+
         device = "cuda" if torch.cuda.is_available() else "cpu"
 
-        factuals = self._mlmodel.get_ordered_features(factuals)
+        # factuals = self.classifier.get_ordered_features(factuals)
 
         # pay attention to categorical features
-        encoded_feature_names = self._mlmodel.data.encoder.get_feature_names(
-            self._mlmodel.data.categorical
-        )
-        cat_features_indices = [
-            factuals.columns.get_loc(feature) for feature in encoded_feature_names
-        ]
+        # encoded_feature_names = self.classifier.data.encoder.get_feature_names(
+        #     self.classifier.data.categorical
+        # )
+        # cat_features_indices = [
+        #     factuals.columns.get_loc(feature) for feature in encoded_feature_names
+        # ]
 
-        list_cfs = self._counterfactual_optimization(
-            cat_features_indices, device, factuals
-        )
+        # list_cfs = self._counterfactual_optimization(
+        #     cat_features_indices, device, factuals
+        # )
+        cfs = self._counterfactual_optimization(input, target_class)
+        return cfs
 
-        # cf_df = check_counterfactuals(self._mlmodel, list_cfs, factuals.index)
-        cf_df = self._mlmodel.get_ordered_features(cf_df)
-        return cf_df
+        # cf_df = check_counterfactuals(self.classifier, list_cfs, factuals.index)
+        # cf_df = self.classifier.get_ordered_features(cf_df)
+        # return cf_df
 
-    def _counterfactual_optimization(self, cat_features_indices, device, df_fact):
+    # def _counterfactual_optimization(self, cat_features_indices, device, df_fact):
+    def _counterfactual_optimization(self, input, target_class):
         # prepare data for optimization steps
-        test_loader = torch.utils.data.DataLoader(
-            df_fact.values, batch_size=1, shuffle=False
-        )
+        # test_loader = torch.utils.data.DataLoader(
+        #     df_fact.values, batch_size=1, shuffle=False
+        # )
 
-        list_cfs = []
-        for query_instance in test_loader:
-            query_instance = query_instance.float()
+        cfs = []
+        # for query_instance in test_loader:
+        # query_instance = query_instance.float()
 
-            target = torch.FloatTensor(self._target_class).to(device)
-            target_prediction = np.argmax(np.array(self._target_class))
+        # target = torch.FloatTensor(self._target_class).to(device)
+        # target_prediction = np.argmax(np.array(self._target_class))
 
-            # encode the mutable features
-            z = self.vae.encode(query_instance[:, self.vae.mutable_mask])[0]
-            # add the immutable features to the latents
-            z = torch.cat([z, query_instance[:, ~self.vae.mutable_mask]], dim=-1)
-            z = z.clone().detach().requires_grad_(True)
+        # encode the mutable features
+        # z = self.autoencoder.encode(query_instance[:, self.vae.mutable_mask])[0]
+        z = self.autoencoder.encode(input.reshape(1, -1))
+        # add the immutable features to the latents
+        # z = torch.cat([z, query_instance[:, ~self.vae.mutable_mask]], dim=-1)
+        z = z.clone().detach().requires_grad_(True)
 
-            if self._optimizer == "adam":
-                optim = torch.optim.Adam([z], self._lr)
-                # z.requires_grad = True
-            else:
-                optim = torch.optim.RMSprop([z], self._lr)
+        if self._optimizer == "adam":
+            optim = torch.optim.Adam([z], self._lr)
+        else:
+            optim = torch.optim.RMSprop([z], self._lr)
 
-            candidate_counterfactuals = []  # all possible counterfactuals
-            # distance of the possible counterfactuals from the intial value -
-            # considering distance as the loss function (can even change it just the distance)
-            candidate_distances = []
-            all_loss = []
+        # candidate_counterfactuals = []  # all possible counterfactuals
+        # distance of the possible counterfactuals from the intial value -
+        # considering distance as the loss function (can even change it just the distance)
+        # candidate_distances = []
+        # losses = []
 
-            for idx in range(self._max_iter):
-                cf = self.vae.decode(z)
+        for _ in range(self._max_iter):
 
-                # add the immutable features to the reconstruction
-                temp = query_instance.clone()
-                temp[:, self.vae.mutable_mask] = cf
-                cf = temp
+            cf_x = self.autoencoder.decode(z)
+            cfs.append(InputOutputPair(cf_x, self.classifier.predict_proba(cf_x)))
 
-                cf = reconstruct_encoding_constraints(
-                    cf, cat_features_indices, self._params["binary_cat_features"]
-                )
-                output = self._mlmodel.predict_proba(cf)[0]
-                _, predicted = torch.max(output, 0)
+            # add the immutable features to the reconstruction
+            # temp = query_instance.clone()
+            # temp[:, self.vae.mutable_mask] = cf
+            # cf = temp
 
-                z.requires_grad = True
-                loss = self._compute_loss(cf, query_instance, target)
-                all_loss.append(loss)
+            # cf = reconstruct_encoding_constraints(
+            #     cf, cat_features_indices, self._params["binary_cat_features"]
+            # )
+            # output = self.classifier.predict_proba(cf)[0]
+            # _, predicted = torch.max(output, 0)
 
-                if predicted == target_prediction:
-                    candidate_counterfactuals.append(
-                        cf.cpu().detach().numpy().squeeze(axis=0)
-                    )
-                    candidate_distances.append(loss.cpu().detach().numpy())
+            # z.requires_grad = True
+            loss, logs = self._compute_loss(input, cf_x, target_class)
+            # losses.append(logs)
 
-                loss.backward()
-                optim.step()
-                optim.zero_grad()
-                cf.detach_()
+            # if predicted == target_prediction:
+            #     candidate_counterfactuals.append(
+            #         cf.cpu().detach().numpy().squeeze(axis=0)
+            #     )
+            #     candidate_distances.append(loss.cpu().detach().numpy())
+
+            loss.backward()
+            optim.step()
+            optim.zero_grad()
+            cf_x.detach_()
 
             # Choose the nearest counterfactual
-            if len(candidate_counterfactuals):
-                log.info("Counterfactual found!")
-                array_counterfactuals = np.array(candidate_counterfactuals)
-                array_distances = np.array(candidate_distances)
+            # if len(candidate_counterfactuals):
+            #     # log.info("Counterfactual found!")
+            #     array_counterfactuals = np.array(candidate_counterfactuals)
+            #     array_distances = np.array(candidate_distances)
+            #     index = np.argmin(array_distances)
+            #     list_cfs.append(array_counterfactuals[index])
+            # else:
+            #     # log.info("No counterfactual found")
+            #     list_cfs.append(query_instance.cpu().detach().numpy().squeeze(axis=0))
 
-                index = np.argmin(array_distances)
-                list_cfs.append(array_counterfactuals[index])
-            else:
-                log.info("No counterfactual found")
-                list_cfs.append(query_instance.cpu().detach().numpy().squeeze(axis=0))
-        return list_cfs
+        return ExplanationPath(
+            explained_input=InputOutputPair(
+                input, self.classifier.predict_proba(input)
+            ),
+            target_class=target_class,
+            shift_step=None,
+            max_iter=self._max_iter,
+            cfs=cfs,
+        )
 
-    def _compute_loss(self, cf_initialize, query_instance, target):
+    def _compute_loss(self, original_input, cf, target_class):
 
-        loss_function = nn.BCELoss()
-        output = self._mlmodel.predict_proba(cf_initialize)[0]
+        # For multi-class tasks
+        loss_function = nn.CrossEntropyLoss()
+        output = self.classifier.predict_proba(original_input)
 
-        # classification loss
-        loss1 = loss_function(output, target)
-        # distance loss
-        loss2 = torch.norm((cf_initialize - query_instance), 1)
+        classification_loss = loss_function(output, target_class)
+        distance_loss = torch.norm((original_input - cf), 1)
 
-        return loss1 + self._lambda * loss2
+        loss = classification_loss + self._distance_reg * distance_loss
+        logs = {
+            "loss": loss,
+            "classification_loss": classification_loss,
+            "distance_loss": distance_loss,
+        }
+
+        return loss, logs
