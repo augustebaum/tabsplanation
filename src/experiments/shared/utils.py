@@ -17,14 +17,15 @@ from omegaconf import DictConfig, OmegaConf
 from config import ROOT, SRC
 
 
-def setup(seed: int) -> Tuple[torch.device, Path, Path]:
+def setup(seed: Optional[int] = None) -> Tuple[torch.device, Path, Path]:
     """Set up an experiment.
 
     Set the seed, the plot style and get the pytorch device.
     """
-    pl.seed_everything(seed, workers=True)
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    if seed is not None:
+        pl.seed_everything(seed, workers=True)
     set_matplotlib_style()
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     return device
 
 
@@ -42,6 +43,7 @@ def set_matplotlib_style():
             "text.latex.preamble": latex_preamble,
             "font.size": 12,
             "mathtext.fontset": "stix",
+            "figure.constrained_layout.use": True,
         }
     )
 

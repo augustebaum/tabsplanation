@@ -1,4 +1,5 @@
 import pickle
+from typing import Any
 
 import pytask
 import torch
@@ -17,6 +18,7 @@ from experiments.shared.utils import (
 )
 from tabsplanation.data import SyntheticDataset
 from tabsplanation.models.autoencoder import AutoEncoder
+from tabsplanation.models.classifier import Classifier
 from tabsplanation.types import ExplanationPath
 
 
@@ -24,18 +26,40 @@ def _get_method(method_name: str):
     return get_module_object("tabsplanation.explanations", method_name)
 
 
+PathResult = Any
+
+# This assumes the AutoEncoder is really a normalizing flow
+# with Gaussian prior.
+def realness_score(autoencoder: AutoEncoder, x):
+    z = autoencoder.encode(x)
+    # log_density =
+
+
 # This assumes the AutoEncoder is really a normalizing flow,
 # and that `step` computes the log-likelihood.
-def _make_path_result(autoencoder: AutoEncoder, path: ExplanationPath):
+def _make_path_result(
+    classifier: Classifier, autoencoder: AutoEncoder, path: ExplanationPath
+) -> PathResult:
     path_result = {}
 
+    path.explained_input.x.detach_()
+    path.explained_input.y.detach_()
     path_result["explained_input"] = path.explained_input
     path_result["target_class"] = path.target_class
-    path_result["cf_xs"] = path.xs
-    path_result["cf_ys"] = path.ys
+    path_result["cf_xs"] = path.xs.detach()
+    path_result["cf_ys"] = path.ys.detach()
+
+    # Get validities
+    path_result["validity"] = int(path.target_class == classifier.predict(path.xs[-1]))
+
+    def distance_metric(x_0, x_1):
+        return (x_0 - x_1).norm(p=1, dim=-1)
 
     # Get distances
-    path_result["distances_to_input"] = path.distances
+    # Note: Thanks, broadcasting!
+    path_result["distances_to_input"] = distance_metric(
+        path.explained_input.x, path.xs
+    ).detach()
 
     # Get likelihoods
     # TODO: ys are not necessary
@@ -44,7 +68,9 @@ def _make_path_result(autoencoder: AutoEncoder, path: ExplanationPath):
         nll, _ = autoencoder.step((x.reshape(1, -1), None), None)
         log_likelihoods.append(-nll)
 
-    path_result["likelihoods_nf"] = torch.exp(torch.stack(log_likelihoods))
+    path_result["likelihoods_nf"] = torch.exp(torch.stack(log_likelihoods)).detach()
+
+    # TODO: Measure time
 
     return path_result
 
@@ -120,7 +146,7 @@ class TaskCreatePlotDataCfPathMethods:
                 # TODO: Use context to measure time taken
                 path = method.get_counterfactuals(x, y_target)
 
-                path_result = _make_path_result(autoencoder, path)
+                path_result = _make_path_result(classifier, autoencoder, path)
                 results[method_cfg.class_name].append(path_result)
 
         with open(produces["results"], "wb") as paths_file:
