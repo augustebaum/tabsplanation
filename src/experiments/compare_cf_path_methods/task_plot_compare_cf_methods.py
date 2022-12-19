@@ -7,6 +7,7 @@ from config import BLD_PLOTS
 from experiments.compare_cf_path_methods.task_create_plot_data_compare_cf_methods import (
     TaskCreatePlotDataCfPathMethods,
 )
+from experiments.latent_shift.task_plot_class_2_paths import TaskPlotClass2Paths
 from experiments.shared.utils import (
     get_configs,
     hash_,
@@ -41,12 +42,13 @@ class TaskPlotCfPathMethods:
             results = pickle.load(results_file)
 
         load_mpl_style()
-        nb_methods = len(cfg.methods)
-        y_size = 8 / 3 * nb_methods
-        fig, ax = plt.subplots(nrows=nb_methods, ncols=2, figsize=(y_size, 6))
+        nrows, ncols = len(cfg.methods), 3
+        figsize = (3 * ncols, 8 / 4 * nrows)
+        fig, ax = plt.subplots(nrows=nrows, ncols=ncols, figsize=figsize)
 
         ax[0, 0].set_title(r"Likelihood of perturbation $\uparrow$")
         ax[0, 1].set_title(r"Distance to explained input $\downarrow$")
+        ax[0, 2].set_title(r"Paths")
 
         for i, method in enumerate(cfg.methods):
 
@@ -67,9 +69,11 @@ class TaskPlotCfPathMethods:
                 ax[i, 0].set_xlabel("Iterations")
                 ax[i, 0].set_ylabel("NF Likelihood")
 
-                ax[i, 1].plot(result["distances_to_input"])
+                ax[i, 1].plot(result["l1_distances_to_input"])
                 ax[i, 1].set_xlabel("Iterations")
                 ax[i, 1].set_ylabel("$L_1$ distance")
+
+                TaskPlotClass2Paths.plot_path(ax[i, 2], result["path"])
 
         # plt.show(block=True)
         fig.savefig(produces["plot"])

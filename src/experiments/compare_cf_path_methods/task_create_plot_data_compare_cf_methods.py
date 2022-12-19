@@ -1,5 +1,5 @@
 import pickle
-from typing import Any
+from typing import TypedDict
 
 import pytask
 import torch
@@ -19,20 +19,18 @@ from experiments.shared.utils import (
 from tabsplanation.data import SyntheticDataset
 from tabsplanation.models.autoencoder import AutoEncoder
 from tabsplanation.models.classifier import Classifier
-from tabsplanation.types import ExplanationPath
+from tabsplanation.types import ExplanationPath, Tensor
 
 
 def _get_method(method_name: str):
     return get_module_object("tabsplanation.explanations", method_name)
 
 
-PathResult = Any
-
-# This assumes the AutoEncoder is really a normalizing flow
-# with Gaussian prior.
-def realness_score(autoencoder: AutoEncoder, x):
-    z = autoencoder.encode(x)
-    # log_density =
+class PathResult(TypedDict):
+    path: ExplanationPath
+    valid: bool
+    l1_distances_to_input: Tensor["nb_iterations", 1]
+    likelihoods_nf: Tensor["nb_iterations", 1]
 
 
 # This assumes the AutoEncoder is really a normalizing flow,
@@ -44,10 +42,9 @@ def _make_path_result(
 
     path.explained_input.x.detach_()
     path.explained_input.y.detach_()
-    path_result["explained_input"] = path.explained_input
-    path_result["target_class"] = path.target_class
-    path_result["cf_xs"] = path.xs.detach()
-    path_result["cf_ys"] = path.ys.detach()
+    path.xs.detach_()
+    path.ys.detach_()
+    path_result["path"] = path
 
     # Get validities
     path_result["validity"] = int(path.target_class == classifier.predict(path.xs[-1]))
@@ -57,12 +54,12 @@ def _make_path_result(
 
     # Get distances
     # Note: Thanks, broadcasting!
-    path_result["distances_to_input"] = distance_metric(
+    path_result["l1_distances_to_input"] = distance_metric(
         path.explained_input.x, path.xs
     ).detach()
 
     # Get likelihoods
-    # TODO: ys are not necessary
+    # TODO: ys are not necessary for autoencoder
     log_likelihoods = []
     for x in path.xs:
         nll, _ = autoencoder.step((x.reshape(1, -1), None), None)
