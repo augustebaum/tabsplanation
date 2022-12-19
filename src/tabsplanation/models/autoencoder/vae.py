@@ -19,6 +19,8 @@ LogVar: TypeAlias = Tensor["batch", "latent_dim"]
 
 
 class ELBOLoss(nn.Module):
+    """Credit to <vincent.coriou@swisscom.com>."""
+
     def __init__(
         self,
         beta: float,

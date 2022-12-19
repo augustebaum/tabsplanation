@@ -76,15 +76,28 @@ class Revise:
 
     def _counterfactual_optimization(self, input, target_class):
 
-        cfs = []
         z = self.autoencoder.encode(input.reshape(1, -1))
         z = z.clone().detach().requires_grad_(True)
-
         if self._optimizer == "adam":
             optim = torch.optim.Adam([z], self._lr)
         else:
             optim = torch.optim.RMSprop([z], self._lr)
 
+        cfs = self._iterate_counterfactual_optimization(optim, z, input, target_class)
+
+        return ExplanationPath(
+            explained_input=InputOutputPair(
+                input, self.classifier.predict_proba(input)
+            ),
+            target_class=target_class,
+            shift_step=None,
+            max_iter=self._max_iter,
+            cfs=cfs,
+        )
+
+    def _iterate_counterfactual_optimization(self, optim, z, input, target_class):
+
+        cfs = []
         for _ in range(self._max_iter):
 
             cf_x = self.autoencoder.decode(z)
@@ -97,15 +110,7 @@ class Revise:
             optim.zero_grad()
             cf_x.detach_()
 
-        return ExplanationPath(
-            explained_input=InputOutputPair(
-                input, self.classifier.predict_proba(input)
-            ),
-            target_class=target_class,
-            shift_step=None,
-            max_iter=self._max_iter,
-            cfs=cfs,
-        )
+        return cfs
 
     def _compute_loss(self, original_input, cf, target_class):
 
@@ -124,3 +129,35 @@ class Revise:
         }
 
         return loss, logs
+
+
+class ReviseNoDescent(Revise):
+    """Like Revise, but without recomputing the gradient at each step (only
+    compute it once at the beginning)."""
+
+    def __init__(self, classifier, autoencoder, hparams):
+        super(ReviseNoDescent, self).__init__(classifier, autoencoder, hparams)
+
+    def _iterate_counterfactual_optimization(self, optim, z, input, target_class):
+
+        cfs = []
+
+        cf_x = self.autoencoder.decode(z)
+        cfs.append(InputOutputPair(cf_x, self.classifier.predict_proba(cf_x)))
+
+        loss, logs = self._compute_loss(input, cf_x, target_class)
+
+        optim.zero_grad()
+        loss.backward()
+        optim.step()
+        cf_x.detach_()
+
+        for _ in range(self._max_iter - 1):
+
+            cf_x = self.autoencoder.decode(z)
+            cfs.append(InputOutputPair(cf_x, self.classifier.predict_proba(cf_x)))
+
+            optim.step()
+            cf_x.detach_()
+
+        return cfs
