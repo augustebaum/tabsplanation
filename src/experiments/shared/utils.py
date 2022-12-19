@@ -9,6 +9,9 @@ from typing import List, Literal, Optional, Tuple, TypeAlias
 
 import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
+
+# Used but inside a string
+import pytask
 import pytorch_lightning as pl
 import torch
 
@@ -88,3 +91,43 @@ def camel_to_snake(str):
 
     s1 = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", str)
     return re.sub("([a-z0-9])([A-Z])", r"\1_\2", s1).lower()
+
+
+def define_task(cfg_name, _task_class):
+
+    cfgs = get_configs(cfg_name)
+    for cfg in cfgs:
+        # Used but inside a string
+        task = _task_class(cfg)
+
+        task_name = camel_to_snake(_task_class.__name__)
+        task_class_name = _task_class.__name__
+
+        exec(
+            f"""
+@pytask.mark.task(id=task.id_)
+@pytask.mark.depends_on(task.depends_on)
+@pytask.mark.produces(task.produces)
+def {task_name}(depends_on, produces, cfg=task.cfg):
+    {task_class_name}.task_function(depends_on, produces, cfg)
+    save_full_config(cfg, produces["full_config"])
+    save_config(cfg, produces["config"])
+    """
+        )
+
+
+# TODO: Extract output_dir from name of subclass
+class Task:
+    def __init__(self, cfg: OmegaConf, output_dir: Path):
+        self.cfg = cfg
+        self.id_ = hash_(self.cfg)
+
+        self.produces_dir = output_dir / self.id_
+        self.produces = {
+            "config": self.produces_dir / "config.yaml",
+            "full_config": self.produces_dir / "full_config.yaml",
+        }
+
+    @classmethod
+    def task_function(cls, depends_on, produces, cfg):
+        raise NotImplementedError()

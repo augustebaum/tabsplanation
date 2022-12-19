@@ -1,39 +1,26 @@
 import pickle
 
 import matplotlib.pyplot as plt
-import pytask
 
 from config import BLD_PLOTS
 from experiments.compare_cf_path_methods.task_create_plot_data_compare_cf_methods import (
     TaskCreatePlotDataCfPathMethods,
 )
 from experiments.latent_shift.task_plot_class_2_paths import TaskPlotClass2Paths
-from experiments.shared.utils import (
-    get_configs,
-    hash_,
-    load_mpl_style,
-    save_config,
-    save_full_config,
-)
+from experiments.shared.utils import define_task, load_mpl_style, Task
 
 
-class TaskPlotCfPathMethods:
+class TaskPlotCfPathMethods(Task):
     def __init__(self, cfg):
-        self.cfg = cfg
+        output_dir = BLD_PLOTS / "cf_path_methods"
+        super(TaskPlotCfPathMethods, self).__init__(cfg, output_dir)
 
         task_create_plot_data_cf_path_methods = TaskCreatePlotDataCfPathMethods(
             self.cfg
         )
-
         self.depends_on = task_create_plot_data_cf_path_methods.produces
 
-        self.id_ = hash_(self.cfg)
-        plot_data_dir = BLD_PLOTS / "cf_path_methods" / self.id_
-        self.produces = {
-            "config": plot_data_dir / "config.yaml",
-            "full_config": plot_data_dir / "full_config.yaml",
-            "plot": plot_data_dir / "plot.svg",
-        }
+        self.produces |= {"plot": self.produces_dir / "plot.svg"}
 
     @classmethod
     def task_function(cls, depends_on, produces, cfg):
@@ -79,16 +66,4 @@ class TaskPlotCfPathMethods:
         fig.savefig(produces["plot"])
 
 
-cfgs = get_configs("compare_cf_methods")
-_task_class = TaskPlotCfPathMethods
-
-for cfg in cfgs:
-    task = _task_class(cfg)
-
-    @pytask.mark.task(id=task.id_)
-    @pytask.mark.depends_on(task.depends_on)
-    @pytask.mark.produces(task.produces)
-    def task_plot_cf_path_methods(depends_on, produces, cfg=task.cfg):
-        _task_class.task_function(depends_on, produces, cfg)
-        save_full_config(cfg, produces["full_config"])
-        save_config(cfg, produces["config"])
+define_task("compare_cf_methods", TaskPlotCfPathMethods)

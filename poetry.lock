@@ -846,7 +846,7 @@ diagrams = ["jinja2", "railroad-diagrams"]
 
 [[package]]
 name = "pytask"
-version = "0.2.6"
+version = "0.2.7"
 description = "In its highest aspirations, pytask tries to be pytest as a build system."
 category = "main"
 optional = false
@@ -2196,8 +2196,8 @@ pyparsing = [
     {file = "pyparsing-3.0.9.tar.gz", hash = "sha256:2b020ecf7d21b687f219b71ecad3631f644a47f01403fa1d1036b0c6416d70fb"},
 ]
 pytask = [
-    {file = "pytask-0.2.6-py3-none-any.whl", hash = "sha256:88d54913d028a240e7056e5d99dde175650c3817a4adaf4f1fed9823577c3575"},
-    {file = "pytask-0.2.6.tar.gz", hash = "sha256:77e18fc280354212bf4d32da9d69270471782a55c79772852f0a3a05958a5f59"},
+    {file = "pytask-0.2.7-py3-none-any.whl", hash = "sha256:f4dec18784348bd40094837f42f587baf1d73cafa8721fdf02f3645070119a99"},
+    {file = "pytask-0.2.7.tar.gz", hash = "sha256:8ebf85440badac75ac60e2991e7b9832d6c33923d6dc105662241ff2fadfa472"},
 ]
 pytest = [
     {file = "pytest-7.2.0-py3-none-any.whl", hash = "sha256:892f933d339f068883b6fd5a459f03d85bfcb355e4981e146d2c7616c21fef71"},
