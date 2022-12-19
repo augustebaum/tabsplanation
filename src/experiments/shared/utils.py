@@ -17,35 +17,24 @@ from omegaconf import DictConfig, OmegaConf
 from config import ROOT, SRC
 
 
+def load_mpl_style():
+    plt.style.use(Path(__file__).parent.resolve() / "default.mplstyle")
+
+
 def setup(seed: Optional[int] = None) -> Tuple[torch.device, Path, Path]:
     """Set up an experiment.
 
     Set the seed, the plot style and get the pytorch device.
     """
+    load_mpl_style()
     if seed is not None:
         pl.seed_everything(seed, workers=True)
-    set_matplotlib_style()
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     return device
 
 
 def get_map_img():
     return mpimg.imread(SRC / "experiments" / "shared" / "data_map.png")
-
-
-def set_matplotlib_style():
-    latex_preamble = r"""
-\usepackage{libertine}
-"""
-    plt.rcParams.update(
-        {
-            "text.usetex": True,
-            "text.latex.preamble": latex_preamble,
-            "font.size": 12,
-            "mathtext.fontset": "stix",
-            "figure.constrained_layout.use": True,
-        }
-    )
 
 
 def get_time() -> str:

@@ -1,0 +1,5 @@
+text.usetex: True
+text.latex.preamble: \usepackage{libertine}
+font.size: 12
+mathtext.fontset: stix
+figure.constrained_layout.use: True
