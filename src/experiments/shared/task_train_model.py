@@ -28,7 +28,7 @@ from experiments.shared.utils import (
     save_config,
     setup,
 )
-from tabsplanation.data import split_dataset, SyntheticDataset
+from tabsplanation.data import CakeOnSeaDataModule, SyntheticDataset
 
 
 def _get_class(class_name: str):
@@ -65,13 +65,15 @@ class TaskTrainModel:
             cfg.data.nb_dims,
             device,
         )
-        subsets, loaders = split_dataset(
-            dataset,
-            cfg.data_module.validation_data_proportion,
-            cfg.data_module.test_data_proportion,
-            cfg.data_module.batch_size,
-            weighted_sampler=False,
-        )
+        # subsets, loaders = split_dataset(
+        #     dataset,
+        #     cfg.data_module.validation_data_proportion,
+        #     cfg.data_module.test_data_proportion,
+        #     cfg.data_module.batch_size,
+        #     weighted_sampler=False,
+        # )
+        data_module_kwargs = {"dataset": dataset} | OmegaConf.to_object(cfg.data_module)
+        data_module = CakeOnSeaDataModule(**data_module_kwargs)
 
         model_class = _get_class(cfg.model.class_name)
         model = model_class(**cfg.model.args)
@@ -90,11 +92,7 @@ class TaskTrainModel:
             enable_model_summary=False,
         )
 
-        trainer.fit(
-            model=model,
-            train_dataloaders=loaders["train"],
-            val_dataloaders=loaders["validation"],
-        )
+        trainer.fit(model=model, datamodule=data_module)
 
         torch.save(model, produces["model"])
 

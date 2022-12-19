@@ -1,9 +1,12 @@
 """Load training and test data usable in training the classifier and the autoencoder."""
+
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional, Tuple, TypeAlias
+from typing import Tuple
 
 import numpy as np
 import pandas as pd
+import pytorch_lightning as pl
 import torch
 from torch.utils.data import DataLoader, Dataset, random_split, WeightedRandomSampler
 
@@ -83,6 +86,59 @@ class SyntheticDataset(Dataset):
         return NormalizeInverse.new(self.normalize)
 
 
+@dataclass
+class CakeOnSeaDataModule(pl.LightningDataModule):
+
+    dataset: SyntheticDataset
+    val_data_proportion: float
+    test_data_proportion: float
+    batch_size: int
+    correct_for_class_imbalance: bool
+
+    def __post_init__(self):
+        super().__init__()
+
+    def prepare_data(self):
+        pass
+
+    def setup(self, stage: str):
+        nb_points = len(self.dataset)
+
+        val_size = int(self.val_data_proportion * nb_points)
+        test_size = int(self.test_data_proportion * nb_points)
+        train_size = nb_points - (val_size + test_size)
+        assert train_size > 0, "No training points; check input proportions"
+
+        self.train_set, self.val_set, self.test_set = random_split(
+            self.dataset, [train_size, val_size, test_size]
+        )
+
+    def train_dataloader(self):
+        if self.correct_for_class_imbalance:
+            weights = 1 / np.unique(self.train_set.dataset.y, return_counts=True)[1]
+            sampler = WeightedRandomSampler(
+                weights=weights, num_samples=len(self.train_set), replacement=True
+            )
+            return DataLoader(
+                self.train_set,
+                sampler=sampler,
+                drop_last=True,
+                batch_size=self.batch_size,
+            )
+        return DataLoader(
+            self.train_set, shuffle=True, drop_last=True, batch_size=self.batch_size
+        )
+
+    def val_dataloader(self):
+        return DataLoader(self.val_set, shuffle=False, batch_size=self.batch_size)
+
+    def test_dataloader(self):
+        return DataLoader(self.test_set, shuffle=False, batch_size=self.batch_size)
+
+    def predict_dataloader(self):
+        pass
+
+
 class DiabetesDataset(Dataset):
     """PyTorch-compatible dataset, written for the Pima Diabetes dataset.
 
@@ -149,89 +205,6 @@ def standardize(X: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tens
     std_X = (X - mean_X) / stddev_X
     std_X = torch.nan_to_num(std_X)
     return std_X, mean_X, stddev_X
-
-
-TrainDataset: TypeAlias = Dataset
-ValidationDataset: TypeAlias = Dataset
-TestDataset: TypeAlias = Dataset
-
-TrainLoader: TypeAlias = DataLoader
-ValidationLoader: TypeAlias = DataLoader
-TestLoader: TypeAlias = DataLoader
-
-
-def make_subsets(
-    dataset: Dataset,
-    val_data_proportion: float,
-    test_data_proportion: float,
-    generator: Optional[torch.Generator] = None,
-) -> Tuple[TrainDataset, ValidationDataset, TestDataset]:
-    """Split a `Dataset` into train and test datasets."""
-    val_size = int(val_data_proportion * len(dataset))
-    test_size = int(test_data_proportion * len(dataset))
-    train_size = len(dataset) - (val_size + test_size)
-    assert train_size >= 0, "Input proportions account for too much"
-
-    return random_split(dataset, [train_size, val_size, test_size], generator)
-
-
-def make_dataloaders(
-    train_dataset: TrainDataset,
-    validation_dataset: ValidationDataset,
-    test_dataset: TestDataset,
-    weighted_sampler: bool,
-    **kwargs
-) -> Tuple[TrainLoader, ValidationLoader, TestLoader]:
-    """Make dataloaders from `Dataset`s.
-
-    If `weighted_sampler` is set to `True`, class weights will be
-    computed on the entire dataset so that
-    the sampling can be adjusted to prevent class imbalance.
-    """
-
-    if weighted_sampler:
-        weights = 1 / np.unique(train_dataset.dataset.y, return_counts=True)[1]
-        sampler = WeightedRandomSampler(
-            weights=weights, num_samples=len(train_dataset), replacement=True
-        )
-        train_loader = DataLoader(
-            train_dataset, sampler=sampler, drop_last=True, **kwargs
-        )
-    else:
-        train_loader = DataLoader(train_dataset, shuffle=True, drop_last=True, **kwargs)
-    validation_loader = DataLoader(validation_dataset, shuffle=False, **kwargs)
-    test_loader = DataLoader(test_dataset, shuffle=False, **kwargs)
-    return train_loader, validation_loader, test_loader
-
-
-DatasetsDict: TypeAlias = dict
-LoadersDict: TypeAlias = dict
-
-
-def split_dataset(
-    dataset: Dataset,
-    val_data_proportion: float,
-    test_data_proportion: float,
-    batch_size: int,
-    weighted_sampler: bool,
-) -> Tuple[DatasetsDict, LoadersDict]:
-    train_dataset, val_dataset, test_dataset = make_subsets(
-        dataset, val_data_proportion, test_data_proportion
-    )
-    train_loader, val_loader, test_loader = make_dataloaders(
-        train_dataset,
-        val_dataset,
-        test_dataset,
-        batch_size=batch_size,
-        weighted_sampler=weighted_sampler,
-    )
-    datasets = {
-        "train": train_dataset,
-        "validation": val_dataset,
-        "test": test_dataset,
-    }
-    loaders = {"train": train_loader, "validation": val_loader, "test": test_loader}
-    return datasets, loaders
 
 
 class Normalize:
