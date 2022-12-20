@@ -66,4 +66,5 @@ class TaskPlotCfPathMethods(Task):
         fig.savefig(produces["plot"])
 
 
-define_task("compare_cf_methods", TaskPlotCfPathMethods)
+task, task_definition = define_task("compare_cf_methods", TaskPlotCfPathMethods)
+exec(task_definition)

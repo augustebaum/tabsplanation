@@ -8,6 +8,7 @@ from config import BLD_PLOT_DATA
 from experiments.shared.task_create_cake_on_sea import TaskCreateCakeOnSea
 from experiments.shared.task_train_model import TaskTrainModel
 from experiments.shared.utils import (
+    define_task,
     get_data_module,
     get_module_object,
     setup,
@@ -144,4 +145,7 @@ class TaskCreatePlotDataCfPathMethods(Task):
             pickle.dump(results, paths_file)
 
 
-define_task("compare_cf_methods", TaskCreatePlotDataCfPathMethods)
+task, task_definition = define_task(
+    "compare_cf_methods", TaskCreatePlotDataCfPathMethods
+)
+exec(task_definition)

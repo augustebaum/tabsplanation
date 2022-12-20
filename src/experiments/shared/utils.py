@@ -10,14 +10,12 @@ from typing import List, Literal, Optional, Tuple, TypeAlias
 import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
 
-# Used but inside a string
-import pytask
 import pytorch_lightning as pl
 import torch
-
 from omegaconf import DictConfig, OmegaConf
 
 from config import ROOT, SRC
+from tabsplanation.data import CakeOnSeaDataModule, SyntheticDataset
 
 
 def load_mpl_style():
@@ -94,17 +92,24 @@ def camel_to_snake(str):
 
 
 def define_task(cfg_name, _task_class):
+    """Prepare a definition of a task, which will be `exec`ed in the
+    task file.
+
+    The task definition must be run in the task file; `pytask` won't
+    collect it if it's run in this file.
+    """
 
     cfgs = get_configs(cfg_name)
     for cfg in cfgs:
-        # Used but inside a string
         task = _task_class(cfg)
 
         task_name = camel_to_snake(_task_class.__name__)
         task_class_name = _task_class.__name__
 
-        exec(
-            f"""
+        task_definition = f"""
+import pytask
+from experiments.shared.utils import save_config, save_full_config
+
 @pytask.mark.task(id=task.id_)
 @pytask.mark.depends_on(task.depends_on)
 @pytask.mark.produces(task.produces)
@@ -112,8 +117,8 @@ def {task_name}(depends_on, produces, cfg=task.cfg):
     {task_class_name}.task_function(depends_on, produces, cfg)
     save_full_config(cfg, produces["full_config"])
     save_config(cfg, produces["config"])
-    """
-        )
+"""
+        return task, task_definition
 
 
 # TODO: Extract output_dir from name of subclass
