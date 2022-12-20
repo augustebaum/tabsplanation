@@ -7,7 +7,12 @@ from omegaconf import OmegaConf
 from config import BLD_PLOT_DATA
 from experiments.shared.task_create_cake_on_sea import TaskCreateCakeOnSea
 from experiments.shared.task_train_model import TaskTrainModel
-from experiments.shared.utils import define_task, get_module_object, setup, Task
+from experiments.shared.utils import (
+    get_data_module,
+    get_module_object,
+    setup,
+    Task,
+)
 from tabsplanation.data import SyntheticDataset
 from tabsplanation.models.autoencoder import AutoEncoder
 from tabsplanation.models.classifier import Classifier
@@ -28,13 +33,18 @@ class PathResult(TypedDict):
 # This assumes the AutoEncoder is really a normalizing flow,
 # and that `step` computes the log-likelihood.
 def _make_path_result(
-    classifier: Classifier, autoencoder: AutoEncoder, path: ExplanationPath
+    dataset: SyntheticDataset,
+    classifier: Classifier,
+    autoencoder: AutoEncoder,
+    path: ExplanationPath,
 ) -> PathResult:
     path_result = {}
 
-    path.explained_input.x.detach_()
-    path.explained_input.y.detach_()
+    path.explained_input.input = path.explained_input.input.detach()
+    path.explained_input.output = path.explained_input.output.detach()
+    path.explained_input.input = dataset.normalize_inverse(path.explained_input.x)
     path.xs.detach_()
+    path.xs = dataset.normalize_inverse(path.xs)
     path.ys.detach_()
     path_result["path"] = path
 
@@ -54,7 +64,8 @@ def _make_path_result(
     # TODO: ys are not necessary for autoencoder
     log_likelihoods = []
     for x in path.xs:
-        nll, _ = autoencoder.step((x.reshape(1, -1), None), None)
+        # Don't include the scaling factors
+        nll = autoencoder.layers(x.reshape(1, -1)).squeeze()
         log_likelihoods.append(-nll)
 
     path_result["likelihoods_nf"] = torch.exp(torch.stack(log_likelihoods)).detach()
@@ -89,15 +100,14 @@ class TaskCreatePlotDataCfPathMethods(Task):
 
         device = setup(cfg.seed)
 
-        dataset = SyntheticDataset(
-            depends_on["xs"],
-            depends_on["ys"],
-            depends_on["coefs"],
-            cfg.data.nb_dims,
-            device,
-        )
-        # normalize = dataset.normalize
-        # normalize_inverse = dataset.normalize_inverse
+        # import pdb
+
+        # pdb.set_trace()
+        data_module = get_data_module(depends_on, cfg, device)
+        test_loader = data_module.test_dataloader()
+        xs, ys = next(iter(test_loader))
+        xs, ys = xs[:5], ys[:5]
+        print(xs)
 
         results = {}
 
@@ -119,17 +129,15 @@ class TaskCreatePlotDataCfPathMethods(Task):
             }
             method = method_class(**kwargs)
 
-            # TODO: Use test loader
-            xs, ys = dataset[:5]
-            # for i, x in test_data:
             for x in xs:
-                # path = method.get_counterfactuals(x, target_map[i])
                 y_pred = classifier.predict(x)
                 y_target = (y_pred + 1) % 3
                 # TODO: Use context to measure time taken
                 path = method.get_counterfactuals(x, y_target)
 
-                path_result = _make_path_result(classifier, autoencoder, path)
+                path_result = _make_path_result(
+                    test_loader.dataset.dataset, classifier, autoencoder, path
+                )
                 results[method_cfg.class_name].append(path_result)
 
         with open(produces["results"], "wb") as paths_file:

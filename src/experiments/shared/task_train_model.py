@@ -22,13 +22,13 @@ from config import BLD_MODELS
 from experiments.shared.task_create_cake_on_sea import TaskCreateCakeOnSea
 from experiments.shared.utils import (
     get_configs,
+    get_data_module,
     get_module_object,
     get_time,
     hash_,
     save_config,
     setup,
 )
-from tabsplanation.data import CakeOnSeaDataModule, SyntheticDataset
 
 
 def _get_class(class_name: str):
@@ -52,28 +52,7 @@ class TaskTrainModel:
     def task_function(cls, depends_on, produces, cfg):
         device = setup(cfg.seed)
 
-        # TODO: Replace with DataModule
-        # Note that I no longer need to specify nb_dims here
-        # I can just ask to generate a dataset with the right
-        # number of dims (granted, this is wasted space since
-        # I can just take a dataset with 250 columns and ask
-        # to remove the last ones)
-        dataset = SyntheticDataset(
-            depends_on["xs"],
-            depends_on["ys"],
-            depends_on["coefs"],
-            cfg.data.nb_dims,
-            device,
-        )
-        # subsets, loaders = split_dataset(
-        #     dataset,
-        #     cfg.data_module.validation_data_proportion,
-        #     cfg.data_module.test_data_proportion,
-        #     cfg.data_module.batch_size,
-        #     weighted_sampler=False,
-        # )
-        data_module_kwargs = {"dataset": dataset} | OmegaConf.to_object(cfg.data_module)
-        data_module = CakeOnSeaDataModule(**data_module_kwargs)
+        data_module = get_data_module(depends_on, cfg, device)
 
         model_class = _get_class(cfg.model.class_name)
         model = model_class(**cfg.model.args)

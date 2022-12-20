@@ -131,3 +131,18 @@ class Task:
     @classmethod
     def task_function(cls, depends_on, produces, cfg):
         raise NotImplementedError()
+
+
+def get_data_module(depends_on, cfg, device):
+    """Load a dataset and instantiate the corresponding `DataModule`."""
+
+    dataset = SyntheticDataset(
+        depends_on["xs"],
+        depends_on["ys"],
+        depends_on["coefs"],
+        cfg.data.nb_dims,
+        device,
+    )
+    data_module_kwargs = {"dataset": dataset} | OmegaConf.to_object(cfg.data_module)
+    data_module = CakeOnSeaDataModule(**data_module_kwargs)
+    return data_module

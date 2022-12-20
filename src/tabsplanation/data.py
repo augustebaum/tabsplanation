@@ -96,10 +96,9 @@ class CakeOnSeaDataModule(pl.LightningDataModule):
     correct_for_class_imbalance: bool
 
     def __post_init__(self):
-        super().__init__()
+        super(CakeOnSeaDataModule, self).__init__()
 
-    def prepare_data(self):
-        pass
+        self.setup("")
 
     def setup(self, stage: str):
         nb_points = len(self.dataset)
