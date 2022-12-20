@@ -1,21 +1,13 @@
 import pickle
 from typing import TypedDict
 
-import pytask
 import torch
 from omegaconf import OmegaConf
 
 from config import BLD_PLOT_DATA
 from experiments.shared.task_create_cake_on_sea import TaskCreateCakeOnSea
 from experiments.shared.task_train_model import TaskTrainModel
-from experiments.shared.utils import (
-    get_configs,
-    get_module_object,
-    hash_,
-    save_config,
-    save_full_config,
-    setup,
-)
+from experiments.shared.utils import define_task, get_module_object, setup, Task
 from tabsplanation.data import SyntheticDataset
 from tabsplanation.models.autoencoder import AutoEncoder
 from tabsplanation.models.classifier import Classifier
@@ -72,12 +64,12 @@ def _make_path_result(
     return path_result
 
 
-class TaskCreatePlotDataCfPathMethods:
+class TaskCreatePlotDataCfPathMethods(Task):
     def __init__(self, cfg):
-        self.cfg = cfg
+        output_dir = BLD_PLOT_DATA / "cf_path_methods"
+        super(TaskCreatePlotDataCfPathMethods, self).__init__(cfg, output_dir)
 
         task_create_cake_on_sea = TaskCreateCakeOnSea(self.cfg)
-
         self.depends_on = task_create_cake_on_sea.produces
 
         for method in self.cfg.methods:
@@ -90,13 +82,7 @@ class TaskCreatePlotDataCfPathMethods:
                 | {f"classifier_{method.class_name}": task_train_classifier.produces}
             )
 
-        self.id_ = hash_(self.cfg)
-        plot_data_dir = BLD_PLOT_DATA / "cf_path_methods" / self.id_
-        self.produces = {
-            "config": plot_data_dir / "config.yaml",
-            "full_config": plot_data_dir / "full_config.yaml",
-            "results": plot_data_dir / "results.pkl",
-        }
+        self.produces |= {"results": self.produces_dir / "results.pkl"}
 
     @classmethod
     def task_function(cls, depends_on, produces, cfg):
@@ -150,16 +136,4 @@ class TaskCreatePlotDataCfPathMethods:
             pickle.dump(results, paths_file)
 
 
-cfgs = get_configs("compare_cf_methods")
-_task_class = TaskCreatePlotDataCfPathMethods
-
-for cfg in cfgs:
-    task = _task_class(cfg)
-
-    @pytask.mark.task(id=task.id_)
-    @pytask.mark.depends_on(task.depends_on)
-    @pytask.mark.produces(task.produces)
-    def task_create_plot_data_cf_path_methods(depends_on, produces, cfg=task.cfg):
-        _task_class.task_function(depends_on, produces, cfg)
-        save_full_config(cfg, produces["full_config"])
-        save_config(cfg, produces["config"])
+define_task("compare_cf_methods", TaskCreatePlotDataCfPathMethods)
