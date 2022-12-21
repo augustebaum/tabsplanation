@@ -70,7 +70,7 @@ class TaskPlotClass2Paths:
         ax.scatter(x[0], x[1], c="red")
 
         # Show CF path
-        cfs = path.xs.squeeze()[:, [0, 1]]
+        cfs = path.xs.reshape(-1, len(x))[:, [0, 1]]
         ax.add_collection(
             LineCollection(
                 segments=[cfs], linestyles="dashed", linewidths=1, label="cf"

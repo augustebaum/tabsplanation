@@ -62,7 +62,6 @@ def _make_path_result(
     ).detach()
 
     # Get likelihoods
-    # TODO: ys are not necessary for autoencoder
     log_likelihoods = []
     for x in path.xs:
         # Don't include the scaling factors
@@ -101,9 +100,6 @@ class TaskCreatePlotDataCfPathMethods(Task):
 
         device = setup(cfg.seed)
 
-        # import pdb
-
-        # pdb.set_trace()
         data_module = get_data_module(depends_on, cfg, device)
         test_loader = data_module.test_dataloader()
         xs, ys = next(iter(test_loader))

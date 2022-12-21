@@ -110,6 +110,9 @@ class ExplanationPath:
 
         # self.shifts = shifts.reshape(-1, 1)
 
+    def __len__(self):
+        return len(self.xs)
+
     @property
     def distances(self) -> Tensor:
         """Produce a tensor of relative distances from each explanation

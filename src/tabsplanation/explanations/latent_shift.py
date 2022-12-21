@@ -89,7 +89,7 @@ class LatentShift:
         # We expect that when we go in the direction of the gradient,
         # the probability of the current class decreases.
         def clf_decode(z: LatentPoint) -> Logit:
-            ps = clf(ae.decode(z)).squeeze()
+            ps = self.classifier(self.autoencoder.decode(z)).squeeze()
             if target_class is None:
                 # The probability of the current class should _decrease_
                 # as the shift increases
