@@ -64,13 +64,11 @@ class Revise:
         self.classifier = classifier
         self.autoencoder = autoencoder
 
-    # def get_counterfactuals(self, factuals: pd.DataFrame) -> pd.DataFrame:
     def get_counterfactuals(
         self,
         input: InputPoint,
         target_class: Optional[int],
     ) -> ExplanationPath:
-
         cfs = self._counterfactual_optimization(input, target_class)
         return cfs
 
@@ -101,9 +99,13 @@ class Revise:
         for _ in range(self._max_iter):
 
             cf_x = self.autoencoder.decode(z)
-            cfs.append(InputOutputPair(cf_x, self.classifier.predict_proba(cf_x)))
+            prbs = self.classifier.predict_proba(cf_x).squeeze()
+            cfs.append(InputOutputPair(cf_x, prbs))
 
             loss, logs = self._compute_loss(input, cf_x, target_class)
+
+            if prbs[target_class] > 0.5:
+                break
 
             loss.backward()
             optim.step()
@@ -155,7 +157,13 @@ class ReviseNoDescent(Revise):
         for _ in range(self._max_iter - 1):
 
             cf_x = self.autoencoder.decode(z)
-            cfs.append(InputOutputPair(cf_x, self.classifier.predict_proba(cf_x)))
+            prbs = self.classifier.predict_proba(cf_x).squeeze()
+            cfs.append(InputOutputPair(cf_x, prbs))
+
+            loss, logs = self._compute_loss(input, cf_x, target_class)
+
+            if prbs[target_class] > 0.5:
+                break
 
             optim.step()
             cf_x.detach_()

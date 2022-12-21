@@ -105,25 +105,19 @@ class LatentShift:
 
         # 2) Apply latent shift
 
-        # 2a) Figure out how far we should shift
-        # max_shift = self._find_max_shift(
-        #     ae, clf, z, gradient, output_class, target_class
-        # )
-
-        # 2b) Compute latent shifts
-        # shifts = np.linspace(-max_shift, max_shift).reshape(-1, 1)
         shifts = torch.tensor(
             [i * self._shift_step for i in range(self._max_iter)]
         ).reshape(-1, 1)
         cf_xs = self._latent_shift(ae, z, gradient, shifts)
         cf_ys = clf.predict_proba(cf_xs)
 
+        cf_xs, cf_ys = self._filter_path(cf_xs, cf_ys, output_class, target_class)
+
         # 3) Pack explanations together neatly
+
         return ExplanationPath(
             explained_input=InputOutputPair(input, output),
             target_class=target_class,
-            # maximum_shift=max_shift,
-            # shifts=shifts / max_shift,
             shift_step=self._shift_step,
             max_iter=self._max_iter,
             cfs=[InputOutputPair(cf_x, cf_y) for cf_x, cf_y in zip(cf_xs, cf_ys)],
@@ -142,30 +136,12 @@ class LatentShift:
         xs = ae.decode(z_perturbed).detach()
         return xs
 
-    def _find_max_shift(
-        self,
-        ae: AutoEncoder,
-        clf: Classifier,
-        z: LatentPoint,
-        gradient: LatentPoint,
-        output_class: int,
-        target_class: int,
-    ) -> AbsoluteShift:
-        """Find maximum shift.
-
-        If we have a target class, then keep searching until
-        the target class is predicted with >50% confidence.
-
-        Otherwise, then keep searching until
-        some class is predicted with >50% confidence
-        (that is not the current class).
+    def _filter_path(self, cf_xs, cf_ys, output_class, target_class):
+        """Cut the path as soon as the target class is reached
+        (or some other class is reached, if the target class
+        is not specified).
         """
-
-        # Compute probabilities for many shifts
-        # Increasing sequence of shifts
-        shifts = np.logspace(-3, 1).reshape(-1, 1)
-        xs = self._latent_shift(ae, z, gradient, shifts)
-        prbs = clf.predict_proba(xs)
+        prbs = cf_ys.clone()
 
         # Take out the probabilities that don't interest us
         if target_class is None:
@@ -175,28 +151,16 @@ class LatentShift:
         else:
             prbs = prbs[:, [target_class]]
 
-        # Find the first shift for which the probability is
-        # over the threshold
-        # If there is no such probability, try again with
-        # a smaller threshold
-        indices = []
         threshold = 0.5
-        while len(indices) == 0:
-            indices = (prbs > threshold).nonzero()[:, 0]
-            threshold -= 0.05
+        idx_above_threshold = (prbs > threshold).nonzero()[:, 0]
 
-        # If the length is not 0, it's either that some probability is
-        # more than threshold, or that the threshold is negative or zero,
-        # in which case we should just take the maximum possible shift
-
-        # We assume the list of shifts is increasing
-        if threshold <= 0:
-            max_shift_idx = -1
-        else:
-            max_shift_idx = indices[0]
-
-        max_shift = shifts[max_shift_idx].item()
-        return max_shift
+        if len(idx_above_threshold) == 0:
+            return cf_xs, cf_ys
+        first_idx_above_threshold = idx_above_threshold[0]
+        return (
+            cf_xs[: first_idx_above_threshold + 1],
+            cf_ys[: first_idx_above_threshold + 1],
+        )
 
 
 # Pretty sure this is the same as REVISE
