@@ -1,4 +1,5 @@
 import pickle
+import time
 from typing import TypedDict
 
 import torch
@@ -38,6 +39,7 @@ def _make_path_result(
     classifier: Classifier,
     autoencoder: AutoEncoder,
     path: ExplanationPath,
+    duration_per_step_ns: int,
 ) -> PathResult:
     path_result = {}
 
@@ -70,7 +72,7 @@ def _make_path_result(
 
     path_result["likelihoods_nf"] = torch.exp(torch.stack(log_likelihoods)).detach()
 
-    # TODO: Measure time
+    path_result["runtime_per_step_milliseconds"] = duration_per_step_ns / 1_000_000
 
     return path_result
 
@@ -127,13 +129,21 @@ class TaskCreatePlotDataCfPathMethods(Task):
             method = method_class(**kwargs)
 
             for x in xs:
+
                 y_pred = classifier.predict(x)
                 y_target = (y_pred + 1) % 3
-                # TODO: Use context to measure time taken
+
+                start_time_ns = time.time_ns()
                 path = method.get_counterfactuals(x, y_target)
+                call_duration_ns = time.time_ns() - start_time_ns
+                duration_per_step_ns = call_duration_ns / len(path)
 
                 path_result = _make_path_result(
-                    test_loader.dataset.dataset, classifier, autoencoder, path
+                    test_loader.dataset.dataset,
+                    classifier,
+                    autoencoder,
+                    path,
+                    duration_per_step_ns,
                 )
                 results[method_cfg.class_name].append(path_result)
 
