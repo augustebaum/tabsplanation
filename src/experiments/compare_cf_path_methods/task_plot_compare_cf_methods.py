@@ -21,6 +21,7 @@ class TaskPlotCfPathMethods(Task):
         self.depends_on = task_create_plot_data_cf_path_methods.produces
 
         self.produces |= {"plot": self.produces_dir / "plot.svg"}
+        print(f"Plot saved in \n{self.produces['plot']}")
 
     @classmethod
     def task_function(cls, depends_on, produces, cfg):
@@ -29,13 +30,14 @@ class TaskPlotCfPathMethods(Task):
             results = pickle.load(results_file)
 
         load_mpl_style()
-        nrows, ncols = len(cfg.methods), 3
+        nrows, ncols = len(cfg.methods), 4
         figsize = (3 * ncols, 8 / 4 * nrows)
         fig, ax = plt.subplots(nrows=nrows, ncols=ncols, figsize=figsize)
 
         ax[0, 0].set_title(r"Likelihood of perturbation $\uparrow$")
         ax[0, 1].set_title(r"Distance to explained input $\downarrow$")
         ax[0, 2].set_title(r"Paths")
+        ax[0, 3].set_title(r"Local Outlier Factor $\uparrow$")
 
         for i, method in enumerate(cfg.methods):
 
@@ -62,8 +64,21 @@ class TaskPlotCfPathMethods(Task):
 
                 TaskPlotClass2Paths.plot_path(ax[i, 2], result["path"])
 
+                ax[i, 3].plot(result["lof"])
+                ax[i, 3].set_xlabel("Iterations")
+                ax[i, 3].set_ylabel("LOF")
+
         # plt.show(block=True)
         fig.savefig(produces["plot"])
+
+        fig_, ax_ = plt.subplots()
+        ax_.boxplot(
+            [
+                [result["lof_auc"] for result in results[method.class_name]]
+                for method in cfg.methods
+            ]
+        )
+        plt.show(block=True)
 
 
 task, task_definition = define_task("compare_cf_methods", TaskPlotCfPathMethods)
