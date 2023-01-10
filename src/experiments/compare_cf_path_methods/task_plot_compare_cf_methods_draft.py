@@ -1,3 +1,9 @@
+"""
+Draft task to start plotting results.
+
+The graphs are not super informative but it's a first step.
+"""
+
 import pickle
 
 import matplotlib.pyplot as plt
@@ -12,7 +18,7 @@ from experiments.shared.utils import define_task, load_mpl_style, Task
 
 class TaskPlotCfPathMethods(Task):
     def __init__(self, cfg):
-        output_dir = BLD_PLOTS / "cf_path_methods"
+        output_dir = BLD_PLOTS / "cf_path_methods" / "draft_metrics"
         super(TaskPlotCfPathMethods, self).__init__(cfg, output_dir)
 
         task_create_plot_data_cf_path_methods = TaskCreatePlotDataCfPathMethods(
@@ -21,7 +27,7 @@ class TaskPlotCfPathMethods(Task):
         self.depends_on = task_create_plot_data_cf_path_methods.produces
 
         self.produces |= {"plot": self.produces_dir / "plot.svg"}
-        print(f"Plot saved in \n{self.produces['plot']}")
+        print(f"Plot would be saved in \n{self.produces['plot']}")
 
     @classmethod
     def task_function(cls, depends_on, produces, cfg):

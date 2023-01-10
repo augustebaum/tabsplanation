@@ -100,3 +100,13 @@ This project was created with [cookiecutter](https://github.com/audreyr/cookiecu
 and the
 [cookiecutter-pytask-project](https://github.com/pytask-dev/cookiecutter-pytask-project)
 template.
+
+## TODO
+
+- The paths to files that are output by a task should be printed to
+the console when a task is run. The annoying thing is `pytask`
+captures everything by default, and there not yet enough granularity
+to surface a particular `print`.
+- There is no facility to allow multiple config files at the same
+time; the only option is the change the appropriate `yaml` file
+every time.
