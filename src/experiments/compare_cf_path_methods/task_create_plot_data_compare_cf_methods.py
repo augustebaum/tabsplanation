@@ -155,14 +155,16 @@ class TaskCreatePlotDataCfPathMethods(Task):
         device = setup(cfg.seed)
 
         data_module = get_data_module(depends_on, cfg, device)
-        test_loader = data_module.test_dataloader()
-        # This is the whole dataset, not just the test set
-        full_dataset = test_loader.dataset.dataset
+
+        full_dataset = data_module.dataset
         trained_lof = train_lof(full_dataset.X)
 
-        xs, ys = next(iter(test_loader))
-        xs, ys = xs[:5], ys[:5]
-        print(xs)
+        # test_loader = data_module.test_dataloader()
+        # xs, ys = next(iter(test_loader))
+        # xs, ys = xs[:5], ys[:5]
+
+        # Use the whole test set
+        xs, ys = full_dataset[data_module.test_set.indices]
 
         results = {}
 
@@ -174,6 +176,7 @@ class TaskCreatePlotDataCfPathMethods(Task):
             for x in xs:
 
                 y_pred = classifier.predict(x)
+                # 0 goes to 1, 1 goes to 2, 2 goes to 0
                 y_target = (y_pred + 1) % 3
 
                 # Measure running time
