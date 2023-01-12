@@ -45,8 +45,8 @@ class Classifier(BaseModel):
             layer = [
                 nn.LazyLinear(out_features=hidden_dim),
                 nn.Dropout(dropout) if dropout else None,
-                nn.ReLU(),
                 nn.BatchNorm1d(hidden_dim) if batch_norm else None,
+                nn.ReLU(),
             ]
             # Clean up the layer
             layer = [module for module in layer if module is not None]

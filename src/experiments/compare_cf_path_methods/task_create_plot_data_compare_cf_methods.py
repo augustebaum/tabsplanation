@@ -163,8 +163,13 @@ class TaskCreatePlotDataCfPathMethods(Task):
         # xs, ys = next(iter(test_loader))
         # xs, ys = xs[:5], ys[:5]
 
-        # Use the whole test set
-        xs, ys = full_dataset[data_module.test_set.indices]
+        # Get some test points
+        test_point_indices = (
+            data_module.test_set.indices[: cfg.nb_test_points]
+            if cfg.nb_test_points is not None
+            else data_module.test_set.indices
+        )
+        xs, ys = full_dataset[test_point_indices]
 
         results = {}
 

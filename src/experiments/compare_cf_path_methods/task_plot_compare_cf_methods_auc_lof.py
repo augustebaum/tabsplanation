@@ -33,7 +33,7 @@ def make_boxplots(
     plt.setp(ax.get_xticklabels(), rotation=30, ha="right")
 
     fig.savefig(produces["plot"])
-    plt.show(block=True)
+    # plt.show(block=True)
 
 
 class TaskPlotAucLof(Task):
