@@ -8,7 +8,7 @@ data:
   nb_dims: 2
   nb_uncorrelated_dims: 2
 data_module:
-  val_data_proportion: 0.2
+  validation_data_proportion: 0.2
   test_data_proportion: 0.2
   batch_size: 200
   correct_for_class_imbalance: false

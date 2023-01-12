@@ -90,7 +90,7 @@ class SyntheticDataset(Dataset):
 class CakeOnSeaDataModule(pl.LightningDataModule):
 
     dataset: SyntheticDataset
-    val_data_proportion: float
+    validation_data_proportion: float
     test_data_proportion: float
     batch_size: int
     correct_for_class_imbalance: bool
@@ -103,7 +103,7 @@ class CakeOnSeaDataModule(pl.LightningDataModule):
     def setup(self, stage: str):
         nb_points = len(self.dataset)
 
-        val_size = int(self.val_data_proportion * nb_points)
+        val_size = int(self.validation_data_proportion * nb_points)
         test_size = int(self.test_data_proportion * nb_points)
         train_size = nb_points - (val_size + test_size)
         assert train_size > 0, "No training points; check input proportions"

@@ -9,6 +9,7 @@ data_module:
   validation_data_proportion: 0.2
   test_data_proportion: 0.2
   batch_size: 200
+  correct_for_class_imbalance: false
 training:
   patience: 5
   max_epochs: -1
