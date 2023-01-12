@@ -1,39 +1,30 @@
-import pytask
 import torch
 
-from config import BLD_DATA, BLD_MODELS, BLD_PLOT_DATA
-from experiments.shared.utils import get_configs, hash_, save_config
+from config import BLD_PLOT_DATA
+from experiments.shared.task_create_cake_on_sea import TaskCreateCakeOnSea
+from experiments.shared.task_train_model import TaskTrainModel
+from experiments.shared.utils import define_task, Task
 from tabsplanation.data import SyntheticDataset
 from tabsplanation.types import Tensor
 
 
-cfgs = get_configs("classification")
+class TaskCreatePlotDataClassificationLogits(Task):
+    def __init__(self, cfg):
+        output_dir = BLD_PLOT_DATA / "classification_logits"
+        super(TaskCreatePlotDataClassificationLogits, self).__init__(cfg, output_dir)
 
-for cfg in cfgs:
-    data_dir = BLD_DATA / "cake_on_sea" / hash_(cfg.data)
-    depends_on = {
-        "xs": data_dir / "xs.npy",
-        "ys": data_dir / "ys.npy",
-        "coefs": data_dir / "coefs.npy",
-    }
+        self.depends_on = (
+            TaskCreateCakeOnSea(self.cfg).produces
+            | TaskTrainModel(self.cfg.classifier).produces
+        )
 
-    model_dir = BLD_MODELS / hash_(cfg.classifier) / "model.pt"
-    depends_on |= {"model": model_dir}
+        self.produces |= {
+            "x0": self.produces_dir / "x0.pt",
+            "logits": self.produces_dir / "logits.pt",
+        }
 
-    id_ = hash_(cfg)
-    plot_data_dir = BLD_PLOT_DATA / "classification_logits" / id_
-    produces = {
-        "config": plot_data_dir / "config.yaml",
-        "x0": plot_data_dir / "x0.pt",
-        "logits": plot_data_dir / "logits.pt",
-    }
-
-    @pytask.mark.task(id=id_)
-    @pytask.mark.depends_on(depends_on)
-    @pytask.mark.produces(produces)
-    def task_create_plot_data_classification_logits(depends_on, produces, cfg=cfg):
-        # pl.seed_everything(cfg.seed, workers=True)
-        # device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    @classmethod
+    def task_function(cls, depends_on, produces, cfg):
         plot_data_cfg = cfg.plot_data_classification_logits
 
         # Make a grid of points in two dimensions
@@ -63,4 +54,8 @@ for cfg in cfgs:
         torch.save(x, produces["x0"])
         torch.save(logits, produces["logits"])
 
-        save_config(cfg, produces["config"])
+
+task, task_definition = define_task(
+    "classification", TaskCreatePlotDataClassificationLogits
+)
+exec(task_definition)
