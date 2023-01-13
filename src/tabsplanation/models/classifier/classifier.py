@@ -63,11 +63,12 @@ class Classifier(BaseModel):
         return self.layers(X)
 
     def predict_proba(self, X: Tensor):
-        logits = self.layers(X)
+        logits = self(X)
         return torch.softmax(logits, dim=-1)
 
     def predict(self, X: Tensor):
-        return self.predict_proba(X).argmax(dim=-1)
+        logits = self(X)
+        return logits.argmax(dim=-1)
 
     def step(self, batch, batch_idx):
         x, y = batch
