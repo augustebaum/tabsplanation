@@ -27,7 +27,7 @@ classifier:
       batch_norm: False
       dropout: null
       learning_rate: 1e-3
-plot_data_classification_logits:
-  lo: -20
-  hi: 70
-  nb_steps: 25
+# Plot data config
+lo: -20
+hi: 70
+nb_steps: 25

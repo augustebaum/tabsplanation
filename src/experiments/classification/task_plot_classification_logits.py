@@ -2,7 +2,6 @@ import matplotlib.pyplot as plt
 import pytask
 import torch
 from matplotlib.colors import LinearSegmentedColormap
-from omegaconf import OmegaConf
 
 from config import BLD_PLOT_DATA, BLD_PLOTS
 from experiments.shared.utils import get_configs, get_map_img, hash_, save_config, setup

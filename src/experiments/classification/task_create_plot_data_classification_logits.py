@@ -25,12 +25,9 @@ class TaskCreatePlotDataClassificationLogits(Task):
 
     @classmethod
     def task_function(cls, depends_on, produces, cfg):
-        plot_data_cfg = cfg.plot_data_classification_logits
 
         # Make a grid of points in two dimensions
-        x = torch.linspace(
-            plot_data_cfg.lo, plot_data_cfg.hi, steps=plot_data_cfg.nb_steps
-        )
+        x = torch.linspace(cfg.lo, cfg.hi, steps=cfg.nb_steps)
         inputs_x: Tensor["nb_points", 2] = torch.cartesian_prod(x, x)
 
         # TODO: Transform the dataset into a DataModule
