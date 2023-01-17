@@ -1,0 +1,4 @@
+text.usetex: True
+text.latex.preamble: \usepackage{libertine}
+font.size: 11
+figure.constrained_layout.use: True
