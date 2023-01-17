@@ -1,28 +1,35 @@
 [build-system]
-requires = ["setuptools>=45", "wheel", "setuptools_scm[toml]>=6.0"]
+requires = ["poetry-core", "setuptools>=45", "wheel", "setuptools_scm[toml]>=6.0"]
+build-backend = "poetry.core.masonry.api"
 
+[tool.poetry]
+name = "tabsplanation"
+version = "0.1.0"
+description = "Latent shift applied to tabular data"
+authors = ["Auguste Baum <auguste.baum@pm.me>"]
+license = "Apache"
+readme = "README.md"
 
-[tool.setuptools_scm]
-write_to = "src/tabsplanation/_version.py"
+[tool.poetry.dependencies]
+python = ">=3.10,<3.12"
+numpy = "^1.23.3"
+matplotlib = "3.5"
+pandas = "^1.5.0"
+ipykernel = "^6.16.0"
+tomli = "^2.0.1"
+pytorch-lightning = "^1.7.7"
+# torch = "^1.12.1"
+omegaconf = "^2.2.3"
+# torchtyping = "^0.1.4"
+pytask = "^0.2.6"
+scikit-learn = "^1.2.0"
 
+[tool.poetry.group.vscode.dependencies]
+ipywidgets = "^8.0.2"
 
-[tool.mypy]
-files = ["src", "tests"]
-check_untyped_defs = true
-disallow_any_generics = true
-disallow_incomplete_defs = true
-disallow_untyped_defs = true
-no_implicit_optional = true
-warn_redundant_casts = true
-warn_unused_ignores = true
-
-
-[[tool.mypy.overrides]]
-module = "tests.*"
-disallow_untyped_defs = false
-ignore_errors = true
-
-
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.1.3"
+ipdb = "^0.13.9"
 
 [tool.pytask.ini_options]
 paths = "./src/experiments"
@@ -57,10 +64,35 @@ extend-ignore = [
     "PD",  # pandas-vet
 ]
 
-
 [tool.ruff.per-file-ignores]
 "tests/*" = ["D", "ANN"]
 
-
 [tool.ruff.pydocstyle]
 convention = "numpy"
+
+[tool.setuptools_scm]
+write_to = "src/tabsplanation/_version.py"
+
+[tool.mypy]
+files = ["src", "tests"]
+check_untyped_defs = true
+disallow_any_generics = true
+disallow_incomplete_defs = true
+disallow_untyped_defs = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
+ignore_errors = true
+
+[tool.usort.known]
+first_party = ["config", "tabsplanation", "data", "experiments", "utils"]
+
+[tool.poetry2conda]
+name = "tabsplanation"
+
+[tool.poetry2conda.dependencies]
+torch = {name = "pytorch"}

@@ -1,9 +1,6 @@
 import pickle
-import sys
 
 import matplotlib.pyplot as plt
-
-print(sys.path)
 
 from config import BLD_PLOTS
 from experiments.compare_cf_path_methods.task_create_plot_data_compare_cf_methods import (

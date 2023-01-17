@@ -1,4 +1,4 @@
-name: tabsplanation_new
+name: tabsplanation
 
 channels:
   - conda-forge
@@ -10,20 +10,20 @@ dependencies:
   - setuptools_scm
   - toml
 
+  # Package dependencies
+  - pytask>=0.2.6,<0.3.0
   - numpy>=1.23.3,<2.0.0
   - matplotlib==3.5
   - pandas>=1.5.0,<2.0.0
   - ipykernel>=6.16.0,<7.0.0
   - tomli>=2.0.1,<3.0.0
-  - pytorch-lightning>=1.7.7,<2.0.0
+  - pytorch-lightning==1.8.1
   - omegaconf>=2.2.3,<3.0.0
   - scikit-learn>=1.2.0,<2.0.0
+  - nomkl # To solve a weird issue: https://github.com/dmlc/xgboost/issues/1715
 
   # Reproducibility
   - conda-lock
-
-  # Package dependencies
-  - pytask>=0.2.6,<0.3.0
 
   # Misc
   - black
