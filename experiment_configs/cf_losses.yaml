@@ -41,7 +41,3 @@ autoencoder:
       batch_norm: False
       dropout: null
       learning_rate: 1e-3
-# Plot data config
-lo: -5
-hi: 5
-nb_steps: 25
