@@ -1,7 +1,7 @@
 ---
 
 name: Documentation Improvement
-about: Report wrong or missing documentation
+about: Report wrong or missing documentation in tabsplanation
 title: "DOC:"
 labels: "documentation"
 
