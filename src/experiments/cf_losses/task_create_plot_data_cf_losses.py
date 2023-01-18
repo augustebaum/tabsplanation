@@ -7,7 +7,7 @@ for the decoded points. Show where the classes have been mapped.
 3. In all cases, show the gradient of the loss in latent space.
 """
 import pickle
-from typing import Dict, TypedDict, TypeVar
+from typing import Any, Callable, Dict, Iterable, TypedDict, TypeVar
 
 import torch
 
@@ -28,9 +28,30 @@ def get_x0():
 
 T = TypeVar("T")
 LossName = str
+LossClass = Any
 ClassNumber = int
 
-ResultDict = Dict[LossName, Dict[ClassNumber, T]]
+
+class ResultDict:
+    def __class_getitem__(cls, item: Any):
+        """To make `ResultDict[T]` work as a type annotation."""
+        return Dict[LossName, Dict[ClassNumber, item]]
+
+    def new(
+        fn: Callable[[LossClass, ClassNumber], T],
+        loss_classes: Iterable[LossClass],
+        classes: Iterable[ClassNumber],
+    ):
+        return {
+            loss.__name__: {class_: fn(loss, class_) for class_ in classes}
+            for loss in loss_classes
+        }
+
+    def from_fn(loss_classes, classes):
+        def x(fn):
+            return ResultDict.new(fn, loss_classes, classes)
+
+        return x
 
 
 class Gradients(TypedDict):
@@ -57,6 +78,10 @@ class CfLossesResult(TypedDict):
     latent_space_map: LatentSpaceMap
     x_gradients: ResultDict[Gradients]
     z_gradients: ResultDict[Gradients]
+
+
+def grad(losses, inputs):
+    return torch.autograd.grad(losses.sum(), inputs, retain_graph=True)[0]
 
 
 class TaskCreatePlotDataCfLosses(Task):
@@ -87,6 +112,7 @@ class TaskCreatePlotDataCfLosses(Task):
 
         inputs = dataset.fill_from_2d_point(x)
         normalized_inputs = dataset.normalize(inputs)
+        normalized_inputs.requires_grad = True
 
         classifier = torch.load(depends_on["classifier"]["model"])
         autoencoder = torch.load(depends_on["autoencoder"]["model"])
@@ -98,50 +124,122 @@ class TaskCreatePlotDataCfLosses(Task):
             StretchLoss,
         )
 
-        def compute_losses(model_logits):
-            """Given some model outputs, compute the loss for all choices of target
-            class and loss function.
+        loss_classes = [
+            AwayLoss,
+            BabyStretchLoss,
+            StretchLoss,
+        ]
+        nb_classes = 3
+        classes = range(nb_classes)
 
-            For each data points the source class is taken to be the predicted class for
-            the given logit.
-            """
-            nb_classes = 3
-            return {
-                loss.__name__: {
-                    class_: loss()(
-                        model_logits,
-                        source=model_logits.argmax(dim=-1),
-                        target=torch.full((len(model_logits),), class_),
-                    )
-                    for class_ in range(nb_classes)
-                }
-                for loss in [AwayLoss, BabyStretchLoss, StretchLoss]
-            }
-
-        result = {}
-        f_x = classifier(normalized_inputs)
-        result["x_losses"] = compute_losses(f_x)
-        # 2.a.
-        result["z_losses"] = compute_losses(classifier(autoencoder.decode(z)))
-        # 2.b.
-        result["latent_space_map"] = {
-            "z": autoencoder.encode(normalized_inputs),
-            "class": f_x.argmax(dim=-1),
+        result = {
+            "x_losses": TaskCreatePlotDataCfLosses.losses_x(
+                loss_classes,
+                classes,
+                classifier,
+                normalized_inputs,
+            ),
+            "z_losses": TaskCreatePlotDataCfLosses.losses_z(
+                loss_classes, classes, classifier, autoencoder, z
+            ),
+            "latent_space_map": TaskCreatePlotDataCfLosses.latent_space_map(
+                classifier, autoencoder, normalized_inputs
+            ),
+            "x_gradients": TaskCreatePlotDataCfLosses.x_gradients(
+                loss_classes, classes, classifier, normalized_inputs
+            ),
+            "z_gradients": TaskCreatePlotDataCfLosses.z_gradients(
+                loss_classes, classes, classifier, autoencoder, normalized_inputs
+            ),
         }
-
-        # 3.a. Gradients of the losses, taken with respect to x
-        # result["x_gradients"] =  {
-        #         loss.__name__: {
-        #             class_: torch.autograd.grad(result["x_losses"][loss.__name__][class_], x)[0]
-        #             for class_ in range(nb_classes)
-        #         }
-        #         for loss in [AwayLoss, BabyStretchOutLoss, StretchOutLoss]
-        #     }
-        # 3.a. Gradients of the losses, taken with respect to z, mapped back to the input space
-        # result["z_gradients"] =
 
         with open(produces["results"], "wb") as results_file:
             pickle.dump(result, results_file)
+
+    @staticmethod
+    def losses_x(loss_classes, classes, classifier, normalized_inputs):
+        x = normalized_inputs.clone()
+        f_x = classifier(x)
+
+        def fn(loss, class_):
+            return loss()(
+                f_x,
+                source=f_x.argmax(dim=-1),
+                target=torch.full((len(f_x),), class_),
+            )
+
+        return {
+            loss.__name__: {class_: fn(loss, class_) for class_ in classes}
+            for loss in loss_classes
+        }
+
+    @staticmethod
+    def losses_z(loss_classes, classes, classifier, autoencoder, z):
+        x_z = autoencoder.decode(z)
+        f_x_z = classifier(x_z)
+
+        def fn(loss, class_):
+            return loss()(
+                f_x_z,
+                source=f_x_z.argmax(dim=-1),
+                target=torch.full((len(f_x_z),), class_),
+            )
+
+        return {
+            loss.__name__: {class_: fn(loss, class_) for class_ in classes}
+            for loss in loss_classes
+        }
+
+    @staticmethod
+    def latent_space_map(classifier, autoencoder, normalized_inputs):
+        x = normalized_inputs.clone()
+
+        return {
+            "z": autoencoder.encode(x),
+            "class": classifier.predict(x),
+        }
+
+    @staticmethod
+    def x_gradients(loss_classes, classes, classifier, normalized_inputs):
+        x = normalized_inputs
+
+        losses_x: ResultDict[Loss] = TaskCreatePlotDataCfLosses.losses_x(
+            loss_classes, classes, classifier, x
+        )
+
+        def fn(loss, class_):
+            return grad(losses_x[loss.__name__][class_], x)
+
+        return {
+            loss.__name__: {class_: fn(loss, class_) for class_ in classes}
+            for loss in loss_classes
+        }
+
+    @staticmethod
+    def z_gradients(loss_classes, classes, classifier, autoencoder, normalized_inputs):
+        """Compute the direction of steepest descent from the latent representation."""
+        x = normalized_inputs.clone()
+        z_x = autoencoder.encode(x)
+        x_z = autoencoder.decode(z_x)
+        f_x_z = classifier(x_z)
+        original_pred = classifier(x).argmax(dim=-1)
+
+        def fn(loss, class_):
+            grad_z = grad(
+                loss()(
+                    f_x_z,
+                    source=original_pred,
+                    target=torch.full((len(x),), class_),
+                ),
+                z_x,
+            )
+
+            return autoencoder.decode(grad_z)
+
+        return {
+            loss.__name__: {class_: fn(loss, class_) for class_ in classes}
+            for loss in loss_classes
+        }
 
 
 task, task_definition = define_task("cf_losses", TaskCreatePlotDataCfLosses)

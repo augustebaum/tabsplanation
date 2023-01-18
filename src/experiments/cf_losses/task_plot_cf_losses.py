@@ -74,7 +74,9 @@ class TaskPlotCfLosses(Task):
 
         fig.savefig(produces["latent_space_map"])
 
-        # plt.show(block=True)
+        plt.show(block=True)
+
+        # 3.a. Gradients in input space with respect to x
 
     @staticmethod
     def plot_all_losses_and_targets(
