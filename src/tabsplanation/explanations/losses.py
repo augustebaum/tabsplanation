@@ -21,10 +21,10 @@ class AwayLoss(nn.Module):
     ):
         """Compute the loss for a counterfactual whose original point was predicted as
         class `source`, and whose target class is `target`."""
-        return self.ce_loss(input, source)
+        return -self.ce_loss(input, source)
 
 
-class BabyStretchOutLoss(nn.Module):
+class BabyStretchLoss(nn.Module):
     """Loss computing `CrossEntropy(input, y_source) - CrossEntropy(input, y_target)`.
 
     Intuitively, the goal is to bring the input close to `target` and far from
@@ -32,7 +32,7 @@ class BabyStretchOutLoss(nn.Module):
     """
 
     def __init__(self):
-        super(BabyStretchOutLoss, self).__init__()
+        super(BabyStretchLoss, self).__init__()
         self.ce_loss = nn.CrossEntropyLoss(reduction="none")
 
     def forward(
@@ -43,10 +43,10 @@ class BabyStretchOutLoss(nn.Module):
     ):
         """Compute the loss for a counterfactual whose original point was predicted as
         class `source`, and whose target class is `target`."""
-        return -self.ce_loss(input, target) + self.ce_loss(input, source)
+        return self.ce_loss(input, target) - self.ce_loss(input, source)
 
 
-class StretchOutLoss(nn.Module):
+class StretchLoss(nn.Module):
     r"""Loss computing
     $-CrossEntropy(input, y_target) + \sum_{c \neq target} {CrossEntropy(input, y_c)}$.
 
@@ -55,7 +55,7 @@ class StretchOutLoss(nn.Module):
     """
 
     def __init__(self):
-        super(StretchOutLoss, self).__init__()
+        super(StretchLoss, self).__init__()
         self.ce_loss = nn.CrossEntropyLoss(reduction="none")
 
     def forward(
@@ -73,7 +73,7 @@ class StretchOutLoss(nn.Module):
 
         # This is the same as adding up for all classes except the target,
         # then removing the target once.
-        return sum(
+        return -sum(
             self.ce_loss(input, class_(class_number))
             for class_number in range(nb_classes)
-        ) - 2 * self.ce_loss(input, target)
+        ) + 2 * self.ce_loss(input, target)
