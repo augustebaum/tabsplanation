@@ -61,8 +61,8 @@ class StretchLoss(nn.Module):
     def forward(
         self,
         input: Tensor["batch_size", "nb_classes"],
+        source: Tensor["batch_size", int],
         target: Tensor["batch_size", int],
-        source: Tensor["batch_size", int] = None,
     ):
         """Compute the loss for a counterfactual whose original point was predicted as
         class `source`, and whose target class is `target`."""

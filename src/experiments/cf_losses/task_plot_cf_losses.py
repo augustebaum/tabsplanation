@@ -8,6 +8,7 @@ from config import BLD_PLOTS
 from experiments.cf_losses.task_create_plot_data_cf_losses import (
     get_x0,
     get_z0,
+    Gradients,
     Loss,
     ResultDict,
     TaskCreatePlotDataCfLosses,
@@ -28,6 +29,8 @@ class TaskPlotCfLosses(Task):
             "x_losses": self.produces_dir / "x_losses.svg",
             "z_losses": self.produces_dir / "z_losses.svg",
             "latent_space_map": self.produces_dir / "latent_space_map.svg",
+            "x_gradients": self.produces_dir / "x_gradients.svg",
+            "z_gradients": self.produces_dir / "z_gradients.svg",
         }
 
     @classmethod
@@ -39,22 +42,28 @@ class TaskPlotCfLosses(Task):
         load_mpl_style()
 
         # 1. Losses in input space
-        fig = TaskPlotCfLosses.plot_all_losses_and_targets(
+        fig = TaskPlotCfLosses.plot_loss_contours(
             results["x_losses"],
             x_axis=get_x0(),
             axis_limits=[-5, 55, -5, 55],
             axis_labels=(r"$x_0$", r"$x_1$"),
+            title="Loss in input space",
         )
-        # ax.imshow(get_map_img(), origin="upper", extent=[0, 50, 0, 50])
+        for ax in fig.axes:
+            if "colorbar" not in ax.get_label():
+                ax.imshow(
+                    get_map_img(), origin="upper", extent=[0, 50, 0, 50], zorder=2
+                )
 
         fig.savefig(produces["x_losses"])
 
         # 2. Losses in latent space
-        fig = TaskPlotCfLosses.plot_all_losses_and_targets(
+        fig = TaskPlotCfLosses.plot_loss_contours(
             results["z_losses"],
             x_axis=get_z0(),
             axis_limits=[-5, 5, -5, 5],
             axis_labels=(r"$z_0$", r"$z_1$"),
+            title="Loss in latent space",
         )
 
         fig.savefig(produces["z_losses"])
@@ -74,13 +83,33 @@ class TaskPlotCfLosses(Task):
 
         fig.savefig(produces["latent_space_map"])
 
+        # 3.a. Gradients in input space with respect to x
+        fig = TaskPlotCfLosses.plot_gradients(
+            results["x_gradients"],
+            x_axis=get_x0(),
+            axis_limits=[-5, 55, -5, 55],
+            axis_labels=(r"$x_0$", r"$x_1$"),
+            title=r"Opposite of gradient with respect to $x$",
+        )
+
+        fig.savefig(produces["x_gradients"])
+
+        # 3.b. Gradients in input space with respect to x
+        fig = TaskPlotCfLosses.plot_gradients(
+            results["z_gradients"],
+            x_axis=get_x0(),
+            axis_limits=[-5, 55, -5, 55],
+            axis_labels=(r"$x_0$", r"$x_1$"),
+            title=r"Opposite of gradient with respect to $z$",
+        )
+
+        fig.savefig(produces["z_gradients"])
+
         plt.show(block=True)
 
-        # 3.a. Gradients in input space with respect to x
-
     @staticmethod
-    def plot_all_losses_and_targets(
-        results: ResultDict[Loss], x_axis, axis_limits, axis_labels
+    def plot_loss_contours(
+        results: ResultDict[Loss], x_axis, axis_limits, axis_labels, title
     ):
         x0, x1 = torch.meshgrid(x_axis, x_axis)
         nb_classes = len(results[list(results.keys())[0]])
@@ -88,6 +117,8 @@ class TaskPlotCfLosses(Task):
         fig, axes = plt.subplots(
             nrows=nb_classes, ncols=len(results), layout="constrained", figsize=(12, 10)
         )
+
+        fig.suptitle(title)
 
         # Row labels (class number)
         for class_ in range(nb_classes):
@@ -123,6 +154,56 @@ class TaskPlotCfLosses(Task):
                     ax.set_title(loss_name)
 
             fig.colorbar(cs, ax=ax, location="bottom")
+
+        return fig
+
+    @staticmethod
+    def plot_gradients(
+        results: ResultDict[Gradients], x_axis, axis_limits, axis_labels, title
+    ):
+        x0, x1 = torch.meshgrid(x_axis, x_axis, indexing="xy")
+        nb_classes = len(results[list(results.keys())[0]])
+
+        fig, axes = plt.subplots(
+            nrows=nb_classes, ncols=len(results), layout="constrained", figsize=(12, 10)
+        )
+
+        fig.suptitle(title)
+
+        # Row labels (class number)
+        for class_ in range(nb_classes):
+            axes[class_, 0].annotate(
+                f"Target class is {class_}",
+                xy=(0, 0.5),
+                xytext=(-axes[class_, 0].yaxis.labelpad - 5, 0),
+                xycoords=axes[class_, 0].yaxis.label,
+                textcoords="offset points",
+                size="large",
+                ha="right",
+                va="center",
+            )
+
+        for col, loss_name in enumerate(results.keys()):
+            for row, class_ in enumerate(range(nb_classes)):
+
+                ax = axes[row][col]
+
+                gradients = results[loss_name][class_]
+
+                u, v = (
+                    gradients[:, 0].reshape((len(x0), len(x0))).T.detach(),
+                    gradients[:, 1].reshape((len(x0), len(x0))).T.detach(),
+                )
+
+                ax.streamplot(x0.numpy(), x1.numpy(), u.numpy(), v.numpy())
+
+                ax.axis(axis_limits)
+                ax.set_xlabel(axis_labels[0])
+                ax.set_ylabel(axis_labels[1])
+                if row == 0:
+                    ax.set_title(loss_name)
+
+                ax.imshow(get_map_img(), origin="upper", extent=[0, 50, 0, 50])
 
         return fig
 

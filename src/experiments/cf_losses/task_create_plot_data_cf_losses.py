@@ -54,13 +54,15 @@ class ResultDict:
         return x
 
 
-class Gradients(TypedDict):
-    """Input to `numpy.streamplot`."""
+# class Gradients(TypedDict):
+#     """Input to `numpy.streamplot`."""
 
-    x: Tensor["nb_steps", "nb_steps"]
-    y: Tensor["nb_steps", "nb_steps"]
-    u: Tensor["nb_steps", "nb_steps"]
-    v: Tensor["nb_steps", "nb_steps"]
+#     x: Tensor["nb_steps", "nb_steps"]
+#     y: Tensor["nb_steps", "nb_steps"]
+#     u: Tensor["nb_steps", "nb_steps"]
+#     v: Tensor["nb_steps", "nb_steps"]
+
+Gradients = Tensor["nb_steps_squared ** 2", 2]
 
 
 class LatentSpaceMap(TypedDict):
@@ -201,6 +203,7 @@ class TaskCreatePlotDataCfLosses(Task):
 
     @staticmethod
     def x_gradients(loss_classes, classes, classifier, normalized_inputs):
+        """Return the opposite of the classifier gradient with respect to `x`."""
         x = normalized_inputs
 
         losses_x: ResultDict[Loss] = TaskCreatePlotDataCfLosses.losses_x(
@@ -208,7 +211,7 @@ class TaskCreatePlotDataCfLosses(Task):
         )
 
         def fn(loss, class_):
-            return grad(losses_x[loss.__name__][class_], x)
+            return -grad(losses_x[loss.__name__][class_], x)
 
         return {
             loss.__name__: {class_: fn(loss, class_) for class_ in classes}
@@ -217,7 +220,7 @@ class TaskCreatePlotDataCfLosses(Task):
 
     @staticmethod
     def z_gradients(loss_classes, classes, classifier, autoencoder, normalized_inputs):
-        """Compute the direction of steepest descent from the latent representation."""
+        """Return the opposite of the classifier gradient with respect to `z`."""
         x = normalized_inputs.clone()
         z_x = autoencoder.encode(x)
         x_z = autoencoder.decode(z_x)
@@ -234,7 +237,7 @@ class TaskCreatePlotDataCfLosses(Task):
                 z_x,
             )
 
-            return autoencoder.decode(grad_z)
+            return -autoencoder.decode(grad_z)
 
         return {
             loss.__name__: {class_: fn(loss, class_) for class_ in classes}
