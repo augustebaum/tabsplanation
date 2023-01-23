@@ -77,13 +77,13 @@ class TaskTrainModel:
 
 
 def find_model_cfgs(cfg: Dict) -> List:
-    """Given a config dict, recover all the values where the key
-    is "autoencoder" or "classifier"."""
+    """Given a config (nested) dict, recover all the values where the key
+    is `"autoencoder"` or `"classifier"`."""
 
     # Alter the Depth-First-Search (DFS) algorithm slightly
     def modified_dfs(dict_: Dict, result: List) -> List:
         for k, v in dict_.items():
-            # If the key fits, we don't need to go inside
+            # If the key fits, we don't need to look inside
             if k in ["autoencoder", "classifier"]:
                 result.append(v)
             elif isinstance(v, dict):

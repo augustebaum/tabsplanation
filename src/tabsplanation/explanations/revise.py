@@ -69,10 +69,6 @@ class Revise:
         input: InputPoint,
         target_class: Optional[int],
     ) -> ExplanationPath:
-        cfs = self._counterfactual_optimization(input, target_class)
-        return cfs
-
-    def _counterfactual_optimization(self, input, target_class):
 
         z = self.autoencoder.encode(input.reshape(1, -1))
         z = z.clone().detach().requires_grad_(True)

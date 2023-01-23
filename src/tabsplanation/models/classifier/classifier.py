@@ -1,12 +1,16 @@
 """Declare, train and test the classifier model."""
 
-from typing import List, Optional
+from typing import Any, List, Optional
 
 import torch
 from torch import nn
 
 from tabsplanation.models.base_model import BaseModel
 from tabsplanation.types import RelativeFloat, StrictPositiveInt, Tensor
+
+Logits = Any
+Probas = Any
+Class = Any
 
 
 class Classifier(BaseModel):
@@ -59,14 +63,14 @@ class Classifier(BaseModel):
 
         self.loss_fn = nn.CrossEntropyLoss(reduction="mean")
 
-    def forward(self, X: Tensor):
+    def forward(self, X: Tensor) -> Logits:
         return self.layers(X)
 
-    def predict_proba(self, X: Tensor):
+    def predict_proba(self, X: Tensor) -> Probas:
         logits = self(X)
         return torch.softmax(logits, dim=-1)
 
-    def predict(self, X: Tensor):
+    def predict(self, X: Tensor) -> Class:
         logits = self(X)
         return logits.argmax(dim=-1)
 

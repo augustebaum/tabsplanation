@@ -36,7 +36,6 @@ class NICEModel(BaseModel):
         self.input_dim = input_dim
 
         self.loss_fn = GaussianPriorLoss()
-        # self.roundtrip_loss_fn = ReconstructionLoss()
 
         # Input dimension of MLP of a coupling layer is half the input dimension
         # TODO: What happens if the input dim is odd?
@@ -80,12 +79,10 @@ class NICEModel(BaseModel):
         x, y = batch
         z = self._run_step(x)
 
-        # roundtrip_loss = self.roundtrip_loss_fn(x, self.inverse(z))
         loss = self.loss_fn(z, self.log_scaling_factors)
 
         logs = {
             "loss": loss,
-            # "roundtrip_loss": roundtrip_loss,
         }
         return loss, logs
 

@@ -97,6 +97,8 @@ def define_task(cfg_name, _task_class):
 
     The task definition must be run in the task file; `pytask` won't
     collect it if it's run in this file.
+
+    I don't like this but I don't know how to do it otherwise...
     """
 
     cfgs = get_configs(cfg_name)
