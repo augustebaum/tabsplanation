@@ -220,7 +220,8 @@ class TaskCreatePlotDataCfLosses(Task):
 
     @staticmethod
     def z_gradients(loss_classes, classes, classifier, autoencoder, normalized_inputs):
-        """Return the opposite of the classifier gradient with respect to `z`."""
+        """Return the opposite of the classifier gradient with respect to `z`, mapped
+        back to the input space."""
         x = normalized_inputs.clone()
         z_x = autoencoder.encode(x)
         x_z = autoencoder.decode(z_x)
@@ -237,7 +238,9 @@ class TaskCreatePlotDataCfLosses(Task):
                 z_x,
             )
 
-            return -autoencoder.decode(grad_z)
+            # Perturb the latents along the negative gradients
+            x_tilde = autoencoder.decode(z_x - grad_z)
+            return x_tilde - x
 
         return {
             loss.__name__: {class_: fn(loss, class_) for class_ in classes}
