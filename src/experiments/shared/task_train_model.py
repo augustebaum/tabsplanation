@@ -57,11 +57,17 @@ class TaskTrainModel:
         model_class = _get_class(cfg.model.class_name)
         model = model_class(**cfg.model.args)
 
+        model = TaskTrainModel.train_model(data_module, model, cfg)
+
+        torch.save(model, produces["model"])
+
+    @classmethod
+    def train_model(cls, data_module, model, cfg):
         early_stopping_cb = EarlyStopping(
             monitor="val_loss", mode="min", patience=cfg.training.patience
         )
 
-        version = f"{cfg.model.class_name}_{hash_(cfg)}_{get_time()}"
+        version = f"{model.__class__.__name__}_{hash_(cfg)}_{get_time()}"
         tb_logger = TensorBoardLogger(save_dir=BLD_MODELS, version=version)
 
         trainer = pl.Trainer(
@@ -73,7 +79,7 @@ class TaskTrainModel:
 
         trainer.fit(model=model, datamodule=data_module)
 
-        torch.save(model, produces["model"])
+        return model
 
 
 def find_model_cfgs(cfg: Dict) -> List:
