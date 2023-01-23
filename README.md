@@ -3,20 +3,32 @@
 [![pre-commit.ci status](https://results.pre-commit.ci/badge/github/augustebaum/tabsplanation/main.svg)](https://results.pre-commit.ci/latest/github/augustebaum/tabsplanation/main)
 [![image](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
-## Usage
+## Installation
 
 To get started, create the environment with
 ```console
-$ conda/mamba env create
+$ conda env create
 ```
 or 
 ```console
-$ poetry install
+$ mamba create -f environment.yml
 ```
 
-By default, any output is captured by `pytask`. Hence, for training
-a model, it is recommended to use `tensorboard`.
+Then you'll need to install `pytorch-lightning` manually (don't ask me why!).
+If the `pip install -e ` doesn't work automatically, enter the environment and
+run it manually. This is the ensure that `tabsplanation/src` is in `sys.path`
+when `pytask` is run.
 
+## Usage
+
+Activate the environment, then run
+```console
+$ pytask
+```
+to run all the experiments.
+
+By default, any output is captured by `pytask`. Hence, for visualizing the training of
+a model, it is recommended to use `tensorboard`.
 In the root of the project, run
 ```console
 tensorboard --log_dir=bld/models/lightning_logs
