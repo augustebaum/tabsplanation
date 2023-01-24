@@ -59,15 +59,14 @@ class NICEModel(BaseModel):
             AdditiveCouplingLayer("even", mlp()),
         )
 
-        self.log_scaling_factors = nn.Parameter(torch.zeros(input_dim))
+        self.log_scaling_factors = nn.Parameter(
+            torch.zeros(input_dim), requires_grad=True
+        )
 
-    def _run_step(self, x: Input) -> Latent:
+    def forward(self, x: Input) -> Latent:
         z = self.layers(x)
         z = z * torch.exp(self.log_scaling_factors)
         return z
-
-    def forward(self, x: Input) -> Latent:
-        return self._run_step(x)
 
     def inverse(self, z: Latent) -> Input:
         x = z * torch.exp(-1 * self.log_scaling_factors)
@@ -77,7 +76,7 @@ class NICEModel(BaseModel):
 
     def step(self, batch, batch_idx):
         x, y = batch
-        z = self._run_step(x)
+        z = self(x)
 
         loss = self.loss_fn(z, self.log_scaling_factors)
 
@@ -87,7 +86,7 @@ class NICEModel(BaseModel):
         return loss, logs
 
     def encode(self, x: Input) -> Latent:
-        return self._run_step(x)
+        return self(x)
 
     def decode(self, z: Latent) -> Input:
         return self.inverse(z)
