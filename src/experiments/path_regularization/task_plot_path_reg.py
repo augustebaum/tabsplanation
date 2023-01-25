@@ -46,6 +46,8 @@ class TaskPlotPathReg(Task):
         )
         ax[0, 1].set_title("Path regularized")
 
+        # Plot paths
+
         # nrows, ncols = len(cfg.methods), 4
         # figsize = (3 * ncols, 8 / 4 * nrows)
 
