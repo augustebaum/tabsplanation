@@ -13,6 +13,7 @@ data_module:
 training:
   patience: 5
   max_epochs: -1
+  val_check_interval: 1
 classifier:
   seed: ${seed}
   data: ${data}
