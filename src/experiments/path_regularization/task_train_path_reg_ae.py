@@ -4,7 +4,7 @@ from config import BLD_MODELS
 from experiments.shared.task_create_cake_on_sea import TaskCreateCakeOnSea
 from experiments.shared.task_train_model import TaskTrainModel
 from experiments.shared.utils import define_task, get_data_module, setup, Task
-from tabsplanation.explanations.latent_shift import LatentShift
+from tabsplanation.explanations.latent_shift_new import LatentShiftNew
 from tabsplanation.explanations.nice_path_regularized import PathRegularizedNICE
 
 
