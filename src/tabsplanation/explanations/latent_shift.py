@@ -67,7 +67,7 @@ class LatentShift:
         # Switch AE to evaluation mode (influences model behaviour in some
         # cases, e.g. `BatchNorm` doesn't compute the mean and standard deviation
         # which means the model can be applied to just one point)
-        ae.eval()
+        # ae.eval()
 
         # 1) Make a way to perform latent shift by a given shift
 
