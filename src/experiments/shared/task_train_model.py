@@ -75,7 +75,7 @@ class TaskTrainModel:
             logger=tb_logger,
             callbacks=[early_stopping_cb],
             enable_model_summary=False,
-            val_check_interval=0.25,
+            val_check_interval=cfg.training.val_check_interval,
         )
 
         trainer.fit(model=model, datamodule=data_module)
