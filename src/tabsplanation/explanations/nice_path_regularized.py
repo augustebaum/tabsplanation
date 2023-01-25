@@ -81,5 +81,5 @@ class BoundaryCrossLoss(nn.Module):
         target_class: int,
     ):
         latents_2d = latents.reshape(-1, latents.shape[2])
-        inputs = self.autoencoder.decode(latents_2d)
-        prbs = self.classifier.predict_proba(inputs)
+        inputs = autoencoder.decode(latents_2d)
+        prbs = classifier.predict_proba(inputs)
