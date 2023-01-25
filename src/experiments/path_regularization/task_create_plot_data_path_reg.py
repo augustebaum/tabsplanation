@@ -40,6 +40,10 @@ class TaskCreatePlotDataPathRegularization(Task):
         autoencoder = depends_on["autoencoder"]["model"]
 
         # 1. Compare the latent spaces
+        "latent_space_map": TaskCreatePlotDataCfLosses.latent_space_map(
+                classifier, autoencoder, normalized_inputs
+            ),
+
 
         # 2. Show a few paths
 
