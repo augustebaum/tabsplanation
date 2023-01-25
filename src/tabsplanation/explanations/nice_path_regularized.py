@@ -27,7 +27,7 @@ class PathRegularizedNICE(NICEModel):
 
     def step(self, batch, batch_idx):
         # First step: compute likelihood
-        loss, logs = super(PathRegularizedNICE, self).step(batch, batch_idx)
+        nll, logs = super(PathRegularizedNICE, self).step(batch, batch_idx)
 
         x, _ = batch
         y_source: Tensor["batch"] = self.classifier.predict(x)
@@ -40,8 +40,8 @@ class PathRegularizedNICE(NICEModel):
             self, self.classifier, latent_paths, y_source, y_target
         )
 
-        logs |= {"path_loss": path_loss}
-        loss += path_loss
+        loss = nll + path_loss
+        logs = {"nll": nll, "path_loss": path_loss, "loss": loss}
         return loss, logs
 
     def random_targets_like(self, y):
