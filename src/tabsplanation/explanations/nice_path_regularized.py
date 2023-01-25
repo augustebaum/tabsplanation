@@ -33,7 +33,7 @@ class PathRegularizedNICE(NICEModel):
         latent_paths = self.explainer.get_counterfactuals(
             self.classifier, self, x, y_target
         )
-        path_loss = self.path_loss_fn(latent_paths)
+        path_loss = self.path_loss_fn(latent_paths, y_source, y_target)
 
         logs |= {"path_loss": path_loss}
         loss += path_loss
