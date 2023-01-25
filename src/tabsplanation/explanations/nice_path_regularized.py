@@ -96,7 +96,7 @@ class BoundaryCrossLoss(nn.Module):
         prbs_filtered: Tensor["batch", "nb_steps", 2] = take_source_and_target(
             prbs, source_class, target_class
         )
-        prbs_filtered.sum(dim=2)
+        prb_source_plus_target: Tensor["batch", "nb_steps"] = prbs_filtered.sum(dim=2)
         import pdb
 
         pdb.set_trace()
