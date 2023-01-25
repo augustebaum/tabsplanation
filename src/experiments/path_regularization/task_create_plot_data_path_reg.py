@@ -18,7 +18,9 @@ class TaskCreatePlotDataPathRegularization(Task):
         super(TaskCreatePlotDataPathRegularization, self).__init__(cfg, output_dir)
 
         task_create_cake_on_sea = TaskCreateCakeOnSea(self.cfg)
-        # task_train_classifier = TaskTrainModel(self.cfg.classifier)
+
+        task_train_classifier = TaskTrainModel(self.cfg.classifier)
+
         task_train_path_regularized_autoencoder = TaskTrainPathRegAe(self.cfg)
         self.depends_on = task_create_cake_on_sea.produces
         # self.depends_on |= {"classifier": task_train_classifier.produces}
