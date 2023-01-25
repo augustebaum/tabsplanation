@@ -23,6 +23,8 @@ class PathRegularizedNICE(NICEModel):
         self.classifier = classifier
         self.nb_classes = self.classifier.layers[-1].out_features
 
+        self.path_loss_fn = BoundaryCrossLoss()
+
     def step(self, batch, batch_idx):
         # First step: compute likelihood
         loss, logs = super(PathRegularizedNICE, self).step(batch, batch_idx)
