@@ -4,7 +4,6 @@ Draft task to start plotting results.
 The graphs are not super informative but it's a first step.
 """
 
-import pickle
 
 import matplotlib.pyplot as plt
 
@@ -13,7 +12,7 @@ from experiments.latent_shift.task_plot_class_2_paths import TaskPlotClass2Paths
 from experiments.path_regularization.task_create_plot_data_path_reg import (
     TaskCreatePlotDataPathReg,
 )
-from experiments.shared.utils import define_task, load_mpl_style, Task
+from experiments.shared.utils import define_task, load_mpl_style, read, Task
 
 
 class TaskPlotPathReg(Task):
@@ -29,8 +28,7 @@ class TaskPlotPathReg(Task):
     @classmethod
     def task_function(cls, depends_on, produces, cfg):
 
-        with open(depends_on["results"], "rb") as results_file:
-            results = pickle.load(results_file)
+        results = read(depends_on["results"])
 
         load_mpl_style()
         nrows, ncols = len(cfg.methods), 4
