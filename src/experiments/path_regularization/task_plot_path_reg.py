@@ -21,9 +21,7 @@ class TaskPlotPathReg(Task):
         output_dir = BLD_PLOTS / "path_reg"
         super(TaskPlotPathReg, self).__init__(cfg, output_dir)
 
-        task_create_plot_data_cf_path_methods = TaskCreatePlotDataCfPathMethods(
-            self.cfg
-        )
+        task_create_plot_data_path_reg = TaskCreatePlotDataPathReg(self.cfg)
         self.depends_on = task_create_plot_data_cf_path_methods.produces
 
         self.produces |= {"plot": self.produces_dir / "plot.svg"}
