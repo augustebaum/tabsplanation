@@ -127,7 +127,7 @@ def take_source_and_target(
     """
     return torch.stack(
         [
-            input[i][:, [src, tgt]]
+            input[:, i, [src, tgt]]
             for i, (src, tgt) in enumerate(zip(source_class, target_class))
         ]
     )
