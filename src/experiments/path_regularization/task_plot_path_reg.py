@@ -62,5 +62,5 @@ class TaskPlotPathReg(Task):
         plt.show(block=True)
 
 
-task, task_definition = define_task("path_reg", TaskkPlotPathReg)
+task, task_definition = define_task("path_reg", TaskPlotPathReg)
 exec(task_definition)
