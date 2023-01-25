@@ -54,7 +54,7 @@ def grad(losses: Tensor["rows", 1], inputs: Tensor["rows", "cols"]):
     return torch.autograd.grad(losses.sum(), inputs, retain_graph=True)[0]
 
 
-class LatentShift:
+class LatentShiftNew:
     def __init__(self, hparams: Dict):
         # self.classifier = classifier
         # self.autoencoder = autoencoder
