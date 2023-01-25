@@ -30,7 +30,6 @@ class PathRegularizedNICE(NICEModel):
         x, y = batch
 
         batch_target_class = self.random_targets_like(y)
-
         latent_paths = self.explainer.get_counterfactuals(
             self.classifier, self, x, batch_target_class
         )
