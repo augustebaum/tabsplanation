@@ -46,6 +46,8 @@ class TaskPlotPathReg(Task):
         )
         ax[0, 1].set_title("Path regularized")
 
+        fig.savefig(produces["latent_space_maps"])
+
         # Plot paths
         fig, ax = plt.subplots(nrows=1, ncols=3)
 
@@ -53,46 +55,7 @@ class TaskPlotPathReg(Task):
             TaskPlotClass2Paths.plot_path(ax[0, i], path)
             ax[0, i].set_title(method_name)
 
-        # nrows, ncols = len(cfg.methods), 4
-        # figsize = (3 * ncols, 8 / 4 * nrows)
-
-        # ax[0, 0].set_title(r"Likelihood of perturbation $\uparrow$")
-        # ax[0, 1].set_title(r"Distance to explained input $\downarrow$")
-        # ax[0, 2].set_title(r"Paths")
-        # ax[0, 3].set_title(r"Local Outlier Factor $\uparrow$")
-
-        # for i, method in enumerate(cfg.methods)
-
-        #     ax[i, 0].annotate(
-        #         method.class_name,
-        #         xy=(0, 0.5),
-        #         xytext=(-ax[i, 0].yaxis.labelpad - 5, 0),
-        #         xycoords=ax[i, 0].yaxis.label,
-        #         textcoords="offset points",
-        #         size="large",
-        #         ha="right",
-        #         va="center",
-        #     )
-
-        #     method_results = results[method.class_name]
-        #     for result in method_results:
-        #         ax[i, 0].plot(result["likelihoods_nf"])
-        #         ax[i, 0].set_xlabel("Iterations")
-        #         ax[i, 0].set_ylabel("NF Likelihood")
-
-        #         ax[i, 1].plot(result["l1_distances_to_input"])
-        #         ax[i, 1].set_xlabel("Iterations")
-        #         ax[i, 1].set_ylabel("$L_1$ distance")
-
-        #         TaskPlotClass2Paths.plot_path(ax[i, 2], result["path"])
-
-        #         ax[i, 3].plot(result["lof"])
-        #         ax[i, 3].set_xlabel("Iterations")
-        #         ax[i, 3].set_ylabel("LOF")
-
-        # plt.show(block=True)
-
-        fig.savefig(produces["plot"])
+        fig.savefig(produces["test_paths"])
 
         plt.show(block=True)
 
