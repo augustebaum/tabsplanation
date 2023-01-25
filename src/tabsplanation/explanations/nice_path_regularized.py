@@ -44,20 +44,20 @@ class PathRegularizedNICE(NICEModel):
         return batch_target_class
 
 
-class ValidityLoss(nn.Module):
-    """A loss that considers if the path is valid (i.e. ended up in the target
-    class)."""
+# class ValidityLoss(nn.Module):
+#     """A loss that considers if the path is valid (i.e. ended up in the target
+#     class)."""
 
-    def __init__(self, classifier, autoencoder):
-        super(ValidityLoss, self).__init__()
+#     def __init__(self, classifier, autoencoder):
+#         super(ValidityLoss, self).__init__()
 
-    def forward(self, latents: Tensor["batch", "nb_steps", "latent_dim"], target: int):
-        latents_2d = latents.reshape(-1, latents.shape[2])
-        inputs = self.autoencoder.decode(latents_2d)
-        prbs = self.classifier.predict_proba(inputs)
-        self.classifier.predict_proba(self.autoencoder.decode(latents))
-        prbs
-        # path.target
+#     def forward(self, latents: Tensor["batch", "nb_steps", "latent_dim"], target: int):
+#         latents_2d = latents.reshape(-1, latents.shape[2])
+#         inputs = self.autoencoder.decode(latents_2d)
+#         prbs = self.classifier.predict_proba(inputs)
+#         self.classifier.predict_proba(self.autoencoder.decode(latents))
+#         prbs
+#         # path.target
 
 
 class BoundaryCrossLoss(nn.Module):
@@ -71,5 +71,14 @@ class BoundaryCrossLoss(nn.Module):
     def __init__(self):
         super(BoundaryCrossLoss, self).__init__()
 
-    def forward(self, path):
-        pass
+    def forward(
+        self,
+        latents: Tensor["batch", "nb_steps", "latent_dim"],
+        source_class_int,
+        target_class: int,
+    ):
+        latents_2d = latents.reshape(-1, latents.shape[2])
+        inputs = self.autoencoder.decode(latents_2d)
+        prbs = self.classifier.predict_proba(inputs)
+        # self.classifier.predict_proba(self.autoencoder.decode(latents))
+        # prbs
