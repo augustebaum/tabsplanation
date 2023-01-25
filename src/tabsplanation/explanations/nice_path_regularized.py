@@ -106,7 +106,7 @@ def take_source_and_target(
     input: Tensor["batch", "nb_steps", "nb_classes"],
     source_class: Tensor["batch"],
     target_class: Tensor["batch"],
-):
+) -> Tensor["batch", "nb_steps", 2]:
     """
     Example:
     --------
