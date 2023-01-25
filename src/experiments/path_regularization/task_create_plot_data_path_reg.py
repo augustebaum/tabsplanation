@@ -39,6 +39,10 @@ class TaskCreatePlotDataPathRegularization(Task):
         ]
         autoencoder = depends_on["autoencoder"]["model"]
 
+        # 1. Compare the latent spaces
+
+        # 2. Show a few paths
+
         # PathRegularizedNICE()
 
 
