@@ -48,7 +48,7 @@ class TaskPlotPathReg(Task):
         )
         ax[0, 1].set_title("Path regularized")
 
-        fig.savefig(produces["latent_space_maps"])
+        write(fig, produces["latent_space_maps"])
 
         # Plot paths
         fig, ax = plt.subplots(nrows=1, ncols=3)
@@ -57,7 +57,7 @@ class TaskPlotPathReg(Task):
             TaskPlotClass2Paths.plot_path(ax[0, i], path)
             ax[0, i].set_title(method_name)
 
-        fig.savefig(produces["test_paths"])
+        write(fig, produces["test_paths"])
 
         plt.show(block=True)
 
