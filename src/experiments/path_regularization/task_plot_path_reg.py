@@ -62,5 +62,5 @@ class TaskPlotPathReg(Task):
         plt.show(block=True)
 
 
-task, task_definition = define_task("compare_cf_methods", TaskPlotCfPathMethods)
+task, task_definition = define_task("path_reg", TaskkPlotPathReg)
 exec(task_definition)
