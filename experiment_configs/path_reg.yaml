@@ -14,6 +14,7 @@ training:
   patience: 5
   max_epochs: -1
   val_check_interval: 1
+# The classifier of interest
 classifier:
   seed: ${seed}
   data: ${data}
@@ -27,6 +28,8 @@ classifier:
       batch_norm: False
       dropout: null
       learning_rate: 1e-3
+# The autoencoder used for the non-regularized paths.
+# The same architecture will be used for the regularized AE.
 autoencoder:
   seed: ${seed}
   data: ${data}
