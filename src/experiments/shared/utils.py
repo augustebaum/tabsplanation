@@ -53,6 +53,16 @@ ExperimentName: TypeAlias = Literal[
 ]
 
 
+def get_module_object(module_path: str, object_name: str):
+    """Import module given by `module_path` and return a function
+    or class defined in that module with the name `object_name`."""
+    exec(f"import {module_path}")
+    return getattr(sys.modules[module_path], object_name)
+
+
+# ---
+
+
 def get_configs(experiment_name: Optional[ExperimentName] = None) -> List[DictConfig]:
     """Read experiment configuration files."""
     cfgs_dir = ROOT / "experiment_configs"
@@ -70,13 +80,6 @@ def save_full_config(cfg: DictConfig, path: Path) -> None:
 
 def save_config(cfg: DictConfig, path: Path) -> None:
     OmegaConf.save(cfg, path, resolve=False)
-
-
-def get_module_object(module_path: str, object_name: str):
-    """Import module given by `module_path` and return a function
-    or class defined in that module with the name `object_name`."""
-    exec(f"import {module_path}")
-    return getattr(sys.modules[module_path], object_name)
 
 
 # This is to generate task functions dynamically from a task class
@@ -140,6 +143,9 @@ class Task:
         raise NotImplementedError()
 
 
+# ---
+
+
 def get_data_module(depends_on, cfg, device):
     """Load a dataset and instantiate the corresponding `DataModule`."""
 
@@ -154,6 +160,8 @@ def get_data_module(depends_on, cfg, device):
     data_module = CakeOnSeaDataModule(**data_module_kwargs)
     return data_module
 
+
+# ---
 
 write_variants = {"pkl": write_pkl}
 
