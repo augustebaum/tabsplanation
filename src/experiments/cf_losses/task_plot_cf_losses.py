@@ -108,14 +108,7 @@ class TaskPlotCfLosses(Task):
         plt.show(block=True)
 
         fig, ax = plt.subplots()
-        ax.scatter(
-            z[:, 0],
-            z[:, 1],
-            c=results["latent_space_map"]["class"].detach(),
-            alpha=0.5,
-            marker="s",
-            zorder=1,
-        )
+        TaskPlotCfLosses.plot_latent_space_map(ax, results["latent_space_map"])
 
     @staticmethod
     def plot_latent_space_map(ax, latent_space_map):
