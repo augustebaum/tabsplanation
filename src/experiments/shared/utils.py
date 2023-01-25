@@ -173,7 +173,10 @@ def write_svg(obj, file_path):
 
 
 def write(obj, file_path: Path) -> None:
-    write_variants = {"pkl": write_pkl}
+    write_variants = {
+        "pkl": write_pkl
+        "svg": write_svg
+    }
 
     write_fn = write_variants.get(file_path.suffix)
     if write_fn is None:
