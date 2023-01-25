@@ -163,6 +163,8 @@ def get_data_module(depends_on, cfg, device):
 
 # ---
 
+def write_pkl(obj, file_path):
+    
 write_variants = {"pkl": write_pkl}
 
 
@@ -174,3 +176,9 @@ def write(obj, file_path: Path) -> None:
             f"No write function implemented for extension {file_path.suffix} yet."
         )
     write_fn(obj, file_path)
+
+
+with open(depends_on["results"], "rb") as results_file:
+    results = pickle.load(results_file)
+
+
