@@ -57,6 +57,13 @@ class TaskCreatePlotDataPathRegularization(Task):
             ),
         }
 
+        revise_hparams = {
+            "optimizer": "adam",
+            "lr": 0.1,
+            "max_iter": 100,
+            "distance_regularization": 0.5,
+        }
+
         # 2. Show a few paths
         path_methods = [
             LatentShift(classifier, autoencoder, hparams),
