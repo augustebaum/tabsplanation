@@ -94,7 +94,7 @@ class LatentShift:
             input point along with its associated prediction probability.
         """
         latent_paths = self.get_cf_latents(classifier, autoencoder, input, target_class)
-        
+        return latent_paths
 
     def _latent_shift(
         self,
