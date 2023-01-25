@@ -50,6 +50,7 @@ class ValidityLoss(nn.Module):
 
     def __init__(self, classifier, autoencoder):
         super(ValidityLoss, self).__init__()
+
         self.explainer = explainer
         self.classifier = classifier
 
