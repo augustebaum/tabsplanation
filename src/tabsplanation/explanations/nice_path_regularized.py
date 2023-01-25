@@ -86,3 +86,6 @@ class BoundaryCrossLoss(nn.Module):
             inputs
         )
         prbs = prbs.reshape(latents.shape)
+        import pdb
+
+        pdb.set_trace
