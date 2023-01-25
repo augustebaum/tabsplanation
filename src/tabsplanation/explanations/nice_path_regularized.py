@@ -51,7 +51,7 @@ class ValidityLoss(nn.Module):
     def __init__(self, classifier, autoencoder):
         super(ValidityLoss, self).__init__()
 
-    def forward(self, latents: Tensor["nb_steps", "nb_classes"], target: int):
+    def forward(self, latents: Tensor["batch", "nb_steps", "latent_dim"], target: int):
         self.classifier.predict_proba(self.autoencoder.decode(latents))
         prbs
         # path.target
