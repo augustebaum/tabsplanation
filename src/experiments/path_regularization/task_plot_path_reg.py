@@ -13,7 +13,7 @@ from experiments.latent_shift.task_plot_class_2_paths import TaskPlotClass2Paths
 from experiments.path_regularization.task_create_plot_data_path_reg import (
     TaskCreatePlotDataPathReg,
 )
-from experiments.shared.utils import define_task, load_mpl_style, read, Task
+from experiments.shared.utils import define_task, load_mpl_style, read, Task, write
 
 
 class TaskPlotPathReg(Task):
