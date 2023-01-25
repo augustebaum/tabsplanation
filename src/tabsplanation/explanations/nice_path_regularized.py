@@ -74,7 +74,7 @@ class BoundaryCrossLoss(nn.Module):
     def forward(
         self,
         latents: Tensor["batch", "nb_steps", "latent_dim"],
-        source_class_int,
+        source_class: int,
         target_class: int,
     ):
         latents_2d = latents.reshape(-1, latents.shape[2])
