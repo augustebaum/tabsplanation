@@ -47,6 +47,16 @@ class TaskCreatePlotDataPathRegularization(Task):
 
         results = {}
 
+        x0 = get_x0()
+        x: Tensor["nb_points", 2] = torch.cartesian_prod(x0, x0)
+
+        data_module = get_data_module(depends_on, cfg, "cpu")
+        dataset = data_module.dataset
+
+        inputs = dataset.fill_from_2d_point(x)
+        normalized_inputs = dataset.normalize(inputs)
+        normalized_inputs.requires_grad = True
+
         # 1. Plot the latent spaces
         results |= {
             "unregularized_latent_space_map": TaskCreatePlotDataCfLosses.latent_space_map(
