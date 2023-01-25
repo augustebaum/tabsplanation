@@ -81,6 +81,7 @@ class TaskCreatePlotDataPathRegularization(Task):
             LatentShift(classifier, path_regularized_autoencoder, latent_shift_hparams),
         ]
 
+        # Input that should be predicted to be class 0
         input = data_module.dataset.normalize(torch.tensor([[10.0, 10.0]]))
         target_class = 2
 
