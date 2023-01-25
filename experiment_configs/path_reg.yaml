@@ -35,19 +35,7 @@ path_regularized_model:
     max_epochs: -1
   class_name: PathRegularizedNICE
   args:
-    classifier:
-      seed: ${seed}
-      data: ${data}
-      data_module: ${data_module}
-      training: ${training}
-      model:
-        class_name: Classifier
-        args:
-          output_dim: 3
-          hidden_dims: [50, 50]
-          batch_norm: False
-          dropout: null
-          learning_rate: 1e-3
+    classifier: ${classifier}
     explainer:
       class_name: LatentShift
       args:
