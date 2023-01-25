@@ -17,7 +17,6 @@ path_regularized_model:
   seed: ${seed}
   data: ${data}
   data_module: ${data_module}
-  training: ${training}
   training:
     patience: 5
     max_epochs: -1
@@ -27,9 +26,7 @@ path_regularized_model:
       seed: ${seed}
       data: ${data}
       data_module: ${data_module}
-      training:
-        patience: 5
-        max_epochs: -1
+      training: ${training}
       model:
         class_name: Classifier
         args:
