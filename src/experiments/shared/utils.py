@@ -165,11 +165,11 @@ def get_data_module(depends_on, cfg, device):
 
 
 def write_pkl(obj, file_path):
-    with open(file_path, "rb") as f:
-        result = pickle.load(f)
-    return result
-    with open(produces["results"], "wb") as results_file:
-        pickle.dump(result, results_file)
+    # with open(file_path, "rb") as f:
+    #     result = pickle.load(f)
+    # return result
+    with open(file_path, "wb") as f:
+        pickle.dump(obj, f)
 
 
 write_variants = {"pkl": write_pkl}
