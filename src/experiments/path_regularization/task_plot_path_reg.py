@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 from config import BLD_PLOTS
 from experiments.latent_shift.task_plot_class_2_paths import TaskPlotClass2Paths
 from experiments.path_regularization.task_create_plot_data_path_reg import (
-    TaskCreatePlotDataCfPathMethods,
+    TaskCreatePlotDataPathReg,
 )
 from experiments.shared.utils import define_task, load_mpl_style, Task
 
