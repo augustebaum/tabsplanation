@@ -31,6 +31,7 @@ class TaskCreatePlotDataPathRegularization(Task):
         self.depends_on |= {
             "path_regularized_autoencoder": task_train_path_regularized_autoencoder.produces,
             "autoencoder": task_train_autoencoder.produces,
+            "classifier": task_train_classifier.produces,
         }
 
         # self.produces |= {"results": self.produces_dir / "results.pkl"}
