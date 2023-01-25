@@ -36,6 +36,8 @@ def get_inputs(x0, data_module):
     normalized_inputs = dataset.normalize(inputs)
     normalized_inputs.requires_grad = True
 
+    return normalized_inputs
+
 
 T = TypeVar("T")
 LossName = str
