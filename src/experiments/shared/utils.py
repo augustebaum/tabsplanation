@@ -168,6 +168,8 @@ def write_pkl(obj, file_path):
     with open(file_path, "rb") as f:
         result = pickle.load(f)
     return result
+    with open(produces["results"], "wb") as results_file:
+        pickle.dump(result, results_file)
 
 
 write_variants = {"pkl": write_pkl}
