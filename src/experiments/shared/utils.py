@@ -60,7 +60,7 @@ def get_module_object(module_path: str, object_name: str):
     return getattr(sys.modules[module_path], object_name)
 
 
-# ---
+# --- Task boilerplate
 
 
 def get_configs(experiment_name: Optional[ExperimentName] = None) -> List[DictConfig]:
@@ -161,7 +161,7 @@ def get_data_module(depends_on, cfg, device):
     return data_module
 
 
-# ---
+# --- More task boilerplate: Read/write
 
 
 def write_pkl(obj, file_path):
