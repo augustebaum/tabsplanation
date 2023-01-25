@@ -21,8 +21,7 @@ class TaskPlotPathReg(Task):
         output_dir = BLD_PLOTS / "path_reg"
         super(TaskPlotPathReg, self).__init__(cfg, output_dir)
 
-        task_create_plot_data_path_reg = TaskCreatePlotDataPathReg(self.cfg)
-        self.depends_on = task_create_plot_data_path_reg.produces
+        self.depends_on = TaskCreatePlotDataPathReg(self.cfg).produces
 
         self.produces |= {"plot": self.produces_dir / "plot.svg"}
         print(f"Plot would be saved in \n{self.produces['plot']}")
