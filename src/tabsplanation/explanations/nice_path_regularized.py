@@ -72,6 +72,8 @@ class BoundaryCrossLoss(nn.Module):
 
     Intuitively, the path should lie as much as possible either in the source class or
     in the target class.
+    The loss computes the average probability that the path lies in neither of them (so
+    that the goal is indeed to minimize that probability)
     """
 
     def __init__(self):
@@ -97,8 +99,7 @@ class BoundaryCrossLoss(nn.Module):
             prbs, source_class, target_class
         )
         prb_source_plus_target: Tensor["batch", "nb_steps"] = prbs_filtered.sum(dim=2)
-        #
-        return 1-prb_source_plus_target.mean()
+        return 1 - prb_source_plus_target.mean()
 
 
 def take_source_and_target(
