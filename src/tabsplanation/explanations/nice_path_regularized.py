@@ -99,7 +99,6 @@ class BoundaryCrossLoss(nn.Module):
             prbs, source_class, target_class
         )
         return prbs_filtered.mean()
-        return None
 
 
 def take_source_and_target(
