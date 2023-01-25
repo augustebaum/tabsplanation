@@ -48,10 +48,13 @@ class ValidityLoss(nn.Module):
     """A loss that considers if the path is valid (i.e. ended up in the target
     class)."""
 
-    def __init__(self):
+    def __init__(self, classifier, autoencoder):
         super(ValidityLoss, self).__init__()
+        self.explainer = explainer
+        self.classifier = classifier
 
     def forward(self, prbs: Tensor["nb_steps", "nb_classes"], target: int):
+        self.classifier.predict_proba(self.autoencoder.decode(latents))
         prbs
         # path.target
 
