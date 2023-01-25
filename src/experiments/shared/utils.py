@@ -5,7 +5,7 @@ import re
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import List, Literal, Optional, Tuple, TypeAlias
+from typing import List, Optional, Tuple, TypeAlias
 
 import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
@@ -48,9 +48,16 @@ def hash_(cfg: DictConfig):
     return hashlib.sha256(cfg_str.encode("ascii")).hexdigest()
 
 
-ExperimentName: TypeAlias = Literal[
-    "classification", "latent_shift", "ae_reconstruction"
-]
+def get_module_object(module_path: str, object_name: str):
+    """Import module given by `module_path` and return a function
+    or class defined in that module with the name `object_name`."""
+    exec(f"import {module_path}")
+    return getattr(sys.modules[module_path], object_name)
+
+
+# --- Task boilerplate
+
+ExperimentName: TypeAlias = str
 
 
 def get_configs(experiment_name: Optional[ExperimentName] = None) -> List[DictConfig]:
@@ -70,13 +77,6 @@ def save_full_config(cfg: DictConfig, path: Path) -> None:
 
 def save_config(cfg: DictConfig, path: Path) -> None:
     OmegaConf.save(cfg, path, resolve=False)
-
-
-def get_module_object(module_path: str, object_name: str):
-    """Import module given by `module_path` and return a function
-    or class defined in that module with the name `object_name`."""
-    exec(f"import {module_path}")
-    return getattr(sys.modules[module_path], object_name)
 
 
 # This is to generate task functions dynamically from a task class
@@ -140,6 +140,9 @@ class Task:
         raise NotImplementedError()
 
 
+# ---
+
+
 def get_data_module(depends_on, cfg, device):
     """Load a dataset and instantiate the corresponding `DataModule`."""
 
@@ -153,3 +156,47 @@ def get_data_module(depends_on, cfg, device):
     data_module_kwargs = {"dataset": dataset} | OmegaConf.to_object(cfg.data_module)
     data_module = CakeOnSeaDataModule(**data_module_kwargs)
     return data_module
+
+
+# --- More task boilerplate: Read/write
+
+
+def write_pkl(obj, file_path):
+    import pickle
+
+    with open(file_path, "wb") as f:
+        pickle.dump(obj, f)
+
+
+def write_svg(obj, file_path):
+    obj.savefig(file_path)
+
+
+def write(obj, file_path: Path) -> None:
+    write_variants = {"pkl": write_pkl, "svg": write_svg}
+
+    write_fn = write_variants.get(file_path.suffix)
+    if write_fn is None:
+        raise NotImplementedError(
+            f"No write function implemented for extension {file_path.suffix} yet."
+        )
+    write_fn(obj, file_path)
+
+
+def read_pkl(file_path):
+    import pickle
+
+    with open(file_path, "rb") as f:
+        result = pickle.load(f)
+    return result
+
+
+def read(file_path: Path) -> object:
+    read_variants = {"pkl": read_pkl}
+
+    read_fn = read_variants.get(file_path.suffix)
+    if read_fn is None:
+        raise NotImplementedError(
+            f"No read function implemented for extension {file_path.suffix} yet."
+        )
+    return read_fn(file_path)
