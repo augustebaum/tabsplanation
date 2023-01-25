@@ -185,6 +185,8 @@ def write(obj, file_path: Path) -> None:
 
 
 def read_pkl(file_path):
+    import pickle
+
     with open(file_path, "rb") as f:
         result = pickle.load(f)
     return result
