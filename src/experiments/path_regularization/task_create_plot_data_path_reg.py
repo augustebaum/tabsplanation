@@ -88,8 +88,8 @@ class TaskCreatePlotDataPathRegularization(Task):
         target_class = 2
 
         results["paths"] = {
-            method.__class__.__name__: method.get_counterfactuals(input, target_class)
-            for method in path_methods
+            method_name: method.get_counterfactuals(input, target_class)
+            for method_name, method in path_methods.items()
         }
 
         write(results, produces["results"])
