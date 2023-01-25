@@ -94,20 +94,7 @@ class LatentShift:
             input point along with its associated prediction probability.
         """
         latent_paths = self.get_cf_latents(classifier, autoencoder, input, target_class)
-        # cf_xs = self._latent_shift(ae, z, gradient, shifts)
-        # cf_ys = clf.predict_proba(cf_xs)
-
-        cf_xs, cf_ys = self._filter_path(cf_xs, cf_ys, output_class, target_class)
-
-        # 3) Pack explanations together neatly
-
-        return ExplanationPath(
-            explained_input=InputOutputPair(input, output),
-            target_class=target_class,
-            shift_step=self._shift_step,
-            max_iter=self._max_iter,
-            cfs=[InputOutputPair(cf_x, cf_y) for cf_x, cf_y in zip(cf_xs, cf_ys)],
-        )
+        
 
     def _latent_shift(
         self,
