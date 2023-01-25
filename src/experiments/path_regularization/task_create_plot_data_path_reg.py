@@ -11,8 +11,7 @@ from experiments.cf_losses.task_create_plot_data_cf_losses import (
 from experiments.path_regularization.task_train_path_reg_ae import TaskTrainPathRegAe
 from experiments.shared.task_create_cake_on_sea import TaskCreateCakeOnSea
 from experiments.shared.task_train_model import TaskTrainModel
-from experiments.shared.utils import define_task, get_data_module, Task
-from tabsplanation.explanations.nice_path_regularized import PathRegularizedNICE
+from experiments.shared.utils import define_task, Task
 
 
 class TaskCreatePlotDataPathRegularization(Task):
@@ -57,6 +56,7 @@ class TaskCreatePlotDataPathRegularization(Task):
         }
 
         # 2. Show a few paths
+        LatentShift.get_counterfactuals()
 
         # PathRegularizedNICE()
 
