@@ -36,7 +36,7 @@ class PathRegularizedNICE(NICEModel):
             self.classifier, self, x, y_target
         )
         path_loss = self.path_loss_fn(
-            self, classifier, latent_paths, y_source, y_target
+            self, self.classifier, latent_paths, y_source, y_target
         )
 
         logs |= {"path_loss": path_loss}
