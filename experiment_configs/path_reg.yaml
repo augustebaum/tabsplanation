@@ -25,6 +25,9 @@ path_regularized_model:
       data: ${data}
       data_module: ${data_module}
       training: ${training}
+      training:
+        patience: 5
+        max_epochs: -1
       model:
         class_name: Classifier
         args:
