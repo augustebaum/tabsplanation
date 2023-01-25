@@ -48,11 +48,6 @@ def hash_(cfg: DictConfig):
     return hashlib.sha256(cfg_str.encode("ascii")).hexdigest()
 
 
-ExperimentName: TypeAlias = Literal[
-    "classification", "latent_shift", "ae_reconstruction"
-]
-
-
 def get_module_object(module_path: str, object_name: str):
     """Import module given by `module_path` and return a function
     or class defined in that module with the name `object_name`."""
@@ -61,6 +56,10 @@ def get_module_object(module_path: str, object_name: str):
 
 
 # --- Task boilerplate
+
+ExperimentName: TypeAlias = Literal[
+    "classification", "latent_shift", "ae_reconstruction"
+]
 
 
 def get_configs(experiment_name: Optional[ExperimentName] = None) -> List[DictConfig]:
