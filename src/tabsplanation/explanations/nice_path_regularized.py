@@ -35,7 +35,7 @@ class PathRegularizedNICE(NICEModel):
         batch_target_class = (y + batch_target_difference) % self.nb_classes
         # explainer = self.make_explainer(self)
         # LatentShift(self.classifier, self, self.explainer_hparams)
-        paths = self.explainer.get_counterfactuals(
+        latent_paths = self.explainer.get_counterfactuals(
             self.classifier, self, x, batch_target_class
         )
         path_loss = self.path_loss_fn(paths)
