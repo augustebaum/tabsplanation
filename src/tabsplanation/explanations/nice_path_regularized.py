@@ -85,4 +85,4 @@ class BoundaryCrossLoss(nn.Module):
         prbs: Tensor["batch * nb_steps", "nb_classes"] = classifier.predict_proba(
             inputs
         )
-        prbs.reshape(latents.shape)
+        prbs = prbs.reshape(latents.shape)
