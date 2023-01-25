@@ -31,8 +31,7 @@ class PathRegularizedNICE(NICEModel):
 
         # Now compute paths and compute path loss
         # Randomly choose target class for each point in the batch
-        batch_target_difference = torch.randint_like(y, low=1, high=self.nb_classes - 1)
-        batch_target_class = (y + batch_target_difference) % self.nb_classes
+        batch_target_class = self.random_targets_like(y)
 
         latent_paths = self.explainer.get_counterfactuals(
             self.classifier, self, x, batch_target_class
