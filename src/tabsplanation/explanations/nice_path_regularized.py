@@ -81,8 +81,8 @@ class BoundaryCrossLoss(nn.Module):
         autoencoder,
         classifier,
         latents: Tensor["batch", "nb_steps", "latent_dim"],
-        source_class: int,
-        target_class: int,
+        source_class: Tensor["batch"],
+        target_class: Tensor["batch"],
     ):
         latents_2d = latents.reshape(-1, latents.shape[2])
         inputs = autoencoder.decode(latents_2d)
@@ -99,6 +99,8 @@ class BoundaryCrossLoss(nn.Module):
         return None
 
     def take_source_and_target(
-        prbs: Tensor["batch", "nb_steps", "nb_classes"], source_class, target_class
+        prbs: Tensor["batch", "nb_steps", "nb_classes"],
+        source_class: Tensor["batch"],
+        target_class: Tensor["batch"],
     ):
         pass
