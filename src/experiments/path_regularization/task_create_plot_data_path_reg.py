@@ -48,7 +48,7 @@ class TaskCreatePlotDataPathRegularization(Task):
                 classifier, autoencoder, normalized_inputs
             ),
             "path_regularized_latent_space_map": TaskCreatePlotDataCfLosses.latent_space_map(
-                classifier, path_reggularized_autoencoder, normalized_inputs
+                classifier, path_regularized_autoencoder, normalized_inputs
             ),
         }
 
