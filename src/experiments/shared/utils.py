@@ -190,7 +190,7 @@ def read_pkl(file_path):
     return result
 
 
-def read(file_path: Path) -> Any:
+def read(file_path: Path) -> Object:
     read_variants = {"pkl": read_pkl}
 
     read_fn = read_variants.get(file_path.suffix)
