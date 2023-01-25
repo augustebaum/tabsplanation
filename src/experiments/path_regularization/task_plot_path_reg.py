@@ -26,7 +26,7 @@ class TaskPlotPathReg(Task):
         print(f"Plot would be saved in \n{self.produces['plot']}")
 
     @classmethod
-    def task_function(cls, depends_on, produces, cfg):
+    def task_function(cls, depends_on, produces, cfg)
 
         results = read(depends_on["results"])
 
@@ -34,6 +34,12 @@ class TaskPlotPathReg(Task):
 
         # Plot latent space maps
         fig, ax = plt.subplots(nrows=1, ncols=2)
+
+        TaskPlotCfLosses.plot_latent_space_map(ax[0,0], results[""unregularized_latent_space_map""])
+            
+            "path_regularized_latent_space_map"
+
+
 
         # nrows, ncols = len(cfg.methods), 4
         # figsize = (3 * ncols, 8 / 4 * nrows)
@@ -43,7 +49,7 @@ class TaskPlotPathReg(Task):
         # ax[0, 2].set_title(r"Paths")
         # ax[0, 3].set_title(r"Local Outlier Factor $\uparrow$")
 
-        # for i, method in enumerate(cfg.methods):
+        # for i, method in enumerate(cfg.methods)
 
         #     ax[i, 0].annotate(
         #         method.class_name,
