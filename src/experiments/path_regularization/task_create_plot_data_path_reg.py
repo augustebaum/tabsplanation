@@ -59,7 +59,8 @@ class TaskCreatePlotDataPathRegularization(Task):
         # 2. Show a few paths
         LatentShift.get_counterfactuals(input, target_class)
 
-        TaskPlotClass2Paths.plot_path(ax[i, 2], result["path"])
+        for result in results:
+        TaskPlotClass2Paths.plot_path(ax, result["path"])
 
         # PathRegularizedNICE()
 
