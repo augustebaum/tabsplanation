@@ -5,7 +5,9 @@ that fit constraints better than those produced with a non-regularized latent sp
 """
 
 from config import BLD_PLOT_DATA
-from experiments.cf_losses.task_create_plot_data_cf_losses import TaskCreatePlotDataCfLosses
+from experiments.cf_losses.task_create_plot_data_cf_losses import (
+    TaskCreatePlotDataCfLosses,
+)
 from experiments.path_regularization.task_train_path_reg_ae import TaskTrainPathRegAe
 from experiments.shared.task_create_cake_on_sea import TaskCreateCakeOnSea
 from experiments.shared.task_train_model import TaskTrainModel
@@ -41,10 +43,11 @@ class TaskCreatePlotDataPathRegularization(Task):
         autoencoder = depends_on["autoencoder"]["model"]
 
         # 1. Compare the latent spaces
-        "latent_space_map": TaskCreatePlotDataCfLosses.latent_space_map(
+        {
+            "latent_space_map": TaskCreatePlotDataCfLosses.latent_space_map(
                 classifier, autoencoder, normalized_inputs
             ),
-
+        }
 
         # 2. Show a few paths
 
