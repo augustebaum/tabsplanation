@@ -46,7 +46,7 @@ class TaskCreatePlotDataPathRegularization(Task):
 
         results = {}
 
-        # 1. Compare the latent spaces
+        # 1. Plot the latent spaces
         results |= {
             "unregularized_latent_space_map": TaskCreatePlotDataCfLosses.latent_space_map(
                 classifier, autoencoder, normalized_inputs
