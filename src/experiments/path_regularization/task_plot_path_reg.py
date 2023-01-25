@@ -49,9 +49,9 @@ class TaskPlotPathReg(Task):
         # Plot paths
         fig, ax = plt.subplots(nrows=1, ncols=3)
 
-        TaskPlotClass2Paths.plot_path(ax[0, 0], results["paths"][""])
-        TaskPlotClass2Paths.plot_path(ax[0, 1], results["paths"][""])
-        TaskPlotClass2Paths.plot_path(ax[0, 2], results["paths"][""])
+        for i, (method_name, path) in enumerate(results["paths"].items()):
+            TaskPlotClass2Paths.plot_path(ax[0, i], path)
+            ax[0, i].set_title(method_name)
 
         # nrows, ncols = len(cfg.methods), 4
         # figsize = (3 * ncols, 8 / 4 * nrows)
