@@ -188,3 +188,14 @@ def read_pkl(file_path):
     with open(file_path, "rb") as f:
         result = pickle.load(f)
     return result
+
+
+def read(file_path: Path) -> None:
+    write_variants = {"pkl": read_pkl}
+
+    write_fn = write_variants.get(file_path.suffix)
+    if write_fn is None:
+        raise NotImplementedError(
+            f"No write function implemented for extension {file_path.suffix} yet."
+        )
+    write_fn(obj, file_path)
