@@ -69,7 +69,7 @@ class TaskCreatePlotDataPathRegularization(Task):
             for method in path_methods
         }
 
-        utils.write(results, self.produces["results"])
+        write(results, self.produces["results"])
         # for result in results:
         # TaskPlotClass2Paths.plot_path(ax, result["path"])
 
