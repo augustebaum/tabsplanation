@@ -92,5 +92,5 @@ class BoundaryCrossLoss(nn.Module):
         prbs = prbs.reshape(latents.shape[0], latents.shape[1], prbs.shape[1])
         import pdb
 
-        pdb.set_trace
+        pdb.set_trace()
         return None
