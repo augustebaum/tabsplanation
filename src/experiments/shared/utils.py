@@ -167,8 +167,9 @@ def write_pkl(obj, file_path):
     with open(file_path, "wb") as f:
         pickle.dump(obj, f)
 
-def write_svg(obj, filepath)
-fig.savefig(produces["test_paths"])
+
+def write_svg(obj, file_path):
+    obj.savefig(file_path)
 
 
 def write(obj, file_path: Path) -> None:
