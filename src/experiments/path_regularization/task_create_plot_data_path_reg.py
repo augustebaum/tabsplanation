@@ -6,6 +6,8 @@ that fit constraints better than those produced with a non-regularized latent sp
 
 from config import BLD_PLOT_DATA
 from experiments.cf_losses.task_create_plot_data_cf_losses import (
+    get_inputs,
+    get_x0,
     TaskCreatePlotDataCfLosses,
 )
 from experiments.path_regularization.task_train_path_reg_ae import TaskTrainPathRegAe
