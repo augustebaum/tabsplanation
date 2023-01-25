@@ -32,8 +32,8 @@ class TaskPlotPathReg(Task):
 
         load_mpl_style()
 
+        # Plot latent space maps
         fig, ax = plt.subplots(nrows=1, ncols=2)
-
 
         # nrows, ncols = len(cfg.methods), 4
         # figsize = (3 * ncols, 8 / 4 * nrows)
@@ -75,7 +75,6 @@ class TaskPlotPathReg(Task):
         # plt.show(block=True)
 
         fig.savefig(produces["plot"])
-
 
         plt.show(block=True)
 
