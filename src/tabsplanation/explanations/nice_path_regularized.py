@@ -99,10 +99,22 @@ class BoundaryCrossLoss(nn.Module):
         return None
 
     def take_source_and_target(
-        prbs: Tensor["batch", "nb_steps", "nb_classes"],
+        input: Tensor["batch", "nb_steps", "nb_classes"],
         source_class: Tensor["batch"],
         target_class: Tensor["batch"],
     ):
+        """
+        >>> input = torch.arange(1, 19).reshape(2,3,3)
+        tensor([[[ 1,  2,  3],
+                 [ 4,  5,  6],
+                 [ 7,  8,  9]],
+
+                [[10, 11, 12],
+                 [13, 14, 15],
+                 [16, 17, 18]]])
+        >>> source = torch.tensor([0, 0])
+        >>> target = torch.tensor([2, 1])
+        """
         return torch.stack(
             [
                 xx[i][:, [src, tgt]]
