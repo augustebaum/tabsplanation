@@ -13,6 +13,19 @@ data_module:
 training:
   patience: 5
   max_epochs: -1
+classifier:
+  seed: ${seed}
+  data: ${data}
+  data_module: ${data_module}
+  training: ${training}
+  model:
+    class_name: Classifier
+    args:
+      output_dim: 3
+      hidden_dims: [50, 50]
+      batch_norm: False
+      dropout: null
+      learning_rate: 1e-3
 path_regularized_model:
   seed: ${seed}
   data: ${data}
