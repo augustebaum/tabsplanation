@@ -43,6 +43,11 @@ class PathRegularizedNICE(NICEModel):
         loss += path_loss
         return loss, logs
 
+    def random_targets_like(self, y):
+        batch_target_difference = torch.randint_like(y, low=1, high=self.nb_classes - 1)
+        batch_target_class = (y + batch_target_difference) % self.nb_classes
+        return batch_target_class
+
 
 class ValidityLoss(nn.Module):
     """A loss that considers if the path is valid (i.e. ended up in the target
