@@ -31,7 +31,7 @@ By default, any output is captured by `pytask`. Hence, for visualizing the train
 a model, it is recommended to use `tensorboard`.
 In the root of the project, run
 ```console
-tensorboard --log_dir=bld/models/lightning_logs
+tensorboard --logdir=bld/models/lightning_logs
 ```
 and follow the instructions.
 
