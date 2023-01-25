@@ -165,6 +165,8 @@ def get_data_module(depends_on, cfg, device):
 
 
 def write_pkl(obj, file_path):
+    import pickle
+
     with open(file_path, "wb") as f:
         pickle.dump(obj, f)
 
