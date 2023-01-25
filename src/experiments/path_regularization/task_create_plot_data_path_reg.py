@@ -91,10 +91,6 @@ class TaskCreatePlotDataPathRegularization(Task):
         }
 
         write(results, produces["results"])
-        # for result in results:
-        # TaskPlotClass2Paths.plot_path(ax, result["path"])
-
-        # PathRegularizedNICE()
 
 
 task, task_definition = define_task("path_reg", TaskCreatePlotDataPathRegularization)
