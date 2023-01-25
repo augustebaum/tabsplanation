@@ -104,6 +104,8 @@ class BoundaryCrossLoss(nn.Module):
         target_class: Tensor["batch"],
     ):
         """
+        Example:
+        --------
         >>> input = torch.arange(1, 19).reshape(2,3,3)
         tensor([[[ 1,  2,  3],
                  [ 4,  5,  6],
@@ -125,7 +127,7 @@ class BoundaryCrossLoss(nn.Module):
         """
         return torch.stack(
             [
-                xx[i][:, [src, tgt]]
+                input[i][:, [src, tgt]]
                 for i, src, tgt in enumerate(zip(source_class, target_class))
             ]
         )
