@@ -153,3 +153,6 @@ def get_data_module(depends_on, cfg, device):
     data_module_kwargs = {"dataset": dataset} | OmegaConf.to_object(cfg.data_module)
     data_module = CakeOnSeaDataModule(**data_module_kwargs)
     return data_module
+
+def write(obj, file_path: Path) -> None:
+    
