@@ -107,6 +107,30 @@ class TaskPlotCfLosses(Task):
 
         plt.show(block=True)
 
+        fig, ax = plt.subplots()
+        ax.scatter(
+            z[:, 0],
+            z[:, 1],
+            c=results["latent_space_map"]["class"].detach(),
+            alpha=0.5,
+            marker="s",
+            zorder=1,
+        )
+
+    @staticmethod
+    def plot_latent_space_map(ax, latent_space_map):
+        z = latent_space_map["z"]
+        class_ = latent_space_map["class"]
+
+        ax.scatter(
+            z[:, 0],
+            z[:, 1],
+            c=class_.detach(),
+            alpha=0.5,
+            marker="s",
+            zorder=1,
+        )
+
     @staticmethod
     def plot_loss_contours(
         results: ResultDict[Loss], x_axis, axis_limits, axis_labels, title
