@@ -177,8 +177,9 @@ def write(obj, file_path: Path) -> None:
         )
     write_fn(obj, file_path)
 
-
-with open(depends_on["results"], "rb") as results_file:
-    results = pickle.load(results_file)
+def read_pkl(file_path):
+    with open(file_path, "rb") as f:
+        result = pickle.load(f)
+    return result
 
 
