@@ -35,7 +35,7 @@ class TaskCreatePlotDataPathRegularization(Task):
             "classifier": task_train_classifier.produces,
         }
 
-        # self.produces |= {"results": self.produces_dir / "results.pkl"}
+        self.produces |= {"results": self.produces_dir / "results.pkl"}
 
     @classmethod
     def task_function(cls, depends_on, produces, cfg):
