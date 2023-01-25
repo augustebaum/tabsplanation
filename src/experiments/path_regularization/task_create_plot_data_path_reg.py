@@ -75,11 +75,13 @@ class TaskCreatePlotDataPathRegularization(Task):
             "distance_regularization": 0.5,
         }
 
-        path_methods = [
-            LatentShift(classifier, autoencoder, latent_shift_hparams),
-            Revise(classifier, autoencoder, revise_hparams),
-            LatentShift(classifier, path_regularized_autoencoder, latent_shift_hparams),
-        ]
+        path_methods = {
+            "Latent shift": LatentShift(classifier, autoencoder, latent_shift_hparams),
+            "Revise": Revise(classifier, autoencoder, revise_hparams),
+            "Latent shift with path regularization": LatentShift(
+                classifier, path_regularized_autoencoder, latent_shift_hparams
+            ),
+        }
 
         # Input that should be predicted to be class 0
         input = data_module.dataset.normalize(torch.tensor([[10.0, 10.0]]))
