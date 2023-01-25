@@ -64,8 +64,11 @@ class TaskCreatePlotDataPathRegularization(Task):
             LatentShift(classifier, path_regularized_autoencoder, hparams),
         ]
 
-        results["paths"] = {}
-        for method in path_methods:
+        results["paths"] = {method.__class__.__name__:  method.get_counterfactuals(
+                input, target_class
+            )
+        for method in path_methods
+}
             results["paths"][method.__class__.__name__] = method.get_counterfactuals(
                 input, target_class
             )
