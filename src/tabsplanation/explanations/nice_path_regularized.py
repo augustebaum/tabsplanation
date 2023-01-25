@@ -98,36 +98,37 @@ class BoundaryCrossLoss(nn.Module):
         prbs_filtered: Tensor["batch", "nb_steps", 2] = prbs.gather()
         return None
 
-    def take_source_and_target(
-        input: Tensor["batch", "nb_steps", "nb_classes"],
-        source_class: Tensor["batch"],
-        target_class: Tensor["batch"],
-    ):
-        """
-        Example:
-        --------
-        >>> input = torch.arange(1, 19).reshape(2,3,3)
-        tensor([[[ 1,  2,  3],
-                 [ 4,  5,  6],
-                 [ 7,  8,  9]],
 
-                [[10, 11, 12],
-                 [13, 14, 15],
-                 [16, 17, 18]]])
-        >>> source = torch.tensor([0, 0])
-        >>> target = torch.tensor([2, 1])
-        >>> take_source_and_target(input, source, target)
-        tensor([[[ 1,  3],
-                 [ 4,  6],
-                 [ 7,  9]],
+def take_source_and_target(
+    input: Tensor["batch", "nb_steps", "nb_classes"],
+    source_class: Tensor["batch"],
+    target_class: Tensor["batch"],
+):
+    """
+    Example:
+    --------
+    >>> input = torch.arange(1, 19).reshape(2,3,3)
+    tensor([[[ 1,  2,  3],
+             [ 4,  5,  6],
+             [ 7,  8,  9]],
 
-                [[10, 11],
-                 [13, 14],
-                 [16, 17]]])
-        """
-        return torch.stack(
-            [
-                input[i][:, [src, tgt]]
-                for i, src, tgt in enumerate(zip(source_class, target_class))
-            ]
-        )
+            [[10, 11, 12],
+             [13, 14, 15],
+             [16, 17, 18]]])
+    >>> source = torch.tensor([0, 0])
+    >>> target = torch.tensor([2, 1])
+    >>> take_source_and_target(input, source, target)
+    tensor([[[ 1,  3],
+             [ 4,  6],
+             [ 7,  9]],
+
+            [[10, 11],
+             [13, 14],
+             [16, 17]]])
+    """
+    return torch.stack(
+        [
+            input[i][:, [src, tgt]]
+            for i, src, tgt in enumerate(zip(source_class, target_class))
+        ]
+    )
