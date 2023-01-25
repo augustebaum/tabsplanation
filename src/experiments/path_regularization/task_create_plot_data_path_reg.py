@@ -49,6 +49,7 @@ class TaskCreatePlotDataPathRegularization(Task):
 
         results = {}
 
+        # 0. Get some input points
         x0 = get_x0()
         data_module = get_data_module(depends_on, cfg, "cpu")
         normalized_inputs = get_inputs(x0, data_module)
