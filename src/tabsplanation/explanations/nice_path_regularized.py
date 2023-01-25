@@ -29,8 +29,6 @@ class PathRegularizedNICE(NICEModel):
 
         x, y = batch
 
-        # Now compute paths and compute path loss
-        # Randomly choose target class for each point in the batch
         batch_target_class = self.random_targets_like(y)
 
         latent_paths = self.explainer.get_counterfactuals(
