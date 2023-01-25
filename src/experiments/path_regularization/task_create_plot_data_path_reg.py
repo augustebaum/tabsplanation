@@ -20,18 +20,23 @@ class TaskCreatePlotDataPathRegularization(Task):
         task_create_cake_on_sea = TaskCreateCakeOnSea(self.cfg)
 
         task_train_classifier = TaskTrainModel(self.cfg.classifier)
+        task_train_autoencoder = TaskTrainModel(self.cfg.autoencoder)
 
         task_train_path_regularized_autoencoder = TaskTrainPathRegAe(self.cfg)
         self.depends_on = task_create_cake_on_sea.produces
         # self.depends_on |= {"classifier": task_train_classifier.produces}
         self.depends_on |= {
             "path_regularized_autoencoder": task_train_path_regularized_autoencoder.produces
+            "autoencoder": 
         }
 
         # self.produces |= {"results": self.produces_dir / "results.pkl"}
 
     @classmethod
     def task_function(cls, depends_on, produces, cfg):
+        path_regularized_autoencoder = depends_on["path_regularized_autoencoder"][
+            "model"
+        ]
         path_regularized_autoencoder = depends_on["path_regularized_autoencoder"][
             "model"
         ]
