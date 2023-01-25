@@ -21,9 +21,8 @@ class TaskTrainPathRegAe(Task):
         self.depends_on = task_create_cake_on_sea.produces
         self.depends_on |= {"classifier": task_train_classifier.produces}
 
-        self.produces = {
+        self.produces |= {
             "model": self.produces_dir / "model.pt",
-            "config": self.produces_dir / "config.yaml",
         }
 
     @classmethod
