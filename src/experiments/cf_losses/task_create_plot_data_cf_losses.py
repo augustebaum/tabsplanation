@@ -25,7 +25,8 @@ def get_z0():
 def get_x0():
     return torch.linspace(-5, 55, steps=25)
 
-def 
+def get_inputs():
+    
 
 T = TypeVar("T")
 LossName = str
