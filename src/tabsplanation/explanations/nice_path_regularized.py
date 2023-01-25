@@ -74,6 +74,8 @@ class BoundaryCrossLoss(nn.Module):
 
     def forward(
         self,
+        autoencoder,
+        classifier,
         latents: Tensor["batch", "nb_steps", "latent_dim"],
         source_class: int,
         target_class: int,
