@@ -37,6 +37,7 @@ class TaskCreatePlotDataPathRegularization(Task):
 
     @classmethod
     def task_function(cls, depends_on, produces, cfg):
+        classifier = depends_on["classifier"]["model"]
         path_regularized_autoencoder = depends_on["path_regularized_autoencoder"][
             "model"
         ]
