@@ -191,11 +191,11 @@ def read_pkl(file_path):
 
 
 def read(file_path: Path) -> None:
-    write_variants = {"pkl": read_pkl}
+    read_variants = {"pkl": read_pkl}
 
-    write_fn = write_variants.get(file_path.suffix)
-    if write_fn is None:
+    read_fn = read_variants.get(file_path.suffix)
+    if read_fn is None:
         raise NotImplementedError(
-            f"No write function implemented for extension {file_path.suffix} yet."
+            f"No read function implemented for extension {file_path.suffix} yet."
         )
-    write_fn(obj, file_path)
+    return read_fn(file_path)
