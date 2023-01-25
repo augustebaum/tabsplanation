@@ -31,54 +31,51 @@ class TaskPlotPathReg(Task):
         results = read(depends_on["results"])
 
         load_mpl_style()
-        nrows, ncols = len(cfg.methods), 4
-        figsize = (3 * ncols, 8 / 4 * nrows)
-        fig, ax = plt.subplots(nrows=nrows, ncols=ncols, figsize=figsize)
 
-        ax[0, 0].set_title(r"Likelihood of perturbation $\uparrow$")
-        ax[0, 1].set_title(r"Distance to explained input $\downarrow$")
-        ax[0, 2].set_title(r"Paths")
-        ax[0, 3].set_title(r"Local Outlier Factor $\uparrow$")
+        fig, ax = plt.subplots(nrows=1, ncols=2)
+        
+        # nrows, ncols = len(cfg.methods), 4
+        # figsize = (3 * ncols, 8 / 4 * nrows)
 
-        for i, method in enumerate(cfg.methods):
+        # ax[0, 0].set_title(r"Likelihood of perturbation $\uparrow$")
+        # ax[0, 1].set_title(r"Distance to explained input $\downarrow$")
+        # ax[0, 2].set_title(r"Paths")
+        # ax[0, 3].set_title(r"Local Outlier Factor $\uparrow$")
 
-            ax[i, 0].annotate(
-                method.class_name,
-                xy=(0, 0.5),
-                xytext=(-ax[i, 0].yaxis.labelpad - 5, 0),
-                xycoords=ax[i, 0].yaxis.label,
-                textcoords="offset points",
-                size="large",
-                ha="right",
-                va="center",
-            )
+        # for i, method in enumerate(cfg.methods):
 
-            method_results = results[method.class_name]
-            for result in method_results:
-                ax[i, 0].plot(result["likelihoods_nf"])
-                ax[i, 0].set_xlabel("Iterations")
-                ax[i, 0].set_ylabel("NF Likelihood")
+        #     ax[i, 0].annotate(
+        #         method.class_name,
+        #         xy=(0, 0.5),
+        #         xytext=(-ax[i, 0].yaxis.labelpad - 5, 0),
+        #         xycoords=ax[i, 0].yaxis.label,
+        #         textcoords="offset points",
+        #         size="large",
+        #         ha="right",
+        #         va="center",
+        #     )
 
-                ax[i, 1].plot(result["l1_distances_to_input"])
-                ax[i, 1].set_xlabel("Iterations")
-                ax[i, 1].set_ylabel("$L_1$ distance")
+        #     method_results = results[method.class_name]
+        #     for result in method_results:
+        #         ax[i, 0].plot(result["likelihoods_nf"])
+        #         ax[i, 0].set_xlabel("Iterations")
+        #         ax[i, 0].set_ylabel("NF Likelihood")
 
-                TaskPlotClass2Paths.plot_path(ax[i, 2], result["path"])
+        #         ax[i, 1].plot(result["l1_distances_to_input"])
+        #         ax[i, 1].set_xlabel("Iterations")
+        #         ax[i, 1].set_ylabel("$L_1$ distance")
 
-                ax[i, 3].plot(result["lof"])
-                ax[i, 3].set_xlabel("Iterations")
-                ax[i, 3].set_ylabel("LOF")
+        #         TaskPlotClass2Paths.plot_path(ax[i, 2], result["path"])
+
+        #         ax[i, 3].plot(result["lof"])
+        #         ax[i, 3].set_xlabel("Iterations")
+        #         ax[i, 3].set_ylabel("LOF")
 
         # plt.show(block=True)
+
         fig.savefig(produces["plot"])
 
-        fig_, ax_ = plt.subplots()
-        ax_.boxplot(
-            [
-                [result["lof_auc"] for result in results[method.class_name]]
-                for method in cfg.methods
-            ]
-        )
+
         plt.show(block=True)
 
 
