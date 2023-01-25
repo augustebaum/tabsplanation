@@ -38,9 +38,11 @@ class TaskPlotPathReg(Task):
         TaskPlotCfLosses.plot_latent_space_map(
             ax[0, 0], results["unregularized_latent_space_map"]
         )
+        ax[0, 0].set_title("Unregularized")
         TaskPlotCfLosses.plot_latent_space_map(
             ax[0, 1], results["path_regularized_latent_space_map"]
         )
+        ax[0, 1].set_title("Path regularized")
 
         # nrows, ncols = len(cfg.methods), 4
         # figsize = (3 * ncols, 8 / 4 * nrows)
