@@ -4,6 +4,8 @@ The goal is to determine visually if a path-regularized latent space gives rise 
 that fit constraints better than those produced with a non-regularized latent space.
 """
 
+import torch
+
 from config import BLD_PLOT_DATA
 from experiments.cf_losses.task_create_plot_data_cf_losses import (
     get_inputs,
@@ -78,6 +80,9 @@ class TaskCreatePlotDataPathRegularization(Task):
             Revise(classifier, autoencoder, revise_hparams),
             LatentShift(classifier, path_regularized_autoencoder, latent_shift_hparams),
         ]
+
+        input = data_module.dataset.normalize(torch.tensor([[10.0, 10.0]]))
+        target_class = 2
 
         results["paths"] = {
             method.__class__.__name__: method.get_counterfactuals(input, target_class)
