@@ -67,9 +67,9 @@ class TaskCreatePlotDataPathRegularization(Task):
 
         # 2. Show a few paths
         path_methods = [
-            LatentShift(classifier, autoencoder, hparams),
+            LatentShift(classifier, autoencoder, latent_shift_hparams),
             Revise(classifier, autoencoder, revise_hparams),
-            LatentShift(classifier, path_regularized_autoencoder, hparams),
+            LatentShift(classifier, path_regularized_autoencoder, latent_shift_hparams),
         ]
 
         results["paths"] = {
