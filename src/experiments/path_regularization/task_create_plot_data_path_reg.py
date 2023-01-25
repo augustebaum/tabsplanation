@@ -44,7 +44,7 @@ class TaskCreatePlotDataPathRegularization(Task):
 
         # 1. Compare the latent spaces
         {
-            "normal_latent_space_map": TaskCreatePlotDataCfLosses.latent_space_map(
+            "unregularized_latent_space_map": TaskCreatePlotDataCfLosses.latent_space_map(
                 classifier, autoencoder, normalized_inputs
             ),
             "path_regularized_latent_space_map": TaskCreatePlotDataCfLosses.latent_space_map(
