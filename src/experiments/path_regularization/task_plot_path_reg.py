@@ -36,26 +36,26 @@ class TaskPlotPathReg(Task):
         load_mpl_style()
 
         # Plot latent space maps
-        fig, ax = plt.subplots(nrows=1, ncols=2)
+        fig, ax = plt.subplots(ncols=2, squeeze=True)
 
         TaskPlotCfLosses.plot_latent_space_map(
-            ax[0, 0], results["unregularized_latent_space_map"]
+            ax[0], results["unregularized_latent_space_map"]
         )
-        ax[0, 0].set_title("Unregularized")
+        ax[0].set_title("Unregularized")
 
         TaskPlotCfLosses.plot_latent_space_map(
-            ax[0, 1], results["path_regularized_latent_space_map"]
+            ax[1], results["path_regularized_latent_space_map"]
         )
-        ax[0, 1].set_title("Path regularized")
+        ax[1].set_title("Path regularized")
 
         write(fig, produces["latent_space_maps"])
 
         # Plot paths
-        fig, ax = plt.subplots(nrows=1, ncols=3)
+        fig, ax = plt.subplots(ncols=3, squeeze=True)
 
         for i, (method_name, path) in enumerate(results["paths"].items()):
-            TaskPlotClass2Paths.plot_path(ax[0, i], path)
-            ax[0, i].set_title(method_name)
+            TaskPlotClass2Paths.plot_path(ax[i], path)
+            ax[i].set_title(method_name)
 
         write(fig, produces["test_paths"])
 
