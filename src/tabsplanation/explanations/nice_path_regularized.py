@@ -29,7 +29,8 @@ class PathRegularizedNICE(NICEModel):
         # First step: compute likelihood
         loss, logs = super(PathRegularizedNICE, self).step(batch, batch_idx)
 
-        x, y_source = batch
+        x, _ = batch
+        y_source: Tensor["batch"] = self.classifier.predict(x)
         y_target: Tensor["batch"] = self.random_targets_like(y_source)
 
         latent_paths = self.explainer.get_counterfactuals(
