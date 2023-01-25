@@ -57,7 +57,7 @@ def get_module_object(module_path: str, object_name: str):
 
 # --- Task boilerplate
 
-ExperimentName: str
+ExperimentName: TypeAlias = str
 
 
 def get_configs(experiment_name: Optional[ExperimentName] = None) -> List[DictConfig]:
