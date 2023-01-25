@@ -37,7 +37,7 @@ class TaskCreatePlotDataPathRegularization(Task):
         path_regularized_autoencoder = depends_on["path_regularized_autoencoder"][
             "model"
         ]
-        path_regularized_autoencoder = depends_on["path_regularized_autoencoder"][
+        autoencoder = depends_on["path_regularized_autoencoder"][
             "model"
         ]
 
