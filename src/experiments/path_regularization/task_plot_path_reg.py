@@ -26,7 +26,7 @@ class TaskPlotPathReg(Task):
         print(f"Plot would be saved in \n{self.produces['plot']}")
 
     @classmethod
-    def task_function(cls, depends_on, produces, cfg)
+    def task_function(cls, depends_on, produces, cfg):
 
         results = read(depends_on["results"])
 
@@ -34,12 +34,12 @@ class TaskPlotPathReg(Task):
 
         # Plot latent space maps
         fig, ax = plt.subplots(nrows=1, ncols=2)
-        TaskPlotCfLosses.plot_latent_space_map(ax[0,0], results["unregularized_latent_space_map"])
-        TaskPlotCfLosses.plot_latent_space_map(ax[0,1], results["path_regularized_latent_space_map"])
-            
-            
-
-
+        TaskPlotCfLosses.plot_latent_space_map(
+            ax[0, 0], results["unregularized_latent_space_map"]
+        )
+        TaskPlotCfLosses.plot_latent_space_map(
+            ax[0, 1], results["path_regularized_latent_space_map"]
+        )
 
         # nrows, ncols = len(cfg.methods), 4
         # figsize = (3 * ncols, 8 / 4 * nrows)
