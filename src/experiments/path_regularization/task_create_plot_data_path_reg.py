@@ -57,9 +57,7 @@ class TaskCreatePlotDataPathRegularization(Task):
             ),
         }
 
-{        shift_step: 0.005
-        max_iter: 100
-}
+        latent_shift_hparams = {shift_step: 0.005, max_iter: 100}
         revise_hparams = {
             "optimizer": "adam",
             "lr": 0.1,
