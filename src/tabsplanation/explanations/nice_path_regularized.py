@@ -95,7 +95,5 @@ class BoundaryCrossLoss(nn.Module):
         import pdb
 
         pdb.set_trace()
-        prbs_filtered: Tensor["batch", "nb_steps", 2] = prbs.reshape(
-            latents.shape[0], latents.shape[1], prbs.shape[1]
-        )
+        prbs_filtered: Tensor["batch", "nb_steps", 2] = prbs.gather()
         return None
