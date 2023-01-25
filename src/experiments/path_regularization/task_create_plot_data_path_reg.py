@@ -13,6 +13,7 @@ from experiments.shared.task_create_cake_on_sea import TaskCreateCakeOnSea
 from experiments.shared.task_train_model import TaskTrainModel
 from experiments.shared.utils import define_task, Task
 from tabsplanation.explanations.latent_shift import LatentShift
+from tabsplanation.explanations.revise import Revise
 
 
 class TaskCreatePlotDataPathRegularization(Task):
@@ -63,6 +64,7 @@ class TaskCreatePlotDataPathRegularization(Task):
         LatentShift(
             classifier, path_regularized_autoencoder, hparams
         ).get_counterfactuals(input, target_class)
+        Revise(
 
         # for result in results:
         # TaskPlotClass2Paths.plot_path(ax, result["path"])
