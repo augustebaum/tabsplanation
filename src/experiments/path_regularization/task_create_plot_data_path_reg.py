@@ -57,7 +57,7 @@ class TaskCreatePlotDataPathRegularization(Task):
         }
 
         # 2. Show a few paths
-        LatentShift.get_counterfactuals()
+        LatentShift.get_counterfactuals(input, target_class)
 
         # PathRegularizedNICE()
 
