@@ -26,8 +26,8 @@ class TaskCreatePlotDataPathRegularization(Task):
         self.depends_on = task_create_cake_on_sea.produces
         # self.depends_on |= {"classifier": task_train_classifier.produces}
         self.depends_on |= {
-            "path_regularized_autoencoder": task_train_path_regularized_autoencoder.produces
-            "autoencoder": 
+            "path_regularized_autoencoder": task_train_path_regularized_autoencoder.produces,
+            "autoencoder": task_train_autoencoder.produces,
         }
 
         # self.produces |= {"results": self.produces_dir / "results.pkl"}
