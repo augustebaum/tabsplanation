@@ -33,7 +33,8 @@ class TaskPlotPathReg(Task):
         load_mpl_style()
 
         fig, ax = plt.subplots(nrows=1, ncols=2)
-        
+
+
         # nrows, ncols = len(cfg.methods), 4
         # figsize = (3 * ncols, 8 / 4 * nrows)
 
