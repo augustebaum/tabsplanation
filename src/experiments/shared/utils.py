@@ -155,12 +155,14 @@ def get_data_module(depends_on, cfg, device):
     return data_module
 
 
+write_variants = {"pkl": write_pkl}
+
+
 def write(obj, file_path: Path) -> None:
+
     write_fn = write_variants.get(file_path.suffix)
     if write_fn is None:
         raise NotImplementedError(
             f"No write function implemented for extension {file_path.suffix} yet."
         )
     write_fn(obj, file_path)
-
-    write_variants = {"pkl": write_pkl}
