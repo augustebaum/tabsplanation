@@ -57,9 +57,7 @@ def get_module_object(module_path: str, object_name: str):
 
 # --- Task boilerplate
 
-ExperimentName: TypeAlias = Literal[
-    "classification", "latent_shift", "ae_reconstruction"
-]
+ExperimentName: str
 
 
 def get_configs(experiment_name: Optional[ExperimentName] = None) -> List[DictConfig]:
