@@ -103,7 +103,7 @@ class BoundaryCrossLoss(nn.Module):
         source_class: Tensor["batch"],
         target_class: Tensor["batch"],
     ):
-        torch.stack(
+        return torch.stack(
             [
                 xx[i][:, [src, tgt]]
                 for i, src, tgt in enumerate(zip(source_class, target_class))
