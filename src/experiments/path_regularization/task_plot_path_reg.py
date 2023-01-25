@@ -16,10 +16,10 @@ from experiments.latent_shift.task_plot_class_2_paths import TaskPlotClass2Paths
 from experiments.shared.utils import define_task, load_mpl_style, Task
 
 
-class TaskPlotCfPathMethods(Task):
+class TaskPlotPathReg(Task):
     def __init__(self, cfg):
-        output_dir = BLD_PLOTS / "cf_path_methods" / "draft_metrics"
-        super(TaskPlotCfPathMethods, self).__init__(cfg, output_dir)
+        output_dir = BLD_PLOTS / "path_reg"
+        super(TaskPlotPathReg, self).__init__(cfg, output_dir)
 
         task_create_plot_data_cf_path_methods = TaskCreatePlotDataCfPathMethods(
             self.cfg
