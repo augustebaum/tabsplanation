@@ -35,9 +35,10 @@ class TaskPlotPathReg(Task):
         # Plot latent space maps
         fig, ax = plt.subplots(nrows=1, ncols=2)
 
-        TaskPlotCfLosses.plot_latent_space_map(ax[0,0], results[""unregularized_latent_space_map""])
+        TaskPlotCfLosses.plot_latent_space_map(ax[0,0], results["unregularized_latent_space_map"])
+        TaskPlotCfLosses.plot_latent_space_map(ax[0,1], results["path_regularized_latent_space_map"])
             
-            "path_regularized_latent_space_map"
+            
 
 
 
