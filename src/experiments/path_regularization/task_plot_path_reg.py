@@ -23,7 +23,10 @@ class TaskPlotPathReg(Task):
 
         self.depends_on = TaskCreatePlotDataPathReg(self.cfg).produces
 
-        self.produces |= {"plot": self.produces_dir / "plot.svg"}
+        self.produces |= {
+            "latent_space_maps": self.produces_dir / "latent_space_maps.svg"
+            "test_paths": self.produces_dir / "test_paths.svg"
+        }
         print(f"Plot would be saved in \n{self.produces['plot']}")
 
     @classmethod
