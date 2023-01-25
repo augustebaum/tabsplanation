@@ -154,5 +154,13 @@ def get_data_module(depends_on, cfg, device):
     data_module = CakeOnSeaDataModule(**data_module_kwargs)
     return data_module
 
+
 def write(obj, file_path: Path) -> None:
-    
+    write_fn = write_variants.get(file_path.suffix)
+    if write_fn is None:
+        raise NotIImplementedError(
+            f"No write function implemented for extension {file_path.suffix} yet."
+        )
+    write_fn(obj, file_path)
+
+    write_variants = {"pkl": write_pkl}
