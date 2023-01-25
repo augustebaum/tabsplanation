@@ -5,7 +5,7 @@ import re
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import List, Literal, Optional, Tuple, TypeAlias
+from typing import List, Optional, Tuple, TypeAlias
 
 import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
