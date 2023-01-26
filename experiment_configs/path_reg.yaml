@@ -25,7 +25,7 @@ classifier:
     args:
       output_dim: 3
       hidden_dims: [50, 50]
-      batch_norm: False
+      batch_norm: True
       dropout: null
       learning_rate: 1e-3
 # The autoencoder used for the non-regularized paths.
