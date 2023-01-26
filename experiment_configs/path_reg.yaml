@@ -51,7 +51,7 @@ path_regularized_model:
   training:
     patience: 2
     max_epochs: -1
-    val_check_interval: 1
+    val_check_interval: 1.5
   class_name: PathRegularizedNICE
   args:
     classifier: ${classifier}
