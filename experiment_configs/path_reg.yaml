@@ -50,7 +50,7 @@ path_regularized_model:
   data_module: ${data_module}
   training:
     patience: 2
-    max_epochs: -1
+    max_epochs: 
     val_check_interval: 1.5
   class_name: PathRegularizedNICE
   args:
