@@ -11,7 +11,7 @@ data_module:
   batch_size: 200
   correct_for_class_imbalance: false
 training:
-  patience: 5
+  patience: 2
   max_epochs: -1
   val_check_interval: 1
 # The classifier of interest
