@@ -11,7 +11,7 @@ from config import BLD_PLOTS
 from experiments.cf_losses.task_plot_cf_losses import TaskPlotCfLosses
 from experiments.latent_shift.task_plot_class_2_paths import TaskPlotClass2Paths
 from experiments.path_regularization.task_create_plot_data_path_reg import (
-    TaskCreatePlotDataPathReg,
+    TaskCreatePlotDataPathRegularization,
 )
 from experiments.shared.utils import define_task, load_mpl_style, read, Task, write
 
@@ -21,7 +21,7 @@ class TaskPlotPathReg(Task):
         output_dir = BLD_PLOTS / "path_reg"
         super(TaskPlotPathReg, self).__init__(cfg, output_dir)
 
-        self.depends_on = TaskCreatePlotDataPathReg(self.cfg).produces
+        self.depends_on = TaskCreatePlotDataPathRegularization(self.cfg).produces
 
         self.produces |= {
             "latent_space_maps": self.produces_dir / "latent_space_maps.svg",
