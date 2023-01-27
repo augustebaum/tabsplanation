@@ -66,7 +66,7 @@ class TaskPlotClass2Paths:
         ax.imshow(get_map_img(), origin="upper", extent=[0, 50, 0, 50])
 
         # Show explained input
-        x = path.explained_input.x
+        x = path.explained_input.x.squeeze()
         ax.scatter(x[0], x[1], c="red")
 
         # Show CF path

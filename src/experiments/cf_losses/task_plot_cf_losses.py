@@ -112,13 +112,13 @@ class TaskPlotCfLosses(Task):
 
     @staticmethod
     def plot_latent_space_map(ax, latent_space_map):
-        z = latent_space_map["z"]
-        class_ = latent_space_map["class"]
+        z = latent_space_map["z"].detach().cpu()
+        class_ = latent_space_map["class"].detach().cpu()
 
         ax.scatter(
             z[:, 0],
             z[:, 1],
-            c=class_.detach(),
+            c=class_,
             alpha=0.5,
             marker="s",
             zorder=1,

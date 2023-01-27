@@ -29,7 +29,6 @@ def get_x0():
 def get_inputs(x0, data_module):
     x: Tensor["nb_points", 2] = torch.cartesian_prod(x0, x0)
 
-    data_module = get_data_module(depends_on, cfg, "cpu")
     dataset = data_module.dataset
 
     inputs = dataset.fill_from_2d_point(x)
@@ -119,11 +118,10 @@ class TaskCreatePlotDataCfLosses(Task):
         z0 = get_z0()
         z: Tensor["nb_points", 2] = torch.cartesian_prod(z0, z0)
 
-        x0 = get_x0()
-        x: Tensor["nb_points", 2] = torch.cartesian_prod(x0, x0)
+        x0 = get_x0().to(device)
 
-        data_module = get_data_module(depends_on, cfg, "cpu")
-        get_inputs(x0, data_module)
+        data_module = get_data_module(depends_on, cfg, device)
+        normalized_inputs = get_inputs(x0, data_module)
 
         classifier = torch.load(depends_on["classifier"]["model"])
         autoencoder = torch.load(depends_on["autoencoder"]["model"])
