@@ -11,9 +11,9 @@ data_module:
   batch_size: 200
   correct_for_class_imbalance: false
 training:
-  patience: 5
+  patience: 10
   max_epochs: -1
-  val_check_interval: 1
+  # val_check_interval: 1
 # The classifier of interest
 classifier:
   seed: ${seed}
@@ -49,9 +49,9 @@ path_regularized_model:
   data: ${data}
   data_module: ${data_module}
   training:
-    patience: 2
+    patience: 10
     max_epochs: -1
-    val_check_interval: 0.5
+    # val_check_interval: 1.5
   class_name: PathRegularizedNICE
   args:
     classifier: ${classifier}
@@ -59,6 +59,6 @@ path_regularized_model:
       class_name: LatentShift
       args:
         hparams:
-          max_iter: 100
+          max_iter: 50
           shift_step: 0.1
     autoencoder_args: ${autoencoder.model.args}
