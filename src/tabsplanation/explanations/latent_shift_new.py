@@ -192,9 +192,11 @@ class LatentShiftNew:
 
         # 2) Apply latent shift
 
-        shifts = torch.tensor(
-            [i * self._shift_step for i in range(self._max_iter)]
-        ).reshape(-1, 1, 1)
+        shifts = (
+            torch.tensor([i * self._shift_step for i in range(self._max_iter)])
+            .reshape(-1, 1, 1)
+            .to(ae.device)
+        )
         z_perturbed = (z + shifts * gradient).to(torch.float)
 
         return z_perturbed

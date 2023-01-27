@@ -55,7 +55,7 @@ class TaskTrainModel:
         data_module = get_data_module(depends_on, cfg, device)
 
         model_class = _get_class(cfg.model.class_name)
-        model = model_class(**cfg.model.args)
+        model = model_class(**cfg.model.args).to(device)
 
         model = TaskTrainModel.train_model(data_module, model, cfg)
 
@@ -70,13 +70,23 @@ class TaskTrainModel:
         version = f"{model.__class__.__name__}_{hash_(cfg)}_{get_time()}"
         tb_logger = TensorBoardLogger(save_dir=BLD_MODELS, version=version)
 
+        if torch.cuda.is_available():
+            gpu_kwargs = {"accelerator": "gpu", "devices": 1}
+        else:
+            gpu_kwargs = {}
+
         trainer = pl.Trainer(
             max_epochs=cfg.training.max_epochs,
-            val_check_interval=cfg.training.val_check_interval,
+            # val_check_interval=cfg.training.val_check_interval,
             logger=tb_logger,
             callbacks=[early_stopping_cb],
             enable_model_summary=False,
+            **gpu_kwargs,
         )
+
+        # Run a dummy forward pass to initialize Lazy layers
+        # Two rows so that batch norm doesn't complain
+        model.forward(data_module.train_set[0:2][0].reshape(2, -1))
 
         trainer.fit(model=model, datamodule=data_module)
 

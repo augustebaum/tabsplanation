@@ -37,7 +37,7 @@ class TaskTrainPathRegAe(Task):
             classifier=classifier,
             explainer=LatentShiftNew(**cfg.path_regularized_model.args.explainer.args),
             autoencoder_args=cfg.path_regularized_model.args.autoencoder_args,
-        )
+        ).to(device)
 
         model = TaskTrainModel.train_model(data_module, model, cfg)
 

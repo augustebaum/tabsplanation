@@ -56,7 +56,7 @@ class SyntheticDataset(Dataset):
         self.y = load_from(ys_path, torch.long).squeeze()
 
         self.input_dim = self.X.shape[1]
-        self.output_dim = len(np.unique(self.y))
+        self.output_dim = len(torch.unique(self.y))
 
         self.coefs = load_from(coefs_path, torch.float)
         if nb_dims > 0:

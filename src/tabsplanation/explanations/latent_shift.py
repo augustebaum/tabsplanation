@@ -107,7 +107,7 @@ class LatentShift:
 
         shifts = torch.tensor(
             [i * self._shift_step for i in range(self._max_iter)]
-        ).reshape(-1, 1)
+        ).reshape(-1, 1).to(ae.device)
         cf_xs = self._latent_shift(ae, z, gradient, shifts)
         cf_ys = clf.predict_proba(cf_xs)
 
