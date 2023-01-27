@@ -173,12 +173,12 @@ def write_svg(obj, file_path):
 
 
 def write(obj, file_path: Path) -> None:
-    write_variants = {"pkl": write_pkl, "svg": write_svg}
+    write_variants = {".pkl": write_pkl, ".svg": write_svg}
 
     write_fn = write_variants.get(file_path.suffix)
     if write_fn is None:
         raise NotImplementedError(
-            f"No write function implemented for extension {file_path.suffix} yet."
+            f"No write function implemented for extension '{file_path.suffix}' yet."
         )
     write_fn(obj, file_path)
 
@@ -191,12 +191,18 @@ def read_pkl(file_path):
     return result
 
 
-def read(file_path: Path) -> object:
-    read_variants = {"pkl": read_pkl}
+def read_pt(file_path, device):
+    model = torch.load(file_path).to(device)
+    model.eval()
+    return model
+
+
+def read(file_path: Path, *args) -> object:
+    read_variants = {".pkl": read_pkl, ".pt": read_pt}
 
     read_fn = read_variants.get(file_path.suffix)
     if read_fn is None:
         raise NotImplementedError(
-            f"No read function implemented for extension {file_path.suffix} yet."
+            f"No read function implemented for extension '{file_path.suffix}' yet."
         )
-    return read_fn(file_path)
+    return read_fn(file_path, *args)
