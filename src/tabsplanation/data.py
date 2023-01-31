@@ -4,9 +4,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Tuple
 
+import lightning as pl
+
 import numpy as np
 import pandas as pd
-import pytorch_lightning as pl
 import torch
 from torch.utils.data import DataLoader, Dataset, random_split, WeightedRandomSampler
 

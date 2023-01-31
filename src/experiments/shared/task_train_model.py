@@ -10,13 +10,14 @@ the key names (either "autoencoder" or "classifier").
 """
 from typing import Dict, List
 
+import lightning as pl
+
 import pytask
-import pytorch_lightning as pl
 import torch
+from lightning.pytorch.callbacks import EarlyStopping
+from lightning.pytorch.loggers import TensorBoardLogger
 
 from omegaconf import OmegaConf
-from pytorch_lightning.callbacks import EarlyStopping
-from pytorch_lightning.loggers import TensorBoardLogger
 
 from config import BLD_MODELS
 from experiments.shared.data.task_create_cake_on_sea import TaskCreateCakeOnSea

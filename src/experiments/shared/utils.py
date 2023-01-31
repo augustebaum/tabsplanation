@@ -7,10 +7,10 @@ from datetime import datetime
 from pathlib import Path
 from typing import List, Optional, Tuple, TypeAlias
 
+import lightning as pl
+
 import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
-
-import pytorch_lightning as pl
 import torch
 from omegaconf import DictConfig, OmegaConf
 

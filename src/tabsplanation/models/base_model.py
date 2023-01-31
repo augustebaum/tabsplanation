@@ -1,7 +1,7 @@
 import hashlib
 import json
 
-import pytorch_lightning as pl
+import lightning as pl
 from torch import optim
 
 

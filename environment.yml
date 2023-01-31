@@ -1,29 +1,27 @@
 name: tabsplanation
 
+channels:
+# - https://artifactory.swisscom.com/artifactory/api/conda/conda-forge-remote
+- conda-forge
+
 dependencies:
-  - python>=3.10,<3.12
-  - pip>=21.1
-  - setuptools_scm
-  - toml
+- python=3.10.8
+- pip=22.3.1
+- pytest=7.2.1
+- toml=0.10.2
+- pytask=0.3.1
+- ipython=8.4.0
+- scikit-learn=1.2.1
+- ipykernel=6.14.0
+- matplotlib=3.6.3
+- omegaconf=2.3.0
+- tomli=2.0.1
+- tensorboard=2.11.2
+- numpy=1.24.1
+- pandas=1.5.3
+- nvidia:cudatoolkit=11.7
 
-  # Package dependencies
-  - pytask>=0.2.6,<0.3.0
-  - numpy>=1.23.3,<2.0.0
-  - matplotlib==3.5
-  - pandas>=1.5.0,<2.0.0
-  - ipykernel>=6.16.0,<7.0.0
-  - tomli>=2.0.1,<3.0.0
-  # - pytorch-lightning
-  - omegaconf>=2.2.3,<3.0.0
-  - scikit-learn>=1.2.0,<2.0.0
-  - nomkl # To solve a weird issue: https://github.com/dmlc/xgboost/issues/1715
-
-  # Reproducibility
-  - conda-lock
-
-  # Misc
-  - ipython
-  - pytest
-
-  - pip:
-    - -e .
+- pip:
+  - -e .
+  - torch==1.13.1+cu117 -f https://download.pytorch.org/whl/torch_stable.html
+  - lightning # Formerly pytorch-lightning
