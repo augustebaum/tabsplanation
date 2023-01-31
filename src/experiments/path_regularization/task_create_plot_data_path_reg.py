@@ -94,7 +94,11 @@ class TaskCreatePlotDataPathRegularization(Task):
         }
 
         # Input that should be predicted to be class 0
-        input = torch.tensor([[10.0, 10.0]]).to(device)
+        input = torch.tensor(
+            [
+                [25.0, 10.0],
+            ]
+        ).to(device)
         normalized_input = data_module.dataset.normalize(input)
         target_class = 0 if classifier.predict(normalized_input) == 2 else 2
         target_class = torch.tensor([target_class]).to(device)

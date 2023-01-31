@@ -8,3 +8,6 @@ from config import BLD_DATA
 @pytask.mark.produces(BLD_DATA / "forest_cover" / "forest_cover.csv")
 def task_preprocess_forest_cover(depends_on, produces):
     df = pd.read_csv(depends_on)
+    import pdb
+
+    pdb.set_trace()

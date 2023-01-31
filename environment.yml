@@ -1,8 +1,8 @@
 name: tabsplanation
 
-channels:
+# channels:
 # - https://artifactory.swisscom.com/artifactory/api/conda/conda-forge-remote
-- conda-forge
+# - conda-forge
 
 dependencies:
 - python=3.10.8
@@ -19,7 +19,7 @@ dependencies:
 - tensorboard=2.11.2
 - numpy=1.24.1
 - pandas=1.5.3
-- nvidia:cudatoolkit=11.7
+# - nvidia:cudatoolkit=11.7
 
 - pip:
   - -e .

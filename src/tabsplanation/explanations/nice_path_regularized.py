@@ -50,22 +50,6 @@ class PathRegularizedNICE(NICEModel):
         return batch_target_class
 
 
-# class ValidityLoss(nn.Module):
-#     """A loss that considers if the path is valid (i.e. ended up in the target
-#     class)."""
-
-#     def __init__(self, classifier, autoencoder):
-#         super(ValidityLoss, self).__init__()
-
-#     def forward(self, latents: Tensor["batch", "nb_steps", "latent_dim"], target: int):
-#         latents_2d = latents.reshape(-1, latents.shape[2])
-#         inputs = self.autoencoder.decode(latents_2d)
-#         prbs = self.classifier.predict_proba(inputs)
-#         self.classifier.predict_proba(self.autoencoder.decode(latents))
-#         prbs
-#         # path.target
-
-
 class BoundaryCrossLoss(nn.Module):
     """A loss that considers the time passed in either the source class or the target
     class.
@@ -74,6 +58,8 @@ class BoundaryCrossLoss(nn.Module):
     in the target class.
     The loss computes the average probability that the path lies in neither of them (so
     that the goal is indeed to minimize that probability)
+
+    For each `z`, we compute $1 - max{f(Dec(z))_src, f(Dec(z))_tgt}$.
     """
 
     def __init__(self):
@@ -98,7 +84,9 @@ class BoundaryCrossLoss(nn.Module):
         prbs_filtered: Tensor["batch", "nb_steps", 2] = take_source_and_target(
             prbs, source_class, target_class
         )
-        prb_source_plus_target: Tensor["batch", "nb_steps"] = prbs_filtered.sum(dim=2)
+        prb_source_plus_target: Tensor["batch", "nb_steps"] = prbs_filtered.max(
+            dim=2
+        ).values
         return 1 - prb_source_plus_target.mean()
 
 

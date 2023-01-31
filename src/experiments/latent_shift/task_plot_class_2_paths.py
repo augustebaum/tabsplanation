@@ -66,11 +66,11 @@ class TaskPlotClass2Paths:
         ax.imshow(get_map_img(), origin="upper", extent=[0, 50, 0, 50])
 
         # Show explained input
-        x = path.explained_input.x.squeeze()
+        x = path.explained_input.x.squeeze().cpu().detach()
         ax.scatter(x[0], x[1], c="red")
 
         # Show CF path
-        cfs = path.xs.reshape(-1, len(x))[:, [0, 1]]
+        cfs = path.xs.reshape(-1, len(x))[:, [0, 1]].cpu().detach()
         ax.add_collection(
             LineCollection(
                 segments=[cfs], linestyles="dashed", linewidths=1, label="cf"
