@@ -23,7 +23,7 @@ from experiments.shared.utils import (
     Task,
     write,
 )
-from tabsplanation.explanations.latent_shift import LatentShift
+from tabsplanation.explanations.latent_shift_new import LatentShiftNew
 from tabsplanation.explanations.revise import Revise
 
 
@@ -82,19 +82,25 @@ class TaskCreatePlotDataPathRegularization(Task):
             "optimizer": "adam",
             "lr": 0.1,
             "max_iter": 100,
-            "distance_regularization": 0.5,
+            "distance_regularization": 0,
         }
 
         path_methods = {
-            "Latent shift": LatentShift(classifier, autoencoder, latent_shift_hparams),
+            "Latent shift": LatentShiftNew(
+                classifier, autoencoder, latent_shift_hparams
+            ),
             "Revise": Revise(classifier, autoencoder, revise_hparams),
-            "Latent shift with path regularization": LatentShift(
+            "Latent shift with path regularization": LatentShiftNew(
                 classifier, path_regularized_autoencoder, latent_shift_hparams
             ),
         }
 
         # Input that should be predicted to be class 0
-        input = torch.tensor([[10.0, 10.0]]).to(device)
+        input = torch.tensor(
+            [
+                [25.0, 10.0],
+            ]
+        ).to(device)
         normalized_input = data_module.dataset.normalize(input)
         target_class = 0 if classifier.predict(normalized_input) == 2 else 2
         target_class = torch.tensor([target_class]).to(device)

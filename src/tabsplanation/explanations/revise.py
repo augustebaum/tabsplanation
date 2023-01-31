@@ -7,7 +7,7 @@ You can find the original implementation here:
 <https://github.com/carla-recourse/CARLA/blob/9595d4f6609ff604bc22d9b8e6cd728ecf18737b/carla/recourse_methods/catalog/revise/model.py>
 """
 
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 import torch
 from torch import nn
@@ -46,6 +46,8 @@ class Revise:
             Learning rate for Revise.
         * "max_iter": int
             Number of iterations for Revise optimization.
+        * "distance_regularization": float
+            Coefficient for the $L_1$ distance regularization.
 
     .. [1] Shalmali Joshi, Oluwasanmi Koyejo, Warut Vijitbenjaronk, Been Kim, and Joydeep Ghosh.2019.
             Towards Realistic Individual Recourse and Actionable Explanations in Black-Box Decision Making Systems.
@@ -70,51 +72,67 @@ class Revise:
         target_class: Optional[int],
     ) -> ExplanationPath:
 
-        z = self.autoencoder.encode(input.reshape(1, -1))
+        classifier = self.classifier
+        autoencoder = self.autoencoder
+
+        z = autoencoder.encode(input.reshape(1, -1))
         z = z.clone().detach().requires_grad_(True)
         if self._optimizer == "adam":
             optim = torch.optim.Adam([z], self._lr)
         else:
             optim = torch.optim.RMSprop([z], self._lr)
 
-        cfs = self._iterate_counterfactual_optimization(optim, z, input, target_class)
-
-        return ExplanationPath(
-            explained_input=InputOutputPair(
-                input, self.classifier.predict_proba(input)
-            ),
-            target_class=target_class,
-            shift_step=None,
-            max_iter=self._max_iter,
-            cfs=cfs,
+        paths: List[ExplanationPath] = self._iterate_counterfactual_optimization(
+            classifier, autoencoder, optim, z, input, target_class
         )
 
-    def _iterate_counterfactual_optimization(self, optim, z, input, target_class):
+        return paths[0] if len(paths) == 1 else paths
 
-        cfs = []
+    def _iterate_counterfactual_optimization(
+        self, classifier, autoencoder, optim, z, input, target_class
+    ):
+
+        cf_xs = []
         for _ in range(self._max_iter):
 
-            cf_x = self.autoencoder.decode(z)
-            prbs = self.classifier.predict_proba(cf_x).squeeze()
-            cfs.append(InputOutputPair(cf_x, prbs))
+            cf_x = autoencoder.decode(z)
 
-            loss, logs = self._compute_loss(input, cf_x, target_class)
-
-            if prbs[target_class] > 0.5:
-                break
+            loss, logs = self._compute_loss(classifier, input, cf_x, target_class)
 
             loss.backward()
             optim.step()
             optim.zero_grad()
             cf_x.detach_()
 
-        return cfs
+            cf_xs.append(cf_x)
 
-    def _compute_loss(self, original_input, cf, target_class):
+        paths_tensor: Tensor["max_iter", "batch", "input_dim"] = torch.stack(cf_xs)
+
+        paths_tensor: Tensor["batch", "max_iter", "input_dim"] = paths_tensor.reshape(
+            paths_tensor.shape[1], paths_tensor.shape[0], input.shape[-1]
+        )
+
+        return [
+            ExplanationPath(
+                explained_input=InputOutputPair(
+                    input=input, output=self.classifier.predict_proba(input)
+                ),
+                target_class=target_class,
+                shift_step=None,
+                max_iter=self._max_iter,
+                xs=path,
+                ys=self.classifier.predict_proba(path),
+            )
+            for input, target_class, path in zip(input, target_class, paths_tensor)
+        ]
+
+        return torch.stack(cf_xs)
+
+    def _compute_loss(self, classifier, original_input, cf, target_class):
 
         # For multi-class tasks
         loss_function = nn.CrossEntropyLoss()
-        output = self.classifier.predict_proba(original_input)
+        output = classifier.predict_proba(original_input)
 
         classification_loss = loss_function(output, target_class)
         distance_loss = torch.norm((original_input - cf), 1)

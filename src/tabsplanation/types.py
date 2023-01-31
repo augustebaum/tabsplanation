@@ -86,29 +86,15 @@ class InputOutputPair:
         return self.output.detach()
 
 
+@dataclass
 class ExplanationPath:
-    def __init__(
-        self,
-        explained_input: InputOutputPair,
-        target_class: Optional[int],
-        # maximum_shift: Union[Tensor["nb_shifts"], Tensor["nb_shifts", 1]],
-        # shifts: List[Shift],
-        shift_step: AbsoluteShift,
-        max_iter: PositiveInt,
-        cfs: List[InputOutputPair],
-    ):
-        self.explained_input = explained_input
-        # self.maximum_shift = maximum_shift
-        self.target_class = target_class
 
-        # Tensor["nb_explanations", "input_dim"]
-
-        self.xs = torch.cat([cf.x.reshape(1, -1) for cf in cfs])
-
-        # Tensor["nb_explanations", "input_dim"]
-        self.ys = torch.cat([cf.y.reshape(1, -1) for cf in cfs])
-
-        # self.shifts = shifts.reshape(-1, 1)
+    explained_input: InputOutputPair
+    target_class: Optional[int]
+    shift_step: AbsoluteShift
+    max_iter: PositiveInt
+    xs: List[InputOutputPair]
+    ys: List[InputOutputPair]
 
     def __len__(self):
         return len(self.xs)
