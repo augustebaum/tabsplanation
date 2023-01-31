@@ -10,6 +10,7 @@ from typing import Dict, Optional, Union
 import numpy as np
 import torch
 
+from tabsplanation.explanations.losses import AwayLoss, BabyStretchLoss
 from tabsplanation.models.autoencoder import AutoEncoder
 from tabsplanation.models.classifier import Classifier
 from tabsplanation.types import (
@@ -166,19 +167,14 @@ class LatentShiftNew:
         # The gradient is the direction of steepest ascent.
         # We expect that when we go in the direction of the gradient,
         # the probability of the current class decreases.
-        def clf_decode(z: LatentPoint) -> Logit:
-            ps = clf(ae.decode(z)).squeeze()
             if target_class is None:
-                # The probability of the current class should _decrease_
-                # as the shift increases
-                # return -ps[output_class]
-                return -take_(output_class, ps)
+            validity_loss_fn = AwayLoss()
             else:
-                # The probability of the current class should _decrease_
-                # and the probability of the target class should _increase_
-                # as the shift increases
-                return -take_(output_class, ps) - take_(target_class, ps)
-                # return ps[target_class] - ps[output_class]
+            validity_loss_fn = BabyStretchLoss()
+
+        def clf_decode(z: LatentPoint):
+            logits = clf(ae.decode(z))
+            return validity_loss_fn(logits, source_class, target_class)
 
         # Set up the gradient computation
         input.requires_grad = True
@@ -188,7 +184,8 @@ class LatentShiftNew:
             z = ae.encode(input)
 
             # Compute gradient of classifier at `z` in latent space
-            gradient = grad(clf_decode(z), z)
+            # Multiply by -1 to minimize the loss
+            gradient: Tensor["batch", "latent_dim"] = -grad(clf_decode(z), z)
 
         # 2) Apply latent shift
 
