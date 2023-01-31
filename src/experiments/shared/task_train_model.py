@@ -19,7 +19,7 @@ from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.loggers import TensorBoardLogger
 
 from config import BLD_MODELS
-from experiments.shared.task_create_cake_on_sea import TaskCreateCakeOnSea
+from experiments.shared.data.task_create_cake_on_sea import TaskCreateCakeOnSea
 from experiments.shared.utils import (
     get_configs,
     get_data_module,

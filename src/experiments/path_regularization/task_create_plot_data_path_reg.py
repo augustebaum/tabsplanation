@@ -13,7 +13,7 @@ from experiments.cf_losses.task_create_plot_data_cf_losses import (
     TaskCreatePlotDataCfLosses,
 )
 from experiments.path_regularization.task_train_path_reg_ae import TaskTrainPathRegAe
-from experiments.shared.task_create_cake_on_sea import TaskCreateCakeOnSea
+from experiments.shared.data.task_create_cake_on_sea import TaskCreateCakeOnSea
 from experiments.shared.task_train_model import TaskTrainModel
 from experiments.shared.utils import (
     define_task,

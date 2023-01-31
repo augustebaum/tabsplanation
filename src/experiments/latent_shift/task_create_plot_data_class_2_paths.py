@@ -6,7 +6,7 @@ import pytask
 import torch
 
 from config import BLD_PLOT_DATA
-from experiments.shared.task_create_cake_on_sea import TaskCreateCakeOnSea
+from experiments.shared.data.task_create_cake_on_sea import TaskCreateCakeOnSea
 from experiments.shared.task_train_model import TaskTrainModel
 from experiments.shared.utils import get_configs, hash_, save_config, setup
 from tabsplanation.data import SyntheticDataset
