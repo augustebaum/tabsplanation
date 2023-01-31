@@ -23,7 +23,7 @@ from experiments.shared.utils import (
     Task,
     write,
 )
-from tabsplanation.explanations.latent_shift_new import LatentShiftNew
+from tabsplanation.explanations.latent_shift import LatentShift
 from tabsplanation.explanations.revise import Revise
 
 
@@ -86,11 +86,9 @@ class TaskCreatePlotDataPathRegularization(Task):
         }
 
         path_methods = {
-            "Latent shift": LatentShiftNew(
-                classifier, autoencoder, latent_shift_hparams
-            ),
+            "Latent shift": LatentShift(classifier, autoencoder, latent_shift_hparams),
             "Revise": Revise(classifier, autoencoder, revise_hparams),
-            "Latent shift with path regularization": LatentShiftNew(
+            "Latent shift with path regularization": LatentShift(
                 classifier, path_regularized_autoencoder, latent_shift_hparams
             ),
         }
