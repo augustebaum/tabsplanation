@@ -4,7 +4,6 @@ Draft task to start plotting results.
 The graphs are not super informative but it's a first step.
 """
 
-
 import matplotlib.pyplot as plt
 
 from config import BLD_PLOTS
@@ -14,6 +13,15 @@ from experiments.path_regularization.task_create_plot_data_path_reg import (
     TaskCreatePlotDataPathRegularization,
 )
 from experiments.shared.utils import define_task, load_mpl_style, read, Task, write
+
+def split_title_line(text: str, max_words=3):
+    words = text.split(" ")
+
+    lines: List[str] = []
+    for i in range(0, len(words), max_words):
+        lines.append(" ".join(words[i : max_words + i]))
+
+    return "\n".join(lines)
 
 
 class TaskPlotPathReg(Task):
@@ -55,7 +63,7 @@ class TaskPlotPathReg(Task):
 
         for i, (method_name, path) in enumerate(results["paths"].items()):
             TaskPlotClass2Paths.plot_path(ax[i], path)
-            ax[i].set_title(method_name)
+            ax[i].set_title(split_title_line(method_name))
 
         write(fig, produces["test_paths"])
 
