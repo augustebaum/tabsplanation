@@ -35,7 +35,8 @@ class TaskTrainPathRegAe(Task):
 
         model = PathRegularizedNICE(
             classifier=classifier,
-            explainer=LatentShift(**cfg.path_regularized_model.args.explainer.args),
+            explainer_cls=LatentShift,
+            explainer_hparams=cfg.path_regularized_model.args.explainer.args.hparams,
             autoencoder_args=cfg.path_regularized_model.args.autoencoder_args,
         ).to(device)
 

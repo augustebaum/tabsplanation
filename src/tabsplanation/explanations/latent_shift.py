@@ -88,21 +88,19 @@ class LatentShift:
             input point along with its associated prediction probability.
         """
         latent_paths: Tensor["nb_shifts", "batch", "latent_dim"] = self.get_cf_latents(
-            self.classifier, self.autoencoder, input, target_class
+            input, target_class
         )
         paths: List[ExplanationPath] = self.get_paths(latent_paths, input, target_class)
         return paths[0] if len(paths) == 1 else paths
 
     def get_cf_latents(
         self,
-        classifier: Classifier,
-        autoencoder: AutoEncoder,
         input: Tensor["batch", "input_dim"],
         target_class: Tensor["batch", 1],
     ) -> Tensor["nb_shifts", "batch", "latent_dim"]:
 
-        ae = autoencoder
-        clf = classifier
+        ae = self.autoencoder
+        clf = self.classifier
 
         # Switch AE to evaluation mode (influences model behaviour in some
         # cases, e.g. `BatchNorm` doesn't compute the mean and standard deviation
