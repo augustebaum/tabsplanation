@@ -3,6 +3,7 @@ import json
 import os
 import re
 import sys
+import warnings
 from datetime import datetime
 from pathlib import Path
 from typing import List, Optional, Tuple, TypeAlias
@@ -67,7 +68,15 @@ def get_configs(experiment_name: Optional[ExperimentName] = None) -> List[DictCo
         cfg_names = [file for file in os.listdir(cfgs_dir) if file.endswith(".yaml")]
     else:
         cfg_names = [f"{experiment_name}.yaml"]
-    cfgs = [OmegaConf.load(cfgs_dir / name) for name in cfg_names]
+
+    cfgs = []
+    for name in cfg_names:
+        cfg = cfgs_dir / name
+        try:
+            cfgs.append(OmegaConf.load(cfg))
+        except FileNotFoundError:
+            warnings.warn(f"{cfg} not found; skipping.")
+
     return cfgs
 
 

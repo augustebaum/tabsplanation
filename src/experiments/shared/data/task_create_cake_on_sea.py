@@ -2,17 +2,19 @@ import json
 
 import numpy as np
 import pytask
+from omegaconf import OmegaConf
 
 from config import BLD_DATA
 from experiments.shared.utils import get_configs, get_time, hash_, save_config
 
 
-cfgs = get_configs()
-
-
 class TaskCreateCakeOnSea:
     def __init__(self, cfg):
-        self.cfg = cfg.data
+        self.cfg = cfg.get("data")
+        if self.cfg is None:
+            raise ValueError(
+                f"Config is missing key 'data'. Full config:\n{OmegaConf.to_yaml(cfg)}"
+            )
 
         self.id_ = hash_(self.cfg)
 
@@ -25,14 +27,8 @@ class TaskCreateCakeOnSea:
             "metadata": produces_dir / "metadata.json",
         }
 
-
-for cfg in cfgs:
-    task = TaskCreateCakeOnSea(cfg)
-
-    @pytask.mark.task(id=task.id_)
-    @pytask.mark.produces(task.produces)
-    def task_create_cake_on_sea(produces, cfg=task.cfg):
-
+    @classmethod
+    def task_function(cls, depends_on, produces, cfg):
         rng = np.random.default_rng(cfg.seed)
 
         # Uncorrelated dims
@@ -97,6 +93,18 @@ for cfg in cfgs:
         np.save(produces["ys"], ys)
 
         save_config(cfg, produces["config"])
+
+
+# cfgs = get_configs()
+cfgs = []
+
+for cfg in cfgs:
+    task = TaskCreateCakeOnSea(cfg)
+
+    @pytask.mark.task(id=task.id_)
+    @pytask.mark.produces(task.produces)
+    def task_create_cake_on_sea(produces, cfg=task.cfg):
+        TaskCreateCakeOnSea.task_function(None, produces, cfg)
 
 
 # Take out dead zone

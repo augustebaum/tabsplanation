@@ -8,7 +8,7 @@ in order for this module to be versatile we need to parse all config
 files for model configs, where the model configs are identified by
 the key names (either "autoencoder" or "classifier").
 """
-from typing import Dict, List
+from typing import Dict, List, TypeAlias, TypedDict
 
 import lightning as pl
 
@@ -21,6 +21,10 @@ from omegaconf import OmegaConf
 
 from config import BLD_MODELS
 from experiments.shared.data.task_create_cake_on_sea import TaskCreateCakeOnSea
+from experiments.shared.data.task_get_data_module import (
+    DataModuleCfg,
+    TaskGetDataModule,
+)
 from experiments.shared.utils import (
     get_configs,
     get_data_module,
@@ -29,6 +33,7 @@ from experiments.shared.utils import (
     hash_,
     save_config,
     setup,
+    Task,
 )
 
 
@@ -36,18 +41,39 @@ def _get_class(class_name: str):
     return get_module_object("tabsplanation.models", class_name)
 
 
-class TaskTrainModel:
-    def __init__(self, cfg):
-        self.cfg = cfg
-        task_create_cake_on_sea = TaskCreateCakeOnSea(self.cfg)
-        self.depends_on = task_create_cake_on_sea.produces
+ClassName: TypeAlias = str
+ModelArgs: TypeAlias = Dict
 
-        self.id_ = hash_(cfg)
-        produces_dir = BLD_MODELS / self.id_
-        self.produces = {
-            "model": produces_dir / "model.pt",
-            "config": produces_dir / "config.yaml",
-        }
+
+class ModelCfg:
+    class_name: ClassName
+    args: ModelArgs
+
+
+class TrainingCfg(TypedDict):
+    max_epochs: int
+    patience: int
+
+
+class TrainModelCfg(TypedDict):
+    seed: int
+    data_module: DataModuleCfg
+    training: TrainingCfg
+    model: ModelCfg
+
+
+class TaskTrainModel(Task):
+    def __init__(self, cfg: TrainModelCfg):
+        output_dir = BLD_MODELS
+        super(TaskTrainModel, self).__init__(cfg, output_dir)
+
+        # task_create_cake_on_sea = TaskCreateCakeOnSea(self.cfg)
+        # self.depends_on = task_create_cake_on_sea.produces
+
+        task_get_data_module = TaskGetDataModule(self.cfg.data_module)
+        self.depends_on = task_get_data_module.produces
+
+        self.produces |= {"model": self.produces_dir / "model.pt"}
 
     @classmethod
     def task_function(cls, depends_on, produces, cfg):

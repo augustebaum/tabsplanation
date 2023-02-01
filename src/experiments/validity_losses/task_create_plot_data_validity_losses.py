@@ -1,5 +1,7 @@
 import random
 
+from config import BLD_PLOT_DATA
+from experiments.shared.data.task_get_data_module import TaskGetDataModule
 from experiments.shared.task_train_model import TaskTrainModel
 from experiments.shared.utils import define_task, setup, Task
 

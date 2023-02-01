@@ -11,7 +11,7 @@ data_module:
   batch_size: 200
   correct_for_class_imbalance: false
 training:
-  patience: 10
+  patience: 5
   max_epochs: -1
   # val_check_interval: 1
 # The classifier of interest
@@ -49,7 +49,7 @@ path_regularized_model:
   data: ${data}
   data_module: ${data_module}
   training:
-    patience: 10
+    patience: 8
     max_epochs: -1
     # val_check_interval: 1.5
   class_name: PathRegularizedNICE

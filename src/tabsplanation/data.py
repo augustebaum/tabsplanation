@@ -87,6 +87,46 @@ class SyntheticDataset(Dataset):
         return NormalizeInverse.new(self.normalize)
 
 
+class ForestCoverDataset(Dataset):
+    """ForestCover without all the binary columns."""
+
+    def __init__(
+        self,
+        csv_path: Path,
+        device: torch.device,
+    ):
+
+        # def load_from(path: Path, dtype) -> Tensor:
+        #     arr = np.load(path)
+        #     return torch.tensor(arr).to(device).to(dtype)
+
+        # self.X = pd.read_csv(csv_path)
+
+        # # if nb_dims > 0:
+        # #     self.X = self.X[:, :nb_dims]
+        # # self.normalize = Normalize.new(self.X)
+        # # # Classifier requires that the output be 1-dimensional
+        # self.y = load_from(ys_path, torch.long).squeeze()
+
+        self.input_dim = self.X.shape[1]
+        self.output_dim = len(torch.unique(self.y))
+
+        # self.coefs = load_from(coefs_path, torch.float)
+        # if nb_dims > 0:
+        #     self.coefs = self.coefs[:, : (nb_dims - 2)]
+
+    def __len__(self):
+        return len(self.X)
+
+    def __getitem__(self, idx):
+        input, target = self.normalize(self.X[idx]), self.y[idx]
+        return input, target
+
+    @property
+    def normalize_inverse(self):
+        return NormalizeInverse.new(self.normalize)
+
+
 @dataclass
 class CakeOnSeaDataModule(pl.LightningDataModule):
 
