@@ -7,7 +7,7 @@ from tabsplanation.types import Tensor
 
 
 class AwayLoss(nn.Module):
-    """Loss computing `CrossEntropy(input, y_source)`."""
+    """Loss computing `-CrossEntropy(input, y_source)`."""
 
     def __init__(self):
         super(AwayLoss, self).__init__()
@@ -24,15 +24,36 @@ class AwayLoss(nn.Module):
         return -self.ce_loss(input, source)
 
 
-class BabyStretchLoss(nn.Module):
-    """Loss computing `CrossEntropy(input, y_source) - CrossEntropy(input, y_target)`.
+class TargetLoss(nn.Module):
+    """Loss computing `CrossEntropy(input, y_target)`.
+
+    Intuitively, the goal is to bring the input close to `target`.
+    """
+
+    def __init__(self):
+        super(TargetLoss, self).__init__()
+        self.ce_loss = nn.CrossEntropyLoss(reduction="none")
+
+    def forward(
+        self,
+        input: Tensor["batch_size", "nb_classes"],
+        source: Tensor["batch_size", int],
+        target: Tensor["batch_size", int],
+    ):
+        """Compute the loss for a counterfactual whose original point was predicted as
+        class `source`, and whose target class is `target`."""
+        return self.ce_loss(input, target)
+
+
+class BinaryStretchLoss(nn.Module):
+    """Loss computing `CrossEntropy(input, y_target) - CrossEntropy(input, y_source)`.
 
     Intuitively, the goal is to bring the input close to `target` and far from
     `source`.
     """
 
     def __init__(self):
-        super(BabyStretchLoss, self).__init__()
+        super(BinaryStretchLoss, self).__init__()
         self.ce_loss = nn.CrossEntropyLoss(reduction="none")
 
     def forward(
@@ -48,7 +69,7 @@ class BabyStretchLoss(nn.Module):
 
 class StretchLoss(nn.Module):
     r"""Loss computing
-    $-CrossEntropy(input, y_target) + \sum_{c \neq target} {CrossEntropy(input, y_c)}$.
+    $CrossEntropy(input, y_target) - \sum_{c \neq target} {CrossEntropy(input, y_c)}$.
 
     Intuitively, the goal is to bring the input closer to `target` and far from all the
     other classes.

@@ -8,7 +8,7 @@ from typing import Dict, List, Optional
 
 import torch
 
-from tabsplanation.explanations.losses import AwayLoss, BabyStretchLoss
+from tabsplanation.explanations.losses import AwayLoss, BinaryStretchLoss
 from tabsplanation.models.autoencoder import AutoEncoder
 from tabsplanation.models.classifier import Classifier
 from tabsplanation.types import (
@@ -125,7 +125,7 @@ class LatentShift:
         if target_class is None:
             validity_loss_fn = AwayLoss()
         else:
-            validity_loss_fn = BabyStretchLoss()
+            validity_loss_fn = BinaryStretchLoss()
 
         def clf_decode(z: LatentPoint):
             logits = clf(ae.decode(z))
