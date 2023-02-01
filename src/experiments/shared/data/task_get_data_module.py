@@ -27,7 +27,8 @@ class TaskGetDataModule(Task):
 
 cfgs = get_configs()
 for cfg in cfgs:
-    task = TaskCreateCakeOnSea(cfg)
+    # task = TaskCreateCakeOnSea(cfg)
+    pass
 
     # @pytask.mark.task(id=task.id_)
     # @pytask.mark.produces(task.produces)

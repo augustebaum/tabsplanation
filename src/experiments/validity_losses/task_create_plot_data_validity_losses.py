@@ -53,5 +53,5 @@ class TaskCreatePlotDataValidityLosses(Task):
         test_data = data_module.test_dataloader()
 
 
-task, task_definition = define_task("validity_losses", TaskCreatePlotDataValidityLosses)
-exec(task_definition)
+# task, task_definition = define_task("validity_losses", TaskCreatePlotDataValidityLosses)
+# exec(task_definition)
