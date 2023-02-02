@@ -102,6 +102,9 @@ class LatentShift:
         ae = self.autoencoder
         clf = self.classifier
 
+        if isinstance(target_class, int) and isinstance(input, torch.Tensor):
+            target_class = torch.full((len(input),), target_class).to(input.device)
+
         # Switch AE to evaluation mode (influences model behaviour in some
         # cases, e.g. `BatchNorm` doesn't compute the mean and standard deviation
         # which means the model can be applied to just one point)
@@ -111,10 +114,10 @@ class LatentShift:
 
         output = clf.predict_proba(input).detach()
         source_class = torch.argmax(output, dim=-1)
-        if any(target_class == source_class):
-            raise ValueError(
-                "The target class is equal to the source class for at least one point."
-            )
+        # if any(target_class == source_class):
+        #     raise ValueError(
+        #         "The target class is equal to the source class for at least one point."
+        #     )
 
         # This is the function of which we take the gradient.
         # The gradient is the direction of steepest ascent.

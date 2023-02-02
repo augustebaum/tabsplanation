@@ -10,6 +10,7 @@ from config import BLD_PLOT_DATA
 from experiments.cf_losses.task_create_plot_data_cf_losses import (
     get_inputs,
     get_x0,
+    get_z0,
     TaskCreatePlotDataCfLosses,
 )
 from experiments.path_regularization.task_train_path_reg_ae import TaskTrainPathRegAe
@@ -109,6 +110,33 @@ class TaskCreatePlotDataPathRegularization(Task):
             path.explained_input.input = input
             path.xs = data_module.dataset.normalize_inverse(path.xs)
             results["paths"][method_name] = path
+
+        # 3. Show gradient map in latent space
+
+        z0 = get_z0()
+        z = torch.cartesian_prod(z0, z0).to(device)
+        latent_shift_hparams = {"shift_step": 0.005, "max_iter": 2}
+
+        results["gradients"] = {}
+
+        for ae in [autoencoder, path_regularized_autoencoder]:
+            results["gradients"][ae.__class__.__name__] = {}
+            for target_class in [0, 1, 2]:
+
+                x = ae.decode(z).detach()
+                source_class = classifier.predict(x)
+                # target_class = (source_class + 1) % 3
+
+                first_latent_step = LatentShift(
+                    classifier, ae, latent_shift_hparams
+                ).get_cf_latents(x, target_class)
+                grads_z = first_latent_step[1] - first_latent_step[0]
+
+                results["gradients"][ae.__class__.__name__][target_class] = {
+                    "classes": source_class,
+                    "latents": z,
+                    "grads_z": grads_z,
+                }
 
         write(results, produces["results"])
 

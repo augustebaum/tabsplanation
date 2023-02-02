@@ -4,6 +4,9 @@ Draft task to start plotting results.
 The graphs are not super informative but it's a first step.
 """
 
+import math
+from typing import List, Tuple
+
 import matplotlib.pyplot as plt
 
 from config import BLD_PLOTS
@@ -13,6 +16,8 @@ from experiments.path_regularization.task_create_plot_data_path_reg import (
     TaskCreatePlotDataPathRegularization,
 )
 from experiments.shared.utils import define_task, load_mpl_style, read, Task, write
+from tabsplanation.types import Tensor
+
 
 def split_title_line(text: str, max_words=3):
     words = text.split(" ")
@@ -34,6 +39,7 @@ class TaskPlotPathReg(Task):
         self.produces |= {
             "latent_space_maps": self.produces_dir / "latent_space_maps.svg",
             "test_paths": self.produces_dir / "test_paths.svg",
+            "z_gradients": self.produces_dir / "z_gradients.svg",
         }
 
     @classmethod
@@ -67,7 +73,68 @@ class TaskPlotPathReg(Task):
 
         write(fig, produces["test_paths"])
 
+        # Plot gradients
+        fig = TaskPlotPathReg.plot_latent_grads_map(results["gradients"])
+
+        write(fig, produces["z_gradients"])
+
         plt.show(block=True)
+
+    @staticmethod
+    def plot_latent_grads_map(grad_results):
+        def to_numpy(
+            tensor: Tensor["nb_points ** 2", 2]
+        ) -> Tuple[Tensor["nb_points", "nb_points"], Tensor["nb_points", "nb_points"]]:
+            nb_points = round(math.sqrt(len(tensor)))
+            return (
+                tensor[:, 0].reshape((nb_points, nb_points)).T.detach().cpu().numpy(),
+                tensor[:, 1].reshape((nb_points, nb_points)).T.detach().cpu().numpy(),
+            )
+
+        fig, ax = plt.subplots(ncols=2, nrows=3, figsize=(10, 10))
+
+        for col, (autoencoder_name, target_class_results) in enumerate(
+            grad_results.items()
+        ):
+            ax[0][col].set_title(autoencoder_name)
+
+            for row, (target_class, grad_results) in enumerate(
+                target_class_results.items()
+            ):
+
+                # for i, (autoencoder_name, grad_results) in enumerate(
+                #     results["gradients"].items()
+                # ):
+                z = grad_results["latents"].cpu()
+                grads_z = grad_results["grads_z"].cpu()
+
+                z0, z1 = to_numpy(z)
+                u, v = to_numpy(grads_z)
+
+                ax[row][col].streamplot(z0, z1, u, v)
+
+                ax[row][col].scatter(
+                    z[:, 0],
+                    z[:, 1],
+                    c=grad_results["classes"].cpu(),
+                    alpha=0.2,
+                    marker="s",
+                    zorder=1,
+                )
+
+                if col == 0:
+                    ax[target_class, 0].annotate(
+                        f"Target class is {target_class}",
+                        xy=(0, 0.5),
+                        xytext=(-ax[target_class, 0].yaxis.labelpad - 5, 0),
+                        xycoords=ax[target_class, 0].yaxis.label,
+                        textcoords="offset points",
+                        size="large",
+                        ha="right",
+                        va="center",
+                    )
+
+        return fig
 
 
 task, task_definition = define_task("path_reg", TaskPlotPathReg)
