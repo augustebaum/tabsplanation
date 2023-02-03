@@ -78,9 +78,6 @@ class TaskTrainModel(Task):
     @classmethod
     def task_function(cls, depends_on, produces, cfg):
         device = setup(cfg.seed)
-        import pdb
-
-        pdb.set_trace()
 
         data_module = TaskGetDataModule.read_data_module(
             depends_on, cfg.data_module, device
@@ -107,7 +104,7 @@ class TaskTrainModel(Task):
         tb_logger = TensorBoardLogger(save_dir=BLD_MODELS, version=version)
 
         if torch.cuda.is_available():
-            gpu_kwargs = {"accelerator": "gpu", "devices": 1}
+            gpu_kwargs = {"accelerator": "gpu", "devices": -1}
         else:
             gpu_kwargs = {}
 

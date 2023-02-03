@@ -4,6 +4,8 @@ from typing import Annotated, Any, List, Optional, Tuple, TypeAlias, Union
 import numpy as np
 import torch
 
+Seed: TypeAlias = int
+
 
 class MyTensorTypeMock:
     def __class_getitem__(cls, item: Any):

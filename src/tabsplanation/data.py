@@ -101,10 +101,10 @@ class ForestCoverDataset(Dataset):
         df = pd.read_csv(csv_path)
 
         X = df.iloc[:, 0:-1].to_numpy()
-        self.X = torch.tensor(X).to(torch.float).to(device)
+        self.X = torch.from_numpy(X.astype(np.float32)).to(device)
 
         y = df.iloc[:, -1].to_numpy()
-        self.y = torch.tensor(y).to(torch.long).to(device)
+        self.y = torch.from_numpy(y).to(device)
 
         self.input_dim = self.X.shape[1]
         self.normalize = Normalize.new(self.X)

@@ -5,7 +5,7 @@ from experiments.shared.data.task_create_cake_on_sea import TaskCreateCakeOnSea
 from experiments.shared.data.task_preprocess_forest_cover import (
     TaskPreprocessForestCover,
 )
-from experiments.shared.utils import setup, Task, write
+from experiments.shared.utils import Task
 from tabsplanation.data import CakeOnSeaDataModule, CakeOnSeaDataset, ForestCoverDataset
 from tabsplanation.types import RelativeFloat
 
@@ -77,14 +77,3 @@ class TaskGetDataModule(Task):
 
         self.depends_on = dataset_task.produces
         self.produces |= {"data_module": self.produces_dir / "data_module.pkl"}
-
-    @classmethod
-    def task_function(cls, depends_on, produces, cfg):
-        device = setup(cfg.seed)
-
-        init_dataset = TaskGetDataModule.dataset_map[cfg.dataset.class_name]["init_fn"]
-
-        dataset = init_dataset(depends_on, cfg.dataset.args, device)
-
-        data_module = CakeOnSeaDataModule(dataset=dataset, **cfg.args)
-        write(data_module, produces["data_module"])

@@ -30,5 +30,7 @@ class TaskPreprocessForestCover(Task):
 
         df = df[columns.values()]
         df.columns = columns.keys()
+        # 0-based class numbers
+        df.iloc[:, -1] -= 1
 
         df.to_csv(produces, index=False)

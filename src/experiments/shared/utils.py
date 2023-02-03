@@ -120,7 +120,8 @@ class Task:
 
         if cfg is not None:
             OmegaConf.resolve(cfg)
-            self.cfg = cfg
+            # Clone config
+            self.cfg = OmegaConf.create(OmegaConf.to_container(cfg))
             self.id_ = hash_(self.cfg)
 
             self.produces_dir = output_dir / self.id_
@@ -136,7 +137,6 @@ class Task:
     def _define_task(self, imports=False, module_import=True):
         cls_name = self.__class__.__name__
         task = self
-        print(cls_name, self.id_)
 
         if imports:
             imports = """
@@ -184,6 +184,12 @@ def {camel_to_snake(cls_name)}(depends_on, produces, cfg=task.cfg):
             for task_dep in self.task_deps:
                 _, result = task_dep.define_task(result)
             return None, result
+
+    def all_task_deps(self, result=[]) -> List:
+        for task in self.task_deps:
+            result.append(task)
+            result = task.all_task_deps(result=result)
+        return result
 
 
 # ---
