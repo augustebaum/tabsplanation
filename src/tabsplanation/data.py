@@ -98,24 +98,16 @@ class ForestCoverDataset(Dataset):
         csv_path: Path,
         device: torch.device,
     ):
+        df = pd.read_csv(csv_path)
 
-        # def load_from(path: Path, dtype) -> Tensor:
-        #     arr = np.load(path)
-        #     return torch.tensor(arr).to(device).to(dtype)
+        X = df.iloc[:, 0:-1].to_numpy()
+        self.X = torch.tensor(X).to(torch.float).to(device)
 
-        # self.X = pd.read_csv(csv_path)
-
-        # # if nb_dims > 0:
-        # #     self.X = self.X[:, :nb_dims]
-        # # self.normalize = Normalize.new(self.X)
-        # # # Classifier requires that the output be 1-dimensional
-        # self.y = load_from(ys_path, torch.long).squeeze()
+        y = df.iloc[:, -1].to_numpy()
+        self.y = torch.tensor(y).to(torch.long).to(device)
 
         self.input_dim = self.X.shape[1]
-
-        # self.coefs = load_from(coefs_path, torch.float)
-        # if nb_dims > 0:
-        #     self.coefs = self.coefs[:, : (nb_dims - 2)]
+        self.normalize = Normalize.new(self.X)
 
     def __len__(self):
         return len(self.X)

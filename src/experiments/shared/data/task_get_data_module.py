@@ -22,7 +22,7 @@ def init_CakeOnSeaDataset(depends_on, cfg, device):
 
 def init_ForestCoverDataset(depends_on, cfg, device):
     return ForestCoverDataset(
-        csv_path=depends_on["xs"],
+        csv_path=depends_on,
         device=device,
     )
 
@@ -46,9 +46,24 @@ class TaskGetDataModule(Task):
         },
         "tabsplanation.data.ForestCoverDataset": {
             "task": TaskPreprocessForestCover,
-            "init_fn": init_CakeOnSeaDataset,
+            "init_fn": init_ForestCoverDataset,
         },
     }
+
+    @staticmethod
+    def task_dataset(cfg_data_module):
+        dataset_cfg = cfg_data_module.dataset
+        dataset_task_cls = TaskGetDataModule.dataset_map[dataset_cfg.class_name]["task"]
+        dataset_task = dataset_task_cls(dataset_cfg.args)
+        return dataset_task
+
+    @staticmethod
+    def read_data_module(depends_on, cfg_data_module, device):
+        dataset_cfg = cfg_data_module.dataset
+        init_dataset = TaskGetDataModule.dataset_map[dataset_cfg.class_name]["init_fn"]
+        dataset = init_dataset(depends_on, dataset_cfg.args, device)
+        data_module = CakeOnSeaDataModule(dataset=dataset, **cfg_data_module.args)
+        return data_module
 
     def __init__(self, cfg):
         output_dir = BLD_DATA / "data_modules"

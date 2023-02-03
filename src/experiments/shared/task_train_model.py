@@ -69,22 +69,22 @@ class TaskTrainModel(Task):
         output_dir = BLD_MODELS
         super(TaskTrainModel, self).__init__(cfg, output_dir)
 
-        # task_create_cake_on_sea = TaskCreateCakeOnSea(self.cfg)
-        # self.depends_on = task_create_cake_on_sea.produces
+        task_dataset = TaskGetDataModule.task_dataset(self.cfg.data_module)
 
-        task_get_data_module = TaskGetDataModule(self.cfg.data_module)
-        self.task_deps = [task_get_data_module]
-
-        self.depends_on = task_get_data_module.produces
-
+        self.task_deps = [task_dataset]
+        self.depends_on = task_dataset.produces
         self.produces |= {"model": self.produces_dir / "model.pt"}
 
     @classmethod
     def task_function(cls, depends_on, produces, cfg):
         device = setup(cfg.seed)
+        import pdb
 
-        # data_module = get_data_module(depends_on, cfg, device)
-        data_module = read(depends_on["data_module"])
+        pdb.set_trace()
+
+        data_module = TaskGetDataModule.read_data_module(
+            depends_on, cfg.data_module, device
+        )
 
         model_class = _get_class(cfg.model.class_name)
         model = model_class(
@@ -107,7 +107,7 @@ class TaskTrainModel(Task):
         tb_logger = TensorBoardLogger(save_dir=BLD_MODELS, version=version)
 
         if torch.cuda.is_available():
-            gpu_kwargs = {"accelerator": "gpu", "devices": -1}
+            gpu_kwargs = {"accelerator": "gpu", "devices": 1}
         else:
             gpu_kwargs = {}
 
@@ -127,39 +127,3 @@ class TaskTrainModel(Task):
         trainer.fit(model=model, datamodule=data_module)
 
         return model
-
-
-def find_model_cfgs(cfg: Dict) -> List:
-    """Given a config (nested) dict, recover all the values where the key
-    is `"autoencoder"` or `"classifier"`."""
-
-    # Alter the Depth-First-Search (DFS) algorithm slightly
-    def modified_dfs(dict_: Dict, result: List) -> List:
-        for k, v in dict_.items():
-            # If the key fits, we don't need to look inside
-            if k in ["autoencoder", "classifier"]:
-                result.append(v)
-            elif isinstance(v, dict):
-                result = modified_dfs(v, result)
-        return result
-
-    return modified_dfs(cfg, [])
-
-
-# cfgs = get_configs()
-
-# _task_class = TaskTrainModel
-
-# for cfg in cfgs:
-#     model_cfgs: List[Dict] = find_model_cfgs(OmegaConf.to_object(cfg))
-
-#     for model_cfg in model_cfgs:
-#         # Task classes take an omegaconf, not a dict
-#         task = _task_class(OmegaConf.create(model_cfg))
-
-#         @pytask.mark.task(id=task.id_)
-#         @pytask.mark.depends_on(task.depends_on)
-#         @pytask.mark.produces(task.produces)
-#         def task_train_model(depends_on, produces, cfg=task.cfg):
-#             _task_class.task_function(depends_on, produces, cfg)
-#             save_config(cfg, produces["config"])

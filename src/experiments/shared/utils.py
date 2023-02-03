@@ -161,8 +161,12 @@ task = {cls_name}(OmegaConf.create({self.cfg}))
 @pytask.mark.produces(task.produces)
 def {camel_to_snake(cls_name)}(depends_on, produces, cfg=task.cfg):
     {cls_name}.task_function(depends_on, produces, cfg)
-    save_full_config(cfg, produces["full_config"])
-    save_config(cfg, produces["config"])
+    if isinstance(produces, dict):
+        if produces.get("full_config") is not None:
+            save_full_config(cfg, produces["full_config"])
+        if produces.get("config") is not None:
+            save_config(cfg, produces["config"])
+
 """
 
         task_definition = imports + module_import + task_definition
