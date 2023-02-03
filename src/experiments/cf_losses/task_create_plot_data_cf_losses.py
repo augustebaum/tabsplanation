@@ -14,7 +14,7 @@ import torch
 from config import BLD_PLOT_DATA
 from experiments.shared.data.task_create_cake_on_sea import TaskCreateCakeOnSea
 from experiments.shared.task_train_model import TaskTrainModel
-from experiments.shared.utils import define_task, get_data_module, Task
+from experiments.shared.utils import get_data_module, Task
 from tabsplanation.types import Tensor
 
 
@@ -253,7 +253,3 @@ class TaskCreatePlotDataCfLosses(Task):
             loss.__name__: {class_: fn(loss, class_) for class_ in classes}
             for loss in loss_classes
         }
-
-
-# task, task_definition = define_task("cf_losses", TaskCreatePlotDataCfLosses)
-# exec(task_definition)

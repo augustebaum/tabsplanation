@@ -14,17 +14,9 @@ from experiments.cf_losses.task_create_plot_data_cf_losses import (
 )
 from experiments.path_regularization.task_train_path_reg_ae import TaskTrainPathRegAe
 
-# from experiments.shared.data.task_create_cake_on_sea import TaskCreateCakeOnSea
 from experiments.shared.data.task_get_data_module import TaskGetDataModule
 from experiments.shared.task_train_model import TaskTrainModel
-from experiments.shared.utils import (
-    define_task,
-    get_data_module,
-    read,
-    setup,
-    Task,
-    write,
-)
+from experiments.shared.utils import read, setup, Task, write
 from tabsplanation.explanations.latent_shift import LatentShift
 from tabsplanation.explanations.revise import Revise
 
@@ -49,7 +41,6 @@ class TaskCreatePlotDataPathRegularization(Task):
         ]
 
         self.depends_on = task_get_data_module.produces
-        # self.depends_on |= {"classifier": task_train_classifier.produces}
         self.depends_on |= {
             "path_regularized_autoencoder": task_train_path_regularized_autoencoder.produces,
             "autoencoder": task_train_autoencoder.produces,

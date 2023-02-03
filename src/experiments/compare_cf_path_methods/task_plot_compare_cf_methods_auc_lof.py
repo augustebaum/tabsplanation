@@ -6,7 +6,7 @@ from config import BLD_PLOTS
 from experiments.compare_cf_path_methods.task_create_plot_data_compare_cf_methods import (
     TaskCreatePlotDataCfPathMethods,
 )
-from experiments.shared.utils import define_task, load_mpl_style, Task
+from experiments.shared.utils import load_mpl_style, Task
 
 
 def make_boxplots(
@@ -55,7 +55,3 @@ class TaskPlotAucLof(Task):
         metric_name = "lof_auc"
 
         make_boxplots(depends_on, produces, cfg.methods, plot_title, metric_name)
-
-
-# task, task_definition = define_task("compare_cf_methods", TaskPlotAucLof)
-# exec(task_definition)

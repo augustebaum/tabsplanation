@@ -1,32 +1,32 @@
 seed: 42
-nb_seeds: 4
+nb_seeds: 0
 
 training:
   patience: 5
   max_epochs: -1
 
+data_module_args:
+  validation_data_proportion: 0.2
+  test_data_proportion: 0.2
+  batch_size: 200
+  correct_for_class_imbalance: false
+
 data_modules:
-- class_name: TabularDataModule
-  args:
-    dataset:
-      class_name: CakeOnSeaDataset 
-      args:
-        seed: null
-        gaussian: false
-        nb_points_initial: 100000
-        nb_dims: 2
-        nb_uncorrelated_dims: 2
-    validation_data_proportion: 0.2
-    test_data_proportion: 0.2
-    batch_size: 200
-    correct_for_class_imbalance: False
-- class_name: TabularDataModule
-  args:
-    dataset: ForestCoverDataset
-    validation_data_proportion: 0.2
-    test_data_proportion: 0.2
-    batch_size: 200
-    correct_for_class_imbalance: False
+- seed: ${seed}
+  args: ${data_module_args}
+  dataset:
+    class_name: tabsplanation.data.CakeOnSeaDataset
+    args: 
+      seed: ${seed}
+      gaussian: false
+      nb_points_initial: 100000
+      nb_dims: 2
+      nb_uncorrelated_dims: 2
+- seed: ${seed}
+  args: ${data_module_args}
+  dataset:
+    class_name: tabsplanation.data.ForestCoverDataset
+    args: null
 
 classifier:
   seed: ${seed}
@@ -69,7 +69,7 @@ explainers:
       distance_regularization: 0
 
 losses:
-- AwayLoss
-- TargetLoss
-- BinaryStretchLoss
-- StretchLoss
+- tabsplanation.explanations.losses.AwayLoss
+- tabsplanation.explanations.losses.TargetLoss
+- tabsplanation.explanations.losses.BinaryStretchLoss
+- tabsplanation.explanations.losses.StretchLoss

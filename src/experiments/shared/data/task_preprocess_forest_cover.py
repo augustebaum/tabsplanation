@@ -1,11 +1,24 @@
 import pandas as pd
 import pytask
 
+from omegaconf import OmegaConf
+
 from config import BLD_DATA
+from experiments.shared.utils import Task
 
 
-@pytask.mark.depends_on(BLD_DATA / "forest_cover" / "raw_forest_cover.csv")
-@pytask.mark.produces(BLD_DATA / "forest_cover" / "forest_cover.csv")
+class TaskPreprocessForestCover(Task):
+    def __init__(self, cfg):
+        super(TaskPreprocessForestCover, self).__init__(cfg, BLD_DATA / "forest_cover")
+        self.depends_on = BLD_DATA / "forest_cover" / "raw_forest_cover.csv"
+        self.produces = BLD_DATA / "forest_cover" / "forest_cover.csv"
+
+
+task = TaskPreprocessForestCover(OmegaConf.create({}))
+
+
+@pytask.mark.depends_on(task.depends_on)
+@pytask.mark.produces(task.produces)
 def task_preprocess_forest_cover(depends_on, produces):
 
     # Only take certain columns

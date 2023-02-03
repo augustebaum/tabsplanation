@@ -9,13 +9,7 @@ from sklearn.neighbors import LocalOutlierFactor
 from config import BLD_PLOT_DATA
 from experiments.shared.data.task_create_cake_on_sea import TaskCreateCakeOnSea
 from experiments.shared.task_train_model import TaskTrainModel
-from experiments.shared.utils import (
-    define_task,
-    get_data_module,
-    get_module_object,
-    setup,
-    Task,
-)
+from experiments.shared.utils import get_data_module, get_module_object, setup, Task
 from tabsplanation.data import CakeOnSeaDataset
 from tabsplanation.metrics import auc, lof, train_lof
 from tabsplanation.models.autoencoder import AutoEncoder

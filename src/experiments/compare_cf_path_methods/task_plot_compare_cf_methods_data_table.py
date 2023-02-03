@@ -6,7 +6,7 @@ from config import BLD_PLOTS
 from experiments.compare_cf_path_methods.task_create_plot_data_compare_cf_methods import (
     TaskCreatePlotDataCfPathMethods,
 )
-from experiments.shared.utils import define_task, Task
+from experiments.shared.utils import Task
 
 
 class TaskPlotMethodStats(Task):
@@ -70,7 +70,3 @@ class TaskPlotMethodStats(Task):
         latex_stats_df[["Runtime per step (ms)", "Validity rate"]].to_csv(
             produces["latex_friendly_stats"]
         )
-
-
-# task, task_definition = define_task("compare_cf_methods", TaskPlotMethodStats)
-# exec(task_definition)

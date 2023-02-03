@@ -5,7 +5,7 @@ from experiments.compare_cf_path_methods.task_create_plot_data_compare_cf_method
 from experiments.compare_cf_path_methods.task_plot_compare_cf_methods_auc_lof import (
     make_boxplots,
 )
-from experiments.shared.utils import define_task, Task
+from experiments.shared.utils import Task
 
 
 class TaskPlotAucL1(Task):
@@ -27,7 +27,3 @@ class TaskPlotAucL1(Task):
         metric_name = "l1_distances_to_input_auc"
 
         make_boxplots(depends_on, produces, cfg.methods, plot_title, metric_name)
-
-
-# task, task_definition = define_task("compare_cf_methods", TaskPlotAucL1)
-# exec(task_definition)
