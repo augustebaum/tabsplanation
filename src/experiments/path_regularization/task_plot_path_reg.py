@@ -1,18 +1,15 @@
-"""
-Draft task to start plotting results.
-
-The graphs are not super informative but it's a first step.
-"""
+from typing import List
 
 import matplotlib.pyplot as plt
 
-from config import BLD_PLOTS
+from config import BLD_PLOTS, EXPERIMENT_CONFIGS
 from experiments.cf_losses.task_plot_cf_losses import TaskPlotCfLosses
 from experiments.latent_shift.task_plot_class_2_paths import TaskPlotClass2Paths
 from experiments.path_regularization.task_create_plot_data_path_reg import (
     TaskCreatePlotDataPathRegularization,
 )
 from experiments.shared.utils import define_task, load_mpl_style, read, Task, write
+
 
 def split_title_line(text: str, max_words=3):
     words = text.split(" ")
@@ -29,7 +26,13 @@ class TaskPlotPathReg(Task):
         output_dir = BLD_PLOTS / "path_reg"
         super(TaskPlotPathReg, self).__init__(cfg, output_dir)
 
-        self.depends_on = TaskCreatePlotDataPathRegularization(self.cfg).produces
+        task_create_plot_data_path_regularization = (
+            TaskCreatePlotDataPathRegularization(self.cfg)
+        )
+        self.task_deps = [task_create_plot_data_path_regularization]
+
+        self.depends_on = task_create_plot_data_path_regularization.produces
+        self.depends_on |= {"config": EXPERIMENT_CONFIGS / "path_reg.yaml"}
 
         self.produces |= {
             "latent_space_maps": self.produces_dir / "latent_space_maps.svg",
@@ -70,5 +73,8 @@ class TaskPlotPathReg(Task):
         plt.show(block=True)
 
 
-task, task_definition = define_task("path_reg", TaskPlotPathReg)
-exec(task_definition)
+from omegaconf import OmegaConf
+
+cfg = OmegaConf.load(EXPERIMENT_CONFIGS / "path_reg.yaml")
+task, task_def = TaskPlotPathReg(cfg).define_task()
+exec(task_def)

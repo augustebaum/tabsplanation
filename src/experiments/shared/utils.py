@@ -16,7 +16,8 @@ import torch
 from omegaconf import DictConfig, OmegaConf
 
 from config import ROOT, SRC
-from tabsplanation.data import CakeOnSeaDataModule, SyntheticDataset
+
+from tabsplanation.data import CakeOnSeaDataModule, CakeOnSeaDataset
 
 
 def load_mpl_style():
@@ -132,11 +133,22 @@ def {task_name}(depends_on, produces, cfg=task.cfg):
         return task, task_definition
 
 
+def get_module(o):
+    klass = o.__class__
+    module = klass.__module__
+    if module == "builtins":
+        return klass.__qualname__  # avoid outputs like 'builtins.str'
+    return module
+
+
 # TODO: Extract output_dir from name of subclass
 class Task:
     def __init__(self, cfg: OmegaConf, output_dir: Path):
+        OmegaConf.resolve(cfg)
         self.cfg = cfg
         self.id_ = hash_(self.cfg)
+
+        self.task_deps = []
 
         self.produces_dir = output_dir / self.id_
         self.produces = {
@@ -148,6 +160,55 @@ class Task:
     def task_function(cls, depends_on, produces, cfg):
         raise NotImplementedError()
 
+    def _define_task(self, imports=False, module_import=True):
+        cls_name = self.__class__.__name__
+        task = self
+
+        if imports:
+            imports = """
+from omegaconf import OmegaConf
+import pytask
+from experiments.shared.utils import save_config, save_full_config
+"""
+        else:
+            imports = ""
+
+        if module_import:
+            module_import = f"""
+from {get_module(self)} import {cls_name}
+"""
+        else:
+            module_import = ""
+
+        task_definition = f"""
+task = {cls_name}(OmegaConf.create({self.cfg}))
+@pytask.mark.task(id=task.id_)
+@pytask.mark.depends_on(task.depends_on if hasattr(task, "depends_on") else None)
+@pytask.mark.produces(task.produces)
+def {camel_to_snake(cls_name)}(depends_on, produces, cfg=task.cfg):
+    {cls_name}.task_function(depends_on, produces, cfg)
+    save_full_config(cfg, produces["full_config"])
+    save_config(cfg, produces["config"])
+"""
+
+        task_definition = imports + module_import + task_definition
+
+        return task, task_definition
+
+    def define_task(self, result=""):
+        _, task_def = self._define_task(
+            imports=(result == ""), module_import=(result != "")
+        )
+        result += task_def
+        if self.task_deps == []:
+            return None, result
+        else:
+            for task_dep in self.task_deps:
+                _, result = task_dep.define_task(result)
+            return None, result
+        # for task_dep in self.task_deps:
+        #     task_dep.define_task()
+
 
 # ---
 
@@ -155,7 +216,7 @@ class Task:
 def get_data_module(depends_on, cfg, device):
     """Load a dataset and instantiate the corresponding `DataModule`."""
 
-    dataset = SyntheticDataset(
+    dataset = CakeOnSeaDataset(
         depends_on["xs"],
         depends_on["ys"],
         depends_on["coefs"],

@@ -12,26 +12,28 @@ from typing import Dict, List, TypeAlias, TypedDict
 
 import lightning as pl
 
-import pytask
+# import pytask
 import torch
 from lightning.pytorch.callbacks import EarlyStopping
 from lightning.pytorch.loggers import TensorBoardLogger
 
-from omegaconf import OmegaConf
+# from omegaconf import OmegaConf
 
 from config import BLD_MODELS
-from experiments.shared.data.task_create_cake_on_sea import TaskCreateCakeOnSea
+
+# from experiments.shared.data.task_create_cake_on_sea import TaskCreateCakeOnSea
 from experiments.shared.data.task_get_data_module import (
     DataModuleCfg,
     TaskGetDataModule,
 )
 from experiments.shared.utils import (
-    get_configs,
-    get_data_module,
+    # get_configs,
+    # get_data_module,
     get_module_object,
     get_time,
     hash_,
-    save_config,
+    read,
+    # save_config,
     setup,
     Task,
 )
@@ -71,6 +73,8 @@ class TaskTrainModel(Task):
         # self.depends_on = task_create_cake_on_sea.produces
 
         task_get_data_module = TaskGetDataModule(self.cfg.data_module)
+        self.task_deps = [task_get_data_module]
+
         self.depends_on = task_get_data_module.produces
 
         self.produces |= {"model": self.produces_dir / "model.pt"}
@@ -79,10 +83,15 @@ class TaskTrainModel(Task):
     def task_function(cls, depends_on, produces, cfg):
         device = setup(cfg.seed)
 
-        data_module = get_data_module(depends_on, cfg, device)
+        # data_module = get_data_module(depends_on, cfg, device)
+        data_module = read(depends_on["data_module"])
 
         model_class = _get_class(cfg.model.class_name)
-        model = model_class(**cfg.model.args).to(device)
+        model = model_class(
+            input_dim=data_module.input_dim,
+            output_dim=data_module.output_dim,
+            **cfg.model.args,
+        ).to(device)
 
         model = TaskTrainModel.train_model(data_module, model, cfg)
 
@@ -98,7 +107,7 @@ class TaskTrainModel(Task):
         tb_logger = TensorBoardLogger(save_dir=BLD_MODELS, version=version)
 
         if torch.cuda.is_available():
-            gpu_kwargs = {"accelerator": "gpu", "devices": 1}
+            gpu_kwargs = {"accelerator": "gpu", "devices": -1}
         else:
             gpu_kwargs = {}
 
@@ -137,20 +146,20 @@ def find_model_cfgs(cfg: Dict) -> List:
     return modified_dfs(cfg, [])
 
 
-cfgs = get_configs()
+# cfgs = get_configs()
 
-_task_class = TaskTrainModel
+# _task_class = TaskTrainModel
 
-for cfg in cfgs:
-    model_cfgs: List[Dict] = find_model_cfgs(OmegaConf.to_object(cfg))
+# for cfg in cfgs:
+#     model_cfgs: List[Dict] = find_model_cfgs(OmegaConf.to_object(cfg))
 
-    for model_cfg in model_cfgs:
-        # Task classes take an omegaconf, not a dict
-        task = _task_class(OmegaConf.create(model_cfg))
+#     for model_cfg in model_cfgs:
+#         # Task classes take an omegaconf, not a dict
+#         task = _task_class(OmegaConf.create(model_cfg))
 
-        @pytask.mark.task(id=task.id_)
-        @pytask.mark.depends_on(task.depends_on)
-        @pytask.mark.produces(task.produces)
-        def task_train_model(depends_on, produces, cfg=task.cfg):
-            _task_class.task_function(depends_on, produces, cfg)
-            save_config(cfg, produces["config"])
+#         @pytask.mark.task(id=task.id_)
+#         @pytask.mark.depends_on(task.depends_on)
+#         @pytask.mark.produces(task.produces)
+#         def task_train_model(depends_on, produces, cfg=task.cfg):
+#             _task_class.task_function(depends_on, produces, cfg)
+#             save_config(cfg, produces["config"])

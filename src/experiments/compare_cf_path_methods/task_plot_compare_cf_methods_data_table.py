@@ -66,15 +66,11 @@ class TaskPlotMethodStats(Task):
         latex_stats_df["Validity rate"] = latex_stats_df["validity_rate"].map(
             "{:,.1%}".format
         )
-        # latex_stats_table = latex_stats_df.to_latex()
 
         latex_stats_df[["Runtime per step (ms)", "Validity rate"]].to_csv(
             produces["latex_friendly_stats"]
         )
-        # import pdbkk
-
-        # pdb.set_trace()
 
 
-task, task_definition = define_task("compare_cf_methods", TaskPlotMethodStats)
-exec(task_definition)
+# task, task_definition = define_task("compare_cf_methods", TaskPlotMethodStats)
+# exec(task_definition)

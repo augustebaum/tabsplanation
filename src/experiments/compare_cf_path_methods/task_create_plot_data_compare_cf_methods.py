@@ -16,7 +16,7 @@ from experiments.shared.utils import (
     setup,
     Task,
 )
-from tabsplanation.data import SyntheticDataset
+from tabsplanation.data import CakeOnSeaDataset
 from tabsplanation.metrics import auc, lof, train_lof
 from tabsplanation.models.autoencoder import AutoEncoder
 from tabsplanation.models.classifier import Classifier
@@ -57,7 +57,7 @@ class PathResult(TypedDict):
     @classmethod
     def new(
         cls,
-        dataset: SyntheticDataset,
+        dataset: CakeOnSeaDataset,
         trained_lof: LocalOutlierFactor,
         classifier: Classifier,
         autoencoder: AutoEncoder,
@@ -204,7 +204,7 @@ class TaskCreatePlotDataCfPathMethods(Task):
             pickle.dump(results, paths_file)
 
 
-task, task_definition = define_task(
-    "compare_cf_methods", TaskCreatePlotDataCfPathMethods
-)
-exec(task_definition)
+# task, task_definition = define_task(
+#     "compare_cf_methods", TaskCreatePlotDataCfPathMethods
+# )
+# exec(task_definition)

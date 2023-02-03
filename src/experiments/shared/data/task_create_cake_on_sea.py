@@ -1,34 +1,41 @@
 import json
+from typing import TypedDict
 
 import numpy as np
-import pytask
-from omegaconf import OmegaConf
+
+# import pytask
+# from omegaconf import OmegaConf
 
 from config import BLD_DATA
-from experiments.shared.utils import get_configs, get_time, hash_, save_config
+from experiments.shared.utils import get_configs, get_time, hash_, save_config, Task
+from tabsplanation.types import PositiveInt
 
 
-class TaskCreateCakeOnSea:
+class CreateCakeOnSeaCfg(TypedDict):
+    seed: int
+    gaussian: bool
+    nb_points_initial: PositiveInt
+    nb_uncorrelated_dims: PositiveInt
+    nb_dims: PositiveInt
+
+
+class TaskCreateCakeOnSea(Task):
     def __init__(self, cfg):
-        self.cfg = cfg.get("data")
-        if self.cfg is None:
-            raise ValueError(
-                f"Config is missing key 'data'. Full config:\n{OmegaConf.to_yaml(cfg)}"
-            )
+        output_dir = BLD_DATA / "cake_on_sea"
+        super(TaskCreateCakeOnSea, self).__init__(cfg, output_dir)
 
-        self.id_ = hash_(self.cfg)
-
-        produces_dir = BLD_DATA / "cake_on_sea" / self.id_
-        self.produces = {
-            "xs": produces_dir / "xs.npy",
-            "ys": produces_dir / "ys.npy",
-            "coefs": produces_dir / "coefs.npy",
-            "config": produces_dir / "config.yaml",
-            "metadata": produces_dir / "metadata.json",
+        self.produces |= {
+            "xs": self.produces_dir / "xs.npy",
+            "ys": self.produces_dir / "ys.npy",
+            "coefs": self.produces_dir / "coefs.npy",
+            "metadata": self.produces_dir / "metadata.json",
         }
 
     @classmethod
     def task_function(cls, depends_on, produces, cfg):
+        import pdb
+
+        pdb.set_trace()
         rng = np.random.default_rng(cfg.seed)
 
         # Uncorrelated dims
@@ -92,19 +99,19 @@ class TaskCreateCakeOnSea:
         np.save(produces["xs"], points)
         np.save(produces["ys"], ys)
 
-        save_config(cfg, produces["config"])
+        # save_config(cfg, produces["config"])
 
 
 # cfgs = get_configs()
-cfgs = []
+# cfgs = []
 
-for cfg in cfgs:
-    task = TaskCreateCakeOnSea(cfg)
+# for cfg in cfgs:
+#     task = TaskCreateCakeOnSea(cfg)
 
-    @pytask.mark.task(id=task.id_)
-    @pytask.mark.produces(task.produces)
-    def task_create_cake_on_sea(produces, cfg=task.cfg):
-        TaskCreateCakeOnSea.task_function(None, produces, cfg)
+#     @pytask.mark.task(id=task.id_)
+#     @pytask.mark.produces(task.produces)
+#     def task_create_cake_on_sea(produces, cfg=task.cfg):
+#         TaskCreateCakeOnSea.task_function(None, produces, cfg)
 
 
 # Take out dead zone

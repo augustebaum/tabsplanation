@@ -225,5 +225,5 @@ class TaskPlotCfLosses(Task):
         return fig
 
 
-task, task_definition = define_task("cf_losses", TaskPlotCfLosses)
-exec(task_definition)
+# task, task_definition = define_task("cf_losses", TaskPlotCfLosses)
+# exec(task_definition)

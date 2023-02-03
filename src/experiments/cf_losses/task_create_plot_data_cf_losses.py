@@ -255,5 +255,5 @@ class TaskCreatePlotDataCfLosses(Task):
         }
 
 
-task, task_definition = define_task("cf_losses", TaskCreatePlotDataCfLosses)
-exec(task_definition)
+# task, task_definition = define_task("cf_losses", TaskCreatePlotDataCfLosses)
+# exec(task_definition)

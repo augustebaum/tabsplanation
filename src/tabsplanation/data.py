@@ -14,13 +14,15 @@ from torch.utils.data import DataLoader, Dataset, random_split, WeightedRandomSa
 from tabsplanation.types import Tensor
 
 
-class SyntheticDataset(Dataset):
+class CakeOnSeaDataset(Dataset):
     """A synthetic dataset with 3 classes and only the first 2 features have
     influence on them; the rest are just uniform in $[0, 10]$.
 
     The number of features to keep (max. 500) can be tuned with the `nb_dims`
     parameters.
     """
+
+    output_dim = 3
 
     def __init__(
         self,
@@ -57,7 +59,6 @@ class SyntheticDataset(Dataset):
         self.y = load_from(ys_path, torch.long).squeeze()
 
         self.input_dim = self.X.shape[1]
-        self.output_dim = len(torch.unique(self.y))
 
         self.coefs = load_from(coefs_path, torch.float)
         if nb_dims > 0:
@@ -90,6 +91,8 @@ class SyntheticDataset(Dataset):
 class ForestCoverDataset(Dataset):
     """ForestCover without all the binary columns."""
 
+    output_dim = 7
+
     def __init__(
         self,
         csv_path: Path,
@@ -109,7 +112,6 @@ class ForestCoverDataset(Dataset):
         # self.y = load_from(ys_path, torch.long).squeeze()
 
         self.input_dim = self.X.shape[1]
-        self.output_dim = len(torch.unique(self.y))
 
         # self.coefs = load_from(coefs_path, torch.float)
         # if nb_dims > 0:
@@ -130,7 +132,7 @@ class ForestCoverDataset(Dataset):
 @dataclass
 class CakeOnSeaDataModule(pl.LightningDataModule):
 
-    dataset: SyntheticDataset
+    dataset: Dataset
     validation_data_proportion: float
     test_data_proportion: float
     batch_size: int
@@ -138,6 +140,9 @@ class CakeOnSeaDataModule(pl.LightningDataModule):
 
     def __post_init__(self):
         super(CakeOnSeaDataModule, self).__init__()
+
+        self.input_dim = self.dataset.input_dim
+        self.output_dim = self.dataset.output_dim
 
         self.setup("")
 

@@ -57,5 +57,5 @@ class TaskPlotAucLof(Task):
         make_boxplots(depends_on, produces, cfg.methods, plot_title, metric_name)
 
 
-task, task_definition = define_task("compare_cf_methods", TaskPlotAucLof)
-exec(task_definition)
+# task, task_definition = define_task("compare_cf_methods", TaskPlotAucLof)
+# exec(task_definition)
