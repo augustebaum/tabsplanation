@@ -1,12 +1,13 @@
 import random
 from typing import Dict, List, TypeAlias, TypedDict
 
+from omegaconf import OmegaConf
 from torch.utils.data import Dataset
 
-from config import BLD_PLOT_DATA, EXPERIMENT_CONFIGS
+from config import BLD_PLOT_DATA
 from experiments.shared.data.task_get_data_module import TaskGetDataModule
 from experiments.shared.task_train_model import ModelCfg, TaskTrainModel
-from experiments.shared.utils import read, setup, Task
+from experiments.shared.utils import Task, read, setup, write
 from tabsplanation.explanations.losses import ValidityLoss
 from tabsplanation.models import AutoEncoder, Classifier
 from tabsplanation.types import PositiveInt, RelativeFloat, Seed
@@ -96,18 +97,21 @@ class TaskCreatePlotDataValidityLosses(Task):
     @classmethod
     def task_function(cls, depends_on, produces, cfg):
 
-        for data_module_name, values in depends_on.items():
+        results = []
 
+        for data_module_name, values in depends_on.items():
             device = setup(cfg.seed)
 
+            classifier_cfg = OmegaConf.load(values["classifier"]["full_config"])
+
             data_module = TaskGetDataModule.read_data_module(
-                values["dataset"], cfg.data_module, device
+                values["dataset"], classifier_cfg.data_module, device
             )
 
-            classifier = read(values["classifier"])
+            classifier = read(values["classifier"]["model"], device=device)
 
             for seed, autoencoder_path in values["autoencoders"].items():
-                autoencoder = read(autoencoder_path)
+                autoencoder = read(autoencoder_path["model"], device=device)
 
                 path_methods = cfg.explainers
                 for path_method in path_methods:
@@ -126,16 +130,10 @@ class TaskCreatePlotDataValidityLosses(Task):
                             "validity_rate": validity_rate,
                         }
 
-                        result.append(result)
+                        results.append(result)
+
+        write(results, produces["results"])
 
     @staticmethod
     def validity_rate(data_module, classifier, autoencoder, loss_fn, path_method):
         pass
-
-
-from omegaconf import OmegaConf
-
-cfg = OmegaConf.load(EXPERIMENT_CONFIGS / "validity_losses.yaml")
-task = TaskCreatePlotDataValidityLosses(cfg)
-task, task_def = task.define_task()
-exec(task_def)

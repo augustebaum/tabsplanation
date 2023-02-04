@@ -249,7 +249,7 @@ def read_pt(file_path, device):
     return model
 
 
-def read(file_path: Path, *args) -> object:
+def read(file_path: Path, **kwargs) -> object:
     read_variants = {".pkl": read_pkl, ".pt": read_pt}
 
     read_fn = read_variants.get(file_path.suffix)
@@ -257,4 +257,4 @@ def read(file_path: Path, *args) -> object:
         raise NotImplementedError(
             f"No read function implemented for extension '{file_path.suffix}' yet."
         )
-    return read_fn(file_path, *args)
+    return read_fn(file_path, **kwargs)
