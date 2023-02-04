@@ -1,0 +1,75 @@
+seed: 42
+nb_seeds: 4
+
+data_modules:
+- class_name: TabularDataModule
+  args:
+    dataset:
+      class_name: CakeOnSeaDataset 
+      args:
+        seed: null
+        gaussian: false
+        nb_points_initial: 100000
+        nb_dims: 2
+        nb_uncorrelated_dims: 2
+    validation_data_proportion: 0.2
+    test_data_proportion: 0.2
+    batch_size: 200
+    correct_for_class_imbalance: False
+- class_name: TabularDataModule
+  args:
+    dataset: ForestCoverDataset
+    validation_data_proportion: 0.2
+    test_data_proportion: 0.2
+    batch_size: 200
+    correct_for_class_imbalance: False
+
+classifier:
+  seed: ${seed}
+  data: null
+  data_module: null
+  training:
+    patience: 5
+    max_epochs: -1
+  model:
+    class_name: Classifier
+    args:
+      # output_dim: 3
+      hidden_dims: [50, 50]
+      batch_norm: False
+      dropout: null
+      learning_rate: 1e-3
+
+
+autoencoder:
+  seed: null
+  data: null
+  data_module: null
+  training: ${training}
+  model:
+    class_name: NICEModel
+    args:
+      input_dim: null
+      mlp_hidden_dims: [50, 50, 50, 50]
+      batch_norm: False
+      dropout: null
+      learning_rate: 1e-3
+
+explainers:
+- class_name: LatentShift
+  args:
+    hparams:
+      max_iter: 50
+      shift_step: 0.1
+- class_name: Revise
+  args:
+    hparams:
+      max_iter: 50
+      lr: 1e-3
+      distance_regularization: 0
+
+losses:
+- AwayLoss
+- TargetLoss
+- BinaryStretchLoss
+- StretchLoss

@@ -13,5 +13,6 @@ BLD_PLOT_DATA = BLD / "plot_data"
 BLD_MODELS = BLD / "models"
 BLD_PLOTS = BLD / "plots"
 
+EXPERIMENT_CONFIGS = ROOT / "experiment_configs"
 
 __all__ = ["BLD", "SRC"]

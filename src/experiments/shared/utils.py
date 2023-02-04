@@ -3,9 +3,10 @@ import json
 import os
 import re
 import sys
+import warnings
 from datetime import datetime
 from pathlib import Path
-from typing import List, Optional, Tuple, TypeAlias
+from typing import List, Optional, TypeAlias
 
 import lightning as pl
 
@@ -15,14 +16,15 @@ import torch
 from omegaconf import DictConfig, OmegaConf
 
 from config import ROOT, SRC
-from tabsplanation.data import CakeOnSeaDataModule, SyntheticDataset
+
+from tabsplanation.data import CakeOnSeaDataModule, CakeOnSeaDataset
 
 
 def load_mpl_style():
     plt.style.use(Path(__file__).parent.resolve() / "default.mplstyle")
 
 
-def setup(seed: Optional[int] = None) -> Tuple[torch.device, Path, Path]:
+def setup(seed: Optional[int] = None) -> torch.device:
     """Set up an experiment.
 
     Set the seed, the plot style and get the pytorch device.
@@ -67,7 +69,15 @@ def get_configs(experiment_name: Optional[ExperimentName] = None) -> List[DictCo
         cfg_names = [file for file in os.listdir(cfgs_dir) if file.endswith(".yaml")]
     else:
         cfg_names = [f"{experiment_name}.yaml"]
-    cfgs = [OmegaConf.load(cfgs_dir / name) for name in cfg_names]
+
+    cfgs = []
+    for name in cfg_names:
+        cfg = cfgs_dir / name
+        try:
+            cfgs.append(OmegaConf.load(cfg))
+        except FileNotFoundError:
+            warnings.warn(f"{cfg} not found; skipping.")
+
     return cfgs
 
 
@@ -91,53 +101,95 @@ def camel_to_snake(str):
     return re.sub("([a-z0-9])([A-Z])", r"\1_\2", s1).lower()
 
 
-def define_task(cfg_name, _task_class):
-    """Prepare a definition of a task, which will be `exec`ed in the
-    task file.
-
-    The task definition must be run in the task file; `pytask` won't
-    collect it if it's run in this file.
-
-    I don't like this but I don't know how to do it otherwise...
-    """
-
-    cfgs = get_configs(cfg_name)
-    for cfg in cfgs:
-        task = _task_class(cfg)
-
-        task_name = camel_to_snake(_task_class.__name__)
-        task_class_name = _task_class.__name__
-
-        task_definition = f"""
-import pytask
-from experiments.shared.utils import save_config, save_full_config
-
-@pytask.mark.task(id=task.id_)
-@pytask.mark.depends_on(task.depends_on)
-@pytask.mark.produces(task.produces)
-def {task_name}(depends_on, produces, cfg=task.cfg):
-    {task_class_name}.task_function(depends_on, produces, cfg)
-    save_full_config(cfg, produces["full_config"])
-    save_config(cfg, produces["config"])
-"""
-        return task, task_definition
+def get_module(o):
+    klass = o.__class__
+    module = klass.__module__
+    if module == "builtins":
+        return klass.__qualname__  # avoid outputs like 'builtins.str'
+    return module
 
 
 # TODO: Extract output_dir from name of subclass
 class Task:
     def __init__(self, cfg: OmegaConf, output_dir: Path):
-        self.cfg = cfg
-        self.id_ = hash_(self.cfg)
+        self.task_deps = []
+        self.depends_on = {}
+        self.produces = {}
+        self.cfg = {}
+        self.id_ = "0"
 
-        self.produces_dir = output_dir / self.id_
-        self.produces = {
-            "config": self.produces_dir / "config.yaml",
-            "full_config": self.produces_dir / "full_config.yaml",
-        }
+        if cfg is not None:
+            OmegaConf.resolve(cfg)
+            # Clone config
+            self.cfg = OmegaConf.create(OmegaConf.to_container(cfg))
+            self.id_ = hash_(self.cfg)
+
+            self.produces_dir = output_dir / self.id_
+            self.produces = {
+                "config": self.produces_dir / "config.yaml",
+                "full_config": self.produces_dir / "full_config.yaml",
+            }
 
     @classmethod
     def task_function(cls, depends_on, produces, cfg):
         raise NotImplementedError()
+
+    def _define_task(self, imports=False, module_import=True):
+        cls_name = self.__class__.__name__
+        task = self
+
+        if imports:
+            imports = """
+from omegaconf import OmegaConf
+import pytask
+from experiments.shared.utils import save_config, save_full_config
+"""
+        else:
+            imports = ""
+
+        if module_import:
+            module_import = f"""
+from {get_module(self)} import {cls_name}
+"""
+        else:
+            module_import = ""
+
+        task_definition = f"""
+task = {cls_name}(OmegaConf.create({self.cfg}))
+@pytask.mark.task(id=task.id_)
+@pytask.mark.depends_on(task.depends_on)
+@pytask.mark.produces(task.produces)
+def {camel_to_snake(cls_name)}(depends_on, produces, cfg=task.cfg):
+    {cls_name}.task_function(depends_on, produces, cfg)
+    if isinstance(produces, dict):
+        if produces.get("full_config") is not None:
+            save_full_config(cfg, produces["full_config"])
+        if produces.get("config") is not None:
+            save_config(cfg, produces["config"])
+
+"""
+
+        task_definition = imports + module_import + task_definition
+
+        return task, task_definition
+
+    def define_task(self, result=""):
+        _, task_def = self._define_task(
+            imports=(result == ""), module_import=(result != "")
+        )
+        result += task_def
+        if self.task_deps == []:
+            return None, result
+        else:
+            for task_dep in self.task_deps:
+                _, result = task_dep.define_task(result)
+            return None, result
+
+    def all_task_deps(self, result=[]) -> List:
+        for task in self.task_deps:
+            result.append(task)
+            result = task.all_task_deps(result=result)
+        return result
 
 
 # ---
@@ -146,7 +198,7 @@ class Task:
 def get_data_module(depends_on, cfg, device):
     """Load a dataset and instantiate the corresponding `DataModule`."""
 
-    dataset = SyntheticDataset(
+    dataset = CakeOnSeaDataset(
         depends_on["xs"],
         depends_on["ys"],
         depends_on["coefs"],

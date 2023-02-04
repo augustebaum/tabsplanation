@@ -14,16 +14,10 @@ from experiments.cf_losses.task_create_plot_data_cf_losses import (
     TaskCreatePlotDataCfLosses,
 )
 from experiments.path_regularization.task_train_path_reg_ae import TaskTrainPathRegAe
-from experiments.shared.data.task_create_cake_on_sea import TaskCreateCakeOnSea
+
+from experiments.shared.data.task_get_data_module import TaskGetDataModule
 from experiments.shared.task_train_model import TaskTrainModel
-from experiments.shared.utils import (
-    define_task,
-    get_data_module,
-    read,
-    setup,
-    Task,
-    write,
-)
+from experiments.shared.utils import read, setup, Task, write
 from tabsplanation.explanations.latent_shift import LatentShift
 from tabsplanation.explanations.revise import Revise
 
@@ -33,14 +27,21 @@ class TaskCreatePlotDataPathRegularization(Task):
         output_dir = BLD_PLOT_DATA / "path_reg"
         super(TaskCreatePlotDataPathRegularization, self).__init__(cfg, output_dir)
 
-        task_create_cake_on_sea = TaskCreateCakeOnSea(self.cfg)
+        task_get_data_module = TaskGetDataModule(self.cfg.data_module)
 
         task_train_classifier = TaskTrainModel(self.cfg.classifier)
         task_train_autoencoder = TaskTrainModel(self.cfg.autoencoder)
 
         task_train_path_regularized_autoencoder = TaskTrainPathRegAe(self.cfg)
-        self.depends_on = task_create_cake_on_sea.produces
-        # self.depends_on |= {"classifier": task_train_classifier.produces}
+
+        self.task_deps = [
+            task_get_data_module,
+            task_train_classifier,
+            task_train_autoencoder,
+            task_train_path_regularized_autoencoder,
+        ]
+
+        self.depends_on = task_get_data_module.produces
         self.depends_on |= {
             "path_regularized_autoencoder": task_train_path_regularized_autoencoder.produces,
             "autoencoder": task_train_autoencoder.produces,
@@ -64,7 +65,7 @@ class TaskCreatePlotDataPathRegularization(Task):
 
         # 0. Get some input points
         x0 = get_x0().to(device)
-        data_module = get_data_module(depends_on, cfg, device)
+        data_module = read(depends_on["data_module"])
         normalized_inputs = get_inputs(x0, data_module).to(device)
 
         # 1. Plot the latent spaces
@@ -139,7 +140,3 @@ class TaskCreatePlotDataPathRegularization(Task):
                 }
 
         write(results, produces["results"])
-
-
-task, task_definition = define_task("path_reg", TaskCreatePlotDataPathRegularization)
-exec(task_definition)

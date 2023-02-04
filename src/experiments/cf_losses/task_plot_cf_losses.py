@@ -13,7 +13,7 @@ from experiments.cf_losses.task_create_plot_data_cf_losses import (
     ResultDict,
     TaskCreatePlotDataCfLosses,
 )
-from experiments.shared.utils import define_task, get_map_img, load_mpl_style, Task
+from experiments.shared.utils import get_map_img, load_mpl_style, Task
 
 
 class TaskPlotCfLosses(Task):
@@ -223,7 +223,3 @@ class TaskPlotCfLosses(Task):
                 ax.imshow(get_map_img(), origin="upper", extent=[0, 50, 0, 50])
 
         return fig
-
-
-task, task_definition = define_task("cf_losses", TaskPlotCfLosses)
-exec(task_definition)

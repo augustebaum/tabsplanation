@@ -6,12 +6,27 @@ from torch import nn
 from tabsplanation.types import Tensor
 
 
-class AwayLoss(nn.Module):
+class ValidityLoss(nn.Module):
+    def __init__(self):
+        super(ValidityLoss, self).__init__()
+        self.ce_loss = nn.CrossEntropyLoss(reduction="none")
+
+    def forward(
+        self,
+        input: Tensor["batch_size", "nb_classes"],
+        source: Tensor["batch_size", int],
+        target: Tensor["batch_size", int],
+    ):
+        """Compute the loss for a counterfactual whose original point was predicted as
+        class `source`, and whose target class is `target`."""
+        raise NotImplementedError("This is an abstract class")
+
+
+class AwayLoss(ValidityLoss):
     """Loss computing `-CrossEntropy(input, y_source)`."""
 
     def __init__(self):
         super(AwayLoss, self).__init__()
-        self.ce_loss = nn.CrossEntropyLoss(reduction="none")
 
     def forward(
         self,
@@ -24,7 +39,7 @@ class AwayLoss(nn.Module):
         return -self.ce_loss(input, source)
 
 
-class TargetLoss(nn.Module):
+class TargetLoss(ValidityLoss):
     """Loss computing `CrossEntropy(input, y_target)`.
 
     Intuitively, the goal is to bring the input close to `target`.
@@ -32,7 +47,6 @@ class TargetLoss(nn.Module):
 
     def __init__(self):
         super(TargetLoss, self).__init__()
-        self.ce_loss = nn.CrossEntropyLoss(reduction="none")
 
     def forward(
         self,
@@ -45,7 +59,7 @@ class TargetLoss(nn.Module):
         return self.ce_loss(input, target)
 
 
-class BinaryStretchLoss(nn.Module):
+class BinaryStretchLoss(ValidityLoss):
     """Loss computing `CrossEntropy(input, y_target) - CrossEntropy(input, y_source)`.
 
     Intuitively, the goal is to bring the input close to `target` and far from
@@ -54,7 +68,6 @@ class BinaryStretchLoss(nn.Module):
 
     def __init__(self):
         super(BinaryStretchLoss, self).__init__()
-        self.ce_loss = nn.CrossEntropyLoss(reduction="none")
 
     def forward(
         self,
@@ -67,7 +80,7 @@ class BinaryStretchLoss(nn.Module):
         return self.ce_loss(input, target) - self.ce_loss(input, source)
 
 
-class StretchLoss(nn.Module):
+class StretchLoss(ValidityLoss):
     r"""Loss computing
     $CrossEntropy(input, y_target) - \sum_{c \neq target} {CrossEntropy(input, y_c)}$.
 
@@ -77,7 +90,6 @@ class StretchLoss(nn.Module):
 
     def __init__(self):
         super(StretchLoss, self).__init__()
-        self.ce_loss = nn.CrossEntropyLoss(reduction="none")
 
     def forward(
         self,

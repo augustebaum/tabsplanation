@@ -3,8 +3,8 @@ import torch
 from config import BLD_PLOT_DATA
 from experiments.shared.data.task_create_cake_on_sea import TaskCreateCakeOnSea
 from experiments.shared.task_train_model import TaskTrainModel
-from experiments.shared.utils import define_task, Task
-from tabsplanation.data import SyntheticDataset
+from experiments.shared.utils import Task
+from tabsplanation.data import CakeOnSeaDataset
 from tabsplanation.types import Tensor
 
 
@@ -33,7 +33,7 @@ class TaskCreatePlotDataClassificationLogits(Task):
         # TODO: Transform the dataset into a DataModule
         # and load that DataModule with a key "dataset"
         # dataset = depends_on["dataset"]
-        dataset = SyntheticDataset(
+        dataset = CakeOnSeaDataset(
             depends_on["xs"],
             depends_on["ys"],
             depends_on["coefs"],
@@ -50,9 +50,3 @@ class TaskCreatePlotDataClassificationLogits(Task):
 
         torch.save(x, produces["x0"])
         torch.save(logits, produces["logits"])
-
-
-task, task_definition = define_task(
-    "classification", TaskCreatePlotDataClassificationLogits
-)
-exec(task_definition)

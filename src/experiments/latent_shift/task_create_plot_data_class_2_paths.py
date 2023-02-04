@@ -9,7 +9,7 @@ from config import BLD_PLOT_DATA
 from experiments.shared.data.task_create_cake_on_sea import TaskCreateCakeOnSea
 from experiments.shared.task_train_model import TaskTrainModel
 from experiments.shared.utils import get_configs, hash_, save_config, setup
-from tabsplanation.data import SyntheticDataset
+from tabsplanation.data import CakeOnSeaDataset
 
 
 class TaskCreatePlotDataClass2Paths:
@@ -48,7 +48,7 @@ for cfg in cfgs:
 
         device = setup(cfg.seed)
 
-        dataset = SyntheticDataset(
+        dataset = CakeOnSeaDataset(
             depends_on["xs"],
             depends_on["ys"],
             depends_on["coefs"],

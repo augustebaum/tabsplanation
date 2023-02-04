@@ -1,38 +1,35 @@
 import json
+from typing import TypedDict
 
 import numpy as np
-import pytask
 
 from config import BLD_DATA
-from experiments.shared.utils import get_configs, get_time, hash_, save_config
+from experiments.shared.utils import get_time, Task
+from tabsplanation.types import PositiveInt
 
 
-cfgs = get_configs()
+class CreateCakeOnSeaCfg(TypedDict):
+    seed: int
+    gaussian: bool
+    nb_points_initial: PositiveInt
+    nb_uncorrelated_dims: PositiveInt
+    nb_dims: PositiveInt
 
 
-class TaskCreateCakeOnSea:
+class TaskCreateCakeOnSea(Task):
     def __init__(self, cfg):
-        self.cfg = cfg.data
+        output_dir = BLD_DATA / "cake_on_sea"
+        super(TaskCreateCakeOnSea, self).__init__(cfg, output_dir)
 
-        self.id_ = hash_(self.cfg)
-
-        produces_dir = BLD_DATA / "cake_on_sea" / self.id_
-        self.produces = {
-            "xs": produces_dir / "xs.npy",
-            "ys": produces_dir / "ys.npy",
-            "coefs": produces_dir / "coefs.npy",
-            "config": produces_dir / "config.yaml",
-            "metadata": produces_dir / "metadata.json",
+        self.produces |= {
+            "xs": self.produces_dir / "xs.npy",
+            "ys": self.produces_dir / "ys.npy",
+            "coefs": self.produces_dir / "coefs.npy",
+            "metadata": self.produces_dir / "metadata.json",
         }
 
-
-for cfg in cfgs:
-    task = TaskCreateCakeOnSea(cfg)
-
-    @pytask.mark.task(id=task.id_)
-    @pytask.mark.produces(task.produces)
-    def task_create_cake_on_sea(produces, cfg=task.cfg):
-
+    @classmethod
+    def task_function(cls, depends_on, produces, cfg):
         rng = np.random.default_rng(cfg.seed)
 
         # Uncorrelated dims
@@ -95,8 +92,6 @@ for cfg in cfgs:
         np.save(produces["coefs"], coefficients)
         np.save(produces["xs"], points)
         np.save(produces["ys"], ys)
-
-        save_config(cfg, produces["config"])
 
 
 # Take out dead zone

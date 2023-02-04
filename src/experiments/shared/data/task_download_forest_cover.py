@@ -11,9 +11,8 @@ data_link = (
 )
 
 
-@pytask.mark.depends_on(data_link)
 @pytask.mark.produces(data_file)
-def task_download_forest_cover(depends_on, produces):
-    res = requests.get(depends_on)
+def task_download_forest_cover(produces):
+    res = requests.get(data_link)
     with open(produces, "wb") as f:
         f.write(gzip.decompress(res.content))
