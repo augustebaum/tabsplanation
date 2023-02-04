@@ -57,9 +57,6 @@ class TaskCreatePlotDataValidityLosses(Task):
         setup(cfg.seed)
         seeds = [random.randrange(100_000) for _ in range(cfg.nb_seeds)]
 
-        import pdb
-
-        pdb.set_trace()
         # For each dataset
         for data_module_cfg in self.cfg.data_modules:
             # Get the DataModule

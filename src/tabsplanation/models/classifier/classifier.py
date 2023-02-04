@@ -6,6 +6,7 @@ import torch
 from torch import nn
 
 from torchmetrics import Accuracy
+from torchmetrics.classification import BinaryAccuracy
 
 from tabsplanation.models.base_model import BaseModel
 from tabsplanation.types import RelativeFloat, StrictPositiveInt, Tensor
@@ -64,7 +65,10 @@ class Classifier(BaseModel):
         self.layers = layers
 
         self.loss_fn = nn.CrossEntropyLoss(reduction="mean")
-        self.accuracy_fn = Accuracy(task="multiclass", num_classes=output_dim)
+        if output_dim > 1:
+            self.accuracy_fn = Accuracy(task="multiclass", num_classes=output_dim)
+        else:
+            self.accuracy_fn = BinaryAccuracy()
 
     def forward(self, X: Tensor) -> Logits:
         return self.layers(X)
