@@ -8,35 +8,20 @@ in order for this module to be versatile we need to parse all config
 files for model configs, where the model configs are identified by
 the key names (either "autoencoder" or "classifier").
 """
-from typing import Dict, List, TypeAlias, TypedDict
+from typing import Dict, TypeAlias, TypedDict
 
 import lightning as pl
 
-# import pytask
 import torch
 from lightning.pytorch.callbacks import EarlyStopping
 from lightning.pytorch.loggers import TensorBoardLogger
 
-# from omegaconf import OmegaConf
-
 from config import BLD_MODELS
-
-# from experiments.shared.data.task_create_cake_on_sea import TaskCreateCakeOnSea
 from experiments.shared.data.task_get_data_module import (
     DataModuleCfg,
     TaskGetDataModule,
 )
-from experiments.shared.utils import (
-    # get_configs,
-    # get_data_module,
-    get_module_object,
-    get_time,
-    hash_,
-    read,
-    # save_config,
-    setup,
-    Task,
-)
+from experiments.shared.utils import get_module_object, get_time, hash_, setup, Task
 
 
 def _get_class(class_name: str):
@@ -118,9 +103,10 @@ class TaskTrainModel(Task):
         )
 
         # Run a dummy forward pass to initialize Lazy layers
-        # Two rows so that batch norm doesn't complain
+        # Run with two rows so that batch norm doesn't complain
         model.forward(data_module.train_set[0:2][0].reshape(2, -1))
 
         trainer.fit(model=model, datamodule=data_module)
+        trainer.test(model=model, datamodule=data_module)
 
         return model

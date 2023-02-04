@@ -19,12 +19,12 @@ data_modules:
     args: 
       seed: ${seed}
       gaussian: false
-      nb_points_initial: 1000
+      nb_points_initial: 100000
       nb_dims: 2
       nb_uncorrelated_dims: 2
 - seed: ${seed}
   args: 
-    batch_size: 10000
+    batch_size: 1000
     validation_data_proportion: ${data_module_args.validation_data_proportion}
     test_data_proportion: ${data_module_args.test_data_proportion}
     correct_for_class_imbalance: ${data_module_args.correct_for_class_imbalance}

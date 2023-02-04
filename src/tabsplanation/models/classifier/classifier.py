@@ -5,6 +5,8 @@ from typing import Any, List, Optional
 import torch
 from torch import nn
 
+from torchmetrics import Accuracy
+
 from tabsplanation.models.base_model import BaseModel
 from tabsplanation.types import RelativeFloat, StrictPositiveInt, Tensor
 
@@ -62,6 +64,7 @@ class Classifier(BaseModel):
         self.layers = layers
 
         self.loss_fn = nn.CrossEntropyLoss(reduction="mean")
+        self.accuracy_fn = Accuracy(task="multiclass", num_classes=output_dim)
 
     def forward(self, X: Tensor) -> Logits:
         return self.layers(X)
@@ -82,3 +85,14 @@ class Classifier(BaseModel):
         logs = {"loss": loss}
 
         return loss, logs
+
+    def test_step(self, batch, batch_idx):
+        loss, logs = self.step(batch, batch_idx)
+
+        x, y = batch
+        y_predicted = self.layers(x)
+
+        logs["accuracy"] = self.accuracy_fn(y_predicted, y)
+
+        self.log_dict({f"test_{k}": v for k, v in logs.items()})
+        return loss
