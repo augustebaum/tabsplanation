@@ -40,9 +40,9 @@ def mmd(x: Tensor["n", "D"], y: Tensor["m", "D"], kernel: Literal["multiscale", 
     if kernel == "multiscale":
         bandwidth_range = [0.2, 0.5, 0.9, 1.3]
         for a in bandwidth_range:
-            XX += a**2 * (a**2 + dxx) ** -1
-            YY += a**2 * (a**2 + dyy) ** -1
-            XY += a**2 * (a**2 + dxy) ** -1
+            XX += a ** 2 * (a ** 2 + dxx) ** -1
+            YY += a ** 2 * (a ** 2 + dyy) ** -1
+            XY += a ** 2 * (a ** 2 + dxy) ** -1
     elif kernel == "rbf":
         bandwidth_range = [10, 15, 20, 50]
         for a in bandwidth_range:

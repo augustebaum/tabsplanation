@@ -10,6 +10,12 @@ from tabsplanation.types import Tensor
 Explainer = Any
 
 
+def random_targets_like(y: Tensor, nb_classes: int):
+    batch_target_difference = torch.randint_like(y, low=1, high=nb_classes - 1)
+    batch_target_class = (y + batch_target_difference) % nb_classes
+    return batch_target_class
+
+
 class PathRegularizedNICE(NICEModel):
     def __init__(
         self,
@@ -50,9 +56,7 @@ class PathRegularizedNICE(NICEModel):
         return loss, logs
 
     def random_targets_like(self, y):
-        batch_target_difference = torch.randint_like(y, low=1, high=self.nb_classes - 1)
-        batch_target_class = (y + batch_target_difference) % self.nb_classes
-        return batch_target_class
+        return random_targets_like(y, self.nb_classes)
 
 
 class BoundaryCrossLoss(nn.Module):

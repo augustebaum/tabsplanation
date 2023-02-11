@@ -1,5 +1,5 @@
 import random
-from typing import Dict, List, TypeAlias, TypedDict
+from typing import Dict, Iterator, List, TypeAlias, TypedDict
 
 from omegaconf import OmegaConf
 from torch.utils.data import Dataset
@@ -7,10 +7,11 @@ from torch.utils.data import Dataset
 from config import BLD_PLOT_DATA
 from experiments.shared.data.task_get_data_module import TaskGetDataModule
 from experiments.shared.task_train_model import ModelCfg, TaskTrainModel
-from experiments.shared.utils import Task, read, setup, write
+from experiments.shared.utils import get_object, read, setup, Task, write
 from tabsplanation.explanations.losses import ValidityLoss
+from tabsplanation.explanations.nice_path_regularized import random_targets_like
 from tabsplanation.models import AutoEncoder, Classifier
-from tabsplanation.types import PositiveInt, RelativeFloat, Seed
+from tabsplanation.types import ExplanationPath, PositiveInt, RelativeFloat, Seed
 
 
 class ExplainerCfg:
@@ -113,11 +114,9 @@ class TaskCreatePlotDataValidityLosses(Task):
             for seed, autoencoder_path in values["autoencoders"].items():
                 autoencoder = read(autoencoder_path["model"], device=device)
 
-                path_methods = cfg.explainers
-                for path_method in path_methods:
+                for path_method in cfg.explainers:
 
-                    loss_fns = cfg.losses
-                    for loss_fn in loss_fns:
+                    for loss_fn in cfg.losses:
                         validity_rate = TaskCreatePlotDataValidityLosses.validity_rate(
                             data_module, classifier, autoencoder, loss_fn, path_method
                         )
@@ -135,5 +134,27 @@ class TaskCreatePlotDataValidityLosses(Task):
         write(results, produces["results"])
 
     @staticmethod
-    def validity_rate(data_module, classifier, autoencoder, loss_fn, path_method):
-        pass
+    def validity_rate(data_module, classifier, autoencoder, loss_fn, explainer):
+        test_x, _ = data_module.test_data
+        y_predict = classifier.predict(test_x)
+        target = random_targets_like(y_predict, data_module.dataset.output_dim)
+
+        loss_fn = get_object(loss_fn)
+
+        explainer_cls = get_object(explainer.class_name)
+        explainer_hparams = explainer.args.hparams
+
+        explainer = explainer_cls(classifier, autoencoder, explainer_hparams, loss_fn)
+
+        paths: Iterator[ExplanationPath] = explainer.get_counterfactuals_iterator(
+            test_x, target
+        )
+
+        validity: List[bool] = [path.is_valid() for path in paths]
+
+        import pdb
+
+        pdb.set_trace()
+
+        validity_rate = sum(validity) / len(validity)
+        return validity_rate

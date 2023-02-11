@@ -6,7 +6,7 @@ import sys
 import warnings
 from datetime import datetime
 from pathlib import Path
-from typing import List, Optional, TypeAlias
+from typing import List, Optional, Tuple, Type, TypeAlias
 
 import lightning as pl
 
@@ -50,11 +50,24 @@ def hash_(cfg: DictConfig):
     return hashlib.sha256(cfg_str.encode("ascii")).hexdigest()
 
 
+def parse_full_qualified_object(object_full_path: str) -> Tuple[str, str]:
+    """Take a fully qualified object name such as 'a.b.C'
+    and parse it into ('a.b', 'C')."""
+    module_path: List[str] = object_full_path.split(".")
+    object_name: str = module_path.pop(-1)
+    module_path: str = ".".join(module_path)
+    return module_path, object_name
+
+
 def get_module_object(module_path: str, object_name: str):
     """Import module given by `module_path` and return a function
     or class defined in that module with the name `object_name`."""
     exec(f"import {module_path}")
     return getattr(sys.modules[module_path], object_name)
+
+
+def get_object(object_full_path) -> Type:
+    return get_module_object(*parse_full_qualified_object(object_full_path))
 
 
 # --- Task boilerplate

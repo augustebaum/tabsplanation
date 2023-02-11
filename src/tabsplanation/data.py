@@ -175,6 +175,10 @@ class CakeOnSeaDataModule(pl.LightningDataModule):
     def predict_dataloader(self):
         pass
 
+    @property
+    def test_data(self):
+        return self.test_set.dataset[self.test_set.indices]
+
 
 class DiabetesDataset(Dataset):
     """PyTorch-compatible dataset, written for the Pima Diabetes dataset.

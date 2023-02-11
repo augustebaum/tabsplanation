@@ -4,11 +4,11 @@
 `prb` stands for "probability".
 """
 
-from typing import Dict, List, Optional
+from typing import Dict, Iterator, List, Optional
 
 import torch
 
-from tabsplanation.explanations.losses import AwayLoss, BinaryStretchLoss
+from tabsplanation.explanations.losses import AwayLoss, BinaryStretchLoss, ValidityLoss
 from tabsplanation.models.autoencoder import AutoEncoder
 from tabsplanation.models.classifier import Classifier
 from tabsplanation.types import (
@@ -51,9 +51,16 @@ def grad(losses: Tensor["rows", 1], inputs: Tensor["rows", "cols"]):
 
 
 class LatentShift:
-    def __init__(self, classifier, autoencoder, hparams: Dict):
+    def __init__(
+        self,
+        classifier,
+        autoencoder,
+        hparams: Dict,
+        validity_loss: ValidityLoss = BinaryStretchLoss,
+    ):
         self.classifier = classifier
         self.autoencoder = autoencoder
+        self.validity_loss = validity_loss
 
         self._shift_step = hparams["shift_step"]
         self._max_iter = hparams["max_iter"]
@@ -93,6 +100,40 @@ class LatentShift:
         paths: List[ExplanationPath] = self.get_paths(latent_paths, input, target_class)
         return paths[0] if len(paths) == 1 else paths
 
+    def get_counterfactuals_iterator(
+        self,
+        input: InputPoint,
+        target_class: Optional[int],
+    ) -> ExplanationPath:
+        """Produce counterfactual explanations for the given input point.
+
+        The class of the explanation should be different from the originally
+        predicted class, and one can optionally specify the desired target
+        class.
+
+        Adapted from:
+        <https://github.com/mlmed/gifsplanation/blob/fe04d5ce149102289d3df31b1e41f08ab6ce33ee/attribution.py#L18>
+
+        Inputs:
+        -------
+        * classifier: Classifier model to be explained.
+        * autoencoder: Auto-encoder model used to learn the latent representation.
+            It should implement an `encode` and a `decode` method.
+        * input: Base input point to be perturbed. The point should be consistent
+            with the pre-processing used to train the auto-encoder and classifier.
+        * target_class: Optional desired target class of the counterfactual. It should
+            be different from the originally predicted class.
+
+        Returns:
+        --------
+        explanations: Iterable of tuples, each of which containing a perturbed
+            input point along with its associated prediction probability.
+        """
+        latent_paths: Tensor["nb_shifts", "batch", "latent_dim"] = self.get_cf_latents(
+            input, target_class
+        )
+        return self.get_paths_iterator(latent_paths, input, target_class)
+
     def get_cf_latents(
         self,
         input: Tensor["batch", "input_dim"],
@@ -114,10 +155,6 @@ class LatentShift:
 
         output = clf.predict_proba(input).detach()
         source_class = torch.argmax(output, dim=-1)
-        # if any(target_class == source_class):
-        #     raise ValueError(
-        #         "The target class is equal to the source class for at least one point."
-        #     )
 
         # This is the function of which we take the gradient.
         # The gradient is the direction of steepest ascent.
@@ -126,7 +163,7 @@ class LatentShift:
         if target_class is None:
             validity_loss_fn = AwayLoss()
         else:
-            validity_loss_fn = BinaryStretchLoss()
+            validity_loss_fn = self.validity_loss()
 
         def clf_decode(z: LatentPoint):
             logits = clf(ae.decode(z))
@@ -161,8 +198,15 @@ class LatentShift:
         latent_paths: Tensor["nb_shifts", "batch", "latent_dim"],
         input,
         target_class,
-    ) -> None:
-        latent_dim = latent_paths.shape[-1]
+    ) -> List[ExplanationPath]:
+        return list(self.get_paths_iterator(latent_paths, input, target_class))
+
+    def get_paths_iterator(
+        self,
+        latent_paths: Tensor["nb_shifts", "batch", "latent_dim"],
+        input,
+        target_class,
+    ) -> Iterator[ExplanationPath]:
         nb_shifts, batch, latent_dim = latent_paths.shape
 
         paths_tensor: Tensor[
@@ -173,7 +217,7 @@ class LatentShift:
             batch, nb_shifts, input.shape[-1]
         )
 
-        return [
+        return iter(
             ExplanationPath(
                 explained_input=InputOutputPair(
                     input=input, output=self.classifier.predict_proba(input)
@@ -185,4 +229,4 @@ class LatentShift:
                 ys=self.classifier.predict_proba(path),
             )
             for input, target_class, path in zip(input, target_class, paths_tensor)
-        ]
+        )

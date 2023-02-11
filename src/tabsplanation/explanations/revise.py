@@ -7,14 +7,14 @@ You can find the original implementation here:
 <https://github.com/carla-recourse/CARLA/blob/9595d4f6609ff604bc22d9b8e6cd728ecf18737b/carla/recourse_methods/catalog/revise/model.py>
 """
 
-from typing import Dict, List, Optional
+from typing import Dict, Iterator, List, Optional
 
 import torch
-from torch import nn
 
+from tabsplanation.explanations.losses import BinaryStretchLoss, ValidityLoss
 from tabsplanation.models.autoencoder import AutoEncoder
 from tabsplanation.models.classifier import Classifier
-from tabsplanation.types import ExplanationPath, InputOutputPair, InputPoint
+from tabsplanation.types import ExplanationPath, InputOutputPair, InputPoint, Tensor
 
 
 class Revise:
@@ -55,7 +55,11 @@ class Revise:
     """
 
     def __init__(
-        self, classifier: Classifier, autoencoder: AutoEncoder, hparams: Dict
+        self,
+        classifier: Classifier,
+        autoencoder: AutoEncoder,
+        hparams: Dict,
+        validity_loss: ValidityLoss = BinaryStretchLoss,
     ) -> None:
 
         self._distance_reg = hparams["distance_regularization"]
@@ -88,9 +92,42 @@ class Revise:
 
         return paths[0] if len(paths) == 1 else paths
 
+    def get_counterfactuals_iterator(
+        self,
+        input: InputPoint,
+        target_class: Optional[int],
+    ) -> Iterator[ExplanationPath]:
+
+        classifier = self.classifier
+        autoencoder = self.autoencoder
+
+        z = autoencoder.encode(input.reshape(1, -1))
+        z = z.clone().detach().requires_grad_(True)
+        if self._optimizer == "adam":
+            optim = torch.optim.Adam([z], self._lr)
+        else:
+            optim = torch.optim.RMSprop([z], self._lr)
+
+        paths: Iterator[ExplanationPath] = self.get_paths_iterator(
+            classifier, autoencoder, optim, z, input, target_class
+        )
+
+        return paths
+
     def _iterate_counterfactual_optimization(
         self, classifier, autoencoder, optim, z, input, target_class
     ):
+
+        paths = self.get_paths_iterator(
+            classifier, autoencoder, optim, z, input, target_class
+        )
+        cf_xs = [path.xs for path in paths]
+
+        return torch.stack(cf_xs)
+
+    def get_paths_iterator(
+        self, classifier, autoencoder, optim, z, input, target_class
+    ) -> Iterator[ExplanationPath]:
 
         cf_xs = []
         for _ in range(self._max_iter):
@@ -112,7 +149,7 @@ class Revise:
             paths_tensor.shape[1], paths_tensor.shape[0], input.shape[-1]
         )
 
-        return [
+        return iter(
             ExplanationPath(
                 explained_input=InputOutputPair(
                     input=input, output=self.classifier.predict_proba(input)
@@ -124,23 +161,20 @@ class Revise:
                 ys=self.classifier.predict_proba(path),
             )
             for input, target_class, path in zip(input, target_class, paths_tensor)
-        ]
-
-        return torch.stack(cf_xs)
+        )
 
     def _compute_loss(self, classifier, original_input, cf, target_class):
 
-        # For multi-class tasks
-        loss_function = nn.CrossEntropyLoss()
-        output = classifier.predict_proba(original_input)
+        y_predict = classifier.predict_proba(original_input)
+        source_class = classifier.predict(original_input)
 
-        classification_loss = loss_function(output, target_class)
+        validity_loss = self.validity_loss(y_predict, source_class, target_class)
         distance_loss = torch.norm((original_input - cf), 1)
 
-        loss = classification_loss + self._distance_reg * distance_loss
+        loss = validity_loss + self._distance_reg * distance_loss
         logs = {
             "loss": loss,
-            "classification_loss": classification_loss,
+            "validity_loss": validity_loss,
             "distance_loss": distance_loss,
         }
 

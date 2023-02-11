@@ -101,6 +101,10 @@ class ExplanationPath:
     def __len__(self):
         return len(self.xs)
 
+    def is_valid(self) -> bool:
+        """Whether or not the path reached its target class."""
+        return any(self.ys[:, self.target_class] > 0.5)
+
     @property
     def distances(self) -> Tensor:
         """Produce a tensor of relative distances from each explanation

@@ -1,5 +1,5 @@
 seed: 42
-nb_seeds: 3
+nb_seeds: 1
 
 training:
   patience: 5
@@ -70,6 +70,7 @@ explainers:
     hparams:
       max_iter: 50
       lr: 1e-3
+      optimizer: adam
       distance_regularization: 0
 
 losses:
