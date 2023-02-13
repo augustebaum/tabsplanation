@@ -102,7 +102,7 @@ class StretchLoss(ValidityLoss):
         nb_classes = input.shape[-1]
 
         def class_(class_number):
-            return torch.full((len(input),), class_number)
+            return torch.full((len(input),), class_number).to(input.device)
 
         # This is the same as adding up for all classes except the target,
         # then removing the target once.
