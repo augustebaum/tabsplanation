@@ -147,25 +147,12 @@ class Task:
     def task_function(cls, depends_on, produces, cfg):
         raise NotImplementedError()
 
-    def _define_task(self, imports=False, module_import=True):
+    def _define_task(self):
         cls_name = self.__class__.__name__
-        task = self
 
-        if imports:
-            imports = """
-from omegaconf import OmegaConf
-import pytask
-from experiments.shared.utils import save_config, save_full_config
-"""
-        else:
-            imports = ""
-
-        if module_import:
-            module_import = f"""
+        module_import = f"""
 from {get_module(self)} import {cls_name}
 """
-        else:
-            module_import = ""
 
         task_definition = f"""
 task = {cls_name}(OmegaConf.create({self.cfg}))
@@ -182,26 +169,22 @@ def {camel_to_snake(cls_name)}(depends_on, produces, cfg=task.cfg):
 
 """
 
-        task_definition = imports + module_import + task_definition
-
-        return task, task_definition
+        return module_import + task_definition
 
     def define_task(self, result=""):
-        _, task_def = self._define_task(
-            imports=(result == ""), module_import=(result != "")
-        )
-        result += task_def
-        if self.task_deps == []:
-            return None, result
-        else:
-            for task_dep in self.task_deps:
-                _, result = task_dep.define_task(result)
-            return None, result
+        imports = """
+from omegaconf import OmegaConf
+import pytask
+from experiments.shared.utils import save_config, save_full_config
+"""
+        return imports + "".join(t._define_task() for t in self.all_task_deps())
 
     def all_task_deps(self, result=[]) -> List:
         for task in self.task_deps:
             result.append(task)
             result = task.all_task_deps(result=result)
+        # Unique by id_
+        result = list({t.id_: t for t in result}.values())
         return result
 
 

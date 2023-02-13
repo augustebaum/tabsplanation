@@ -2,11 +2,13 @@ from omegaconf import OmegaConf
 
 from config import EXPERIMENT_CONFIGS
 
-from experiments.validity_losses.task_create_plot_data_validity_losses import (
-    TaskCreatePlotDataValidityLosses,
-)
+from experiments.validity_losses.task_plot_validity_losses import TaskPlotValidityLosses
 
 cfg = OmegaConf.load(EXPERIMENT_CONFIGS / "validity_losses.yaml")
-task = TaskCreatePlotDataValidityLosses(cfg)
-task, task_def = task.define_task()
+task = TaskPlotValidityLosses(cfg)
+task_def = task.define_task()
+import pdb
+
+pdb.set_trace()
+
 exec(task_def)
