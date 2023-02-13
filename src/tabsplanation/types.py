@@ -15,6 +15,11 @@ class MyTensorTypeMock:
 # from torchtyping import TensorType  # type: ignore
 Tensor: TypeAlias = MyTensorTypeMock  # TensorType
 
+B: TypeAlias = "batch"
+D: TypeAlias = "input_dim"
+C: TypeAlias = "output_dim"
+H: TypeAlias = "latent_dim"
+
 InputPoint: TypeAlias = Tensor["input_dim"]
 InputBatch: TypeAlias = Tensor["batch", "input_dim"]
 

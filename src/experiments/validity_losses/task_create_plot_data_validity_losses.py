@@ -1,6 +1,7 @@
 import random
 from typing import Dict, Iterator, List, TypeAlias, TypedDict
 
+import torch
 from omegaconf import OmegaConf
 from torch.utils.data import Dataset
 
@@ -135,7 +136,9 @@ class TaskCreatePlotDataValidityLosses(Task):
 
     @staticmethod
     def validity_rate(data_module, classifier, autoencoder, loss_fn, explainer):
-        test_x, _ = data_module.test_data
+        torch.cuda.empty_cache()
+        test_x = data_module.test_data[0][:20_000]
+
         y_predict = classifier.predict(test_x)
         target = random_targets_like(y_predict, data_module.dataset.output_dim)
 
@@ -151,10 +154,6 @@ class TaskCreatePlotDataValidityLosses(Task):
         )
 
         validity: List[bool] = [path.is_valid() for path in paths]
-
-        import pdb
-
-        pdb.set_trace()
 
         validity_rate = sum(validity) / len(validity)
         return validity_rate

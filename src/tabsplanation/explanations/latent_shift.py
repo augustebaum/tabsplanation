@@ -177,8 +177,7 @@ class LatentShift:
             z: Tensor["batch", "latent_dim"] = ae.encode(input)
 
             # Compute gradient of classifier at `z` in latent space
-            # Multiply by -1 to minimize the loss
-            gradient: Tensor["batch", "latent_dim"] = -grad(clf_decode(z), z)
+            gradient: Tensor["batch", "latent_dim"] = grad(clf_decode(z), z)
 
         # 2) Apply latent shift
 
@@ -187,8 +186,10 @@ class LatentShift:
             .reshape(-1, 1, 1)
             .to(ae.device)
         )
+
+        # Multiply gradient by -1 to minimize the loss
         z_perturbed: Tensor["nb_shifts", "batch", "latent_dim"] = (
-            z + shifts * gradient
+            z - shifts * gradient
         ).to(torch.float)
 
         return z_perturbed
