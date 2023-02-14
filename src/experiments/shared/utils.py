@@ -227,8 +227,13 @@ def write_svg(obj, file_path):
     obj.savefig(file_path)
 
 
+def write_string(obj, file_path):
+    with open(file_path, "w") as f:
+        f.write(obj)
+
+
 def write(obj, file_path: Path) -> None:
-    write_variants = {".pkl": write_pkl, ".svg": write_svg}
+    write_variants = {".pkl": write_pkl, ".svg": write_svg, ".tex": write_string}
 
     write_fn = write_variants.get(file_path.suffix)
     if write_fn is None:
