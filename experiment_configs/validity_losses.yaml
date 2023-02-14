@@ -1,5 +1,5 @@
 seed: 42
-nb_seeds: 1
+nb_seeds: 2
 
 training:
   patience: 5
@@ -52,7 +52,6 @@ autoencoder:
   model:
     class_name: NICEModel
     args:
-      # input_dim: null
       mlp_hidden_dims: [50, 50, 50, 50]
       batch_norm: False
       dropout: null
@@ -75,21 +74,8 @@ explainers:
       gradient_frequency: 1
       shift_step: 0.1
       distance_regularization: 0
-# - class_name: tabsplanation.explanations.LatentShift
-#   args:
-#     hparams:
-#       max_iter: 50
-#       shift_step: 0.1
-# - class_name: tabsplanation.explanations.Revise
-#   args:
-#     hparams:
-#       max_iter: 50
-#       lr: 1e-3
-#       optimizer: adam
-#       distance_regularization: 0
 
 losses:
-- tabsplanation.explanations.losses.AwayLoss
 - tabsplanation.explanations.losses.TargetLoss
 - tabsplanation.explanations.losses.BinaryStretchLoss
 - tabsplanation.explanations.losses.StretchLoss

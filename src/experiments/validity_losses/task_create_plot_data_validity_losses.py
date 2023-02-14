@@ -8,7 +8,7 @@ from torch.utils.data import Dataset
 from config import BLD_PLOT_DATA
 from experiments.shared.data.task_get_data_module import TaskGetDataModule
 from experiments.shared.task_train_model import ModelCfg, TaskTrainModel
-from experiments.shared.utils import get_object, read, setup, Task, write
+from experiments.shared.utils import clone_config, get_object, read, setup, Task, write
 from tabsplanation.explanations.losses import ValidityLoss
 from tabsplanation.explanations.nice_path_regularized import random_targets_like
 from tabsplanation.models import AutoEncoder, Classifier
@@ -60,14 +60,17 @@ class TaskCreatePlotDataValidityLosses(Task):
         setup(cfg.seed)
         seeds = [random.randrange(100_000) for _ in range(cfg.nb_seeds)]
 
+        # Make sure self.cfg is not modified
+        cfg = clone_config(self.cfg)
+
         # For each dataset
-        for data_module_cfg in self.cfg.data_modules:
+        for data_module_cfg in cfg.data_modules:
             # Get the DataModule
             task_dataset = TaskGetDataModule.task_dataset(data_module_cfg)
             self.task_deps.append(task_dataset)
 
             # Train a classifier
-            classifier_cfg = self.cfg.classifier
+            classifier_cfg = cfg.classifier
             classifier_cfg.data_module = data_module_cfg
             task_classifier = TaskTrainModel(classifier_cfg)
 
@@ -85,7 +88,7 @@ class TaskCreatePlotDataValidityLosses(Task):
             # Then for each seed
             for seed in seeds:
                 # Train an autoencoder
-                autoencoder_cfg = self.cfg.autoencoder
+                autoencoder_cfg = cfg.autoencoder
                 autoencoder_cfg.data_module = data_module_cfg
                 autoencoder_cfg.seed = seed
                 task_autoencoder = TaskTrainModel(autoencoder_cfg)

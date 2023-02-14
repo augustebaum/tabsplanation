@@ -102,6 +102,10 @@ def save_config(cfg: DictConfig, path: Path) -> None:
     OmegaConf.save(cfg, path, resolve=False)
 
 
+def clone_config(cfg: DictConfig) -> DictConfig:
+    return OmegaConf.create(OmegaConf.to_container(cfg))
+
+
 # This is to generate task functions dynamically from a task class
 # But this doesn't work yet: <https://github.com/pytask-dev/pytask/issues/324>
 def camel_to_snake(str):
@@ -134,7 +138,7 @@ class Task:
         if cfg is not None:
             OmegaConf.resolve(cfg)
             # Clone config
-            self.cfg = OmegaConf.create(OmegaConf.to_container(cfg))
+            self.cfg = clone_config(cfg)
             self.id_ = hash_(self.cfg)
 
             self.produces_dir = output_dir / self.id_
@@ -177,7 +181,10 @@ from omegaconf import OmegaConf
 import pytask
 from experiments.shared.utils import save_config, save_full_config
 """
-        return imports + "".join(t._define_task() for t in self.all_task_deps())
+
+        tasks = [self] + self.all_task_deps()
+
+        return imports + "".join(t._define_task() for t in tasks)
 
     def all_task_deps(self, result=[]) -> List:
         for task in self.task_deps:
