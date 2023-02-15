@@ -5,8 +5,16 @@ from experiments.shared.data.task_create_cake_on_sea import TaskCreateCakeOnSea
 from experiments.shared.data.task_preprocess_forest_cover import (
     TaskPreprocessForestCover,
 )
+from experiments.shared.data.task_preprocess_wine_quality import (
+    TaskPreprocessWineQuality,
+)
 from experiments.shared.utils import Task
-from tabsplanation.data import CakeOnSeaDataModule, CakeOnSeaDataset, ForestCoverDataset
+from tabsplanation.data import (
+    CakeOnSeaDataModule,
+    CakeOnSeaDataset,
+    ForestCoverDataset,
+    WineQualityDataset,
+)
 from tabsplanation.types import RelativeFloat
 
 
@@ -22,6 +30,13 @@ def init_CakeOnSeaDataset(depends_on, cfg, device):
 
 def init_ForestCoverDataset(depends_on, cfg, device):
     return ForestCoverDataset(
+        csv_path=depends_on,
+        device=device,
+    )
+
+
+def init_WineQualityDataset(depends_on, cfg, device):
+    return WineQualityDataset(
         csv_path=depends_on,
         device=device,
     )
@@ -48,6 +63,10 @@ class TaskGetDataModule(Task):
             "task": TaskPreprocessForestCover,
             "init_fn": init_ForestCoverDataset,
         },
+        "tabsplanation.data.WineQualityDataset": {
+            "task": TaskPreprocessWineQuality,
+            "init_fn": init_WineQualityDataset,
+        },
     }
 
     @staticmethod
@@ -69,9 +88,7 @@ class TaskGetDataModule(Task):
         output_dir = BLD_DATA / "data_modules"
         super(TaskGetDataModule, self).__init__(cfg, output_dir)
 
-        dataset_cfg = self.cfg.dataset
-        dataset_task_cls = TaskGetDataModule.dataset_map[dataset_cfg.class_name]["task"]
-        dataset_task = dataset_task_cls(dataset_cfg.args)
+        dataset_task = TaskGetDataModule.task_dataset(self.cfg)
 
         self.task_deps = [dataset_task]
 
