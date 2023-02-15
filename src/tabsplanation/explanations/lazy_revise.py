@@ -115,3 +115,17 @@ class LazyRevise(LatentShift):
         )
 
         return z_perturbed
+
+    def validity_rate(
+        self,
+        input: Tensor[B, D],
+        target_class: Tensor[B, 1],
+    ) -> Tensor["nb_shifts", B, H]:
+        latents: Tensor["nb_shifts", B, H] = self.get_cf_latents(input, target_class)
+        nb_shifts, batch, latent_dim = latents.shape
+        cf_paths = self.autoencoder.decode(latents.reshape(-1, latent_dim)).reshape(
+            nb_shifts, batch, input.shape[-1]
+        )
+        preds = self.classifier.predict(cf_paths)
+        validity_rate = torch.any(preds == target_class, dim=0).mean(dtype=torch.float)
+        return validity_rate

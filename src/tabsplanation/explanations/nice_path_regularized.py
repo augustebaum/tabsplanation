@@ -11,7 +11,7 @@ Explainer = Any
 
 
 def random_targets_like(y: Tensor, nb_classes: int):
-    batch_target_difference = torch.randint_like(y, low=1, high=nb_classes - 1)
+    batch_target_difference = torch.randint_like(y, low=1, high=nb_classes)
     batch_target_class = (y + batch_target_difference) % nb_classes
     return batch_target_class
 
