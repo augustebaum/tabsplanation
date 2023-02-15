@@ -152,11 +152,5 @@ class TaskCreatePlotDataValidityLosses(Task):
 
         explainer = explainer_cls(classifier, autoencoder, explainer_hparams, loss_fn)
 
-        paths: Iterator[ExplanationPath] = explainer.get_counterfactuals_iterator(
-            test_x, target
-        )
-
-        validity: List[bool] = [path.is_valid() for path in paths]
-
-        validity_rate = sum(validity) / len(validity)
+        validity_rate = explainer.validity_rate(test_x, target)
         return validity_rate
