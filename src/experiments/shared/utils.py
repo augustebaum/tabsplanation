@@ -47,7 +47,7 @@ def get_time() -> str:
 def hash_(cfg: DictConfig):
     cfg_dict = OmegaConf.to_object(cfg)
     cfg_str = json.dumps(cfg_dict, ensure_ascii=True, sort_keys=True)
-    return hashlib.sha256(cfg_str.encode("ascii")).hexdigest()
+    return hashlib.sha256(cfg_str.encode("ascii")).hexdigest()[:10]
 
 
 def parse_full_qualified_object(object_full_path: str) -> Tuple[str, str]:
@@ -183,6 +183,8 @@ from experiments.shared.utils import save_config, save_full_config
 """
 
         tasks = [self] + self.all_task_deps()
+        # Unique by repr (task class name and id_)
+        tasks = list({hash(str(t)): t for t in tasks}.values())
 
         return imports + "".join(t._define_task() for t in tasks)
 
@@ -190,9 +192,10 @@ from experiments.shared.utils import save_config, save_full_config
         for task in self.task_deps:
             result.append(task)
             result = task.all_task_deps(result=result)
-        # Unique by id_
-        result = list({t.id_: t for t in result}.values())
         return result
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}({self.id_})"
 
 
 # ---
