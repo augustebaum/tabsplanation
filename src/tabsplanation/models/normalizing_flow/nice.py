@@ -2,7 +2,7 @@
 
 Credits to <karim.hadidane@swisscom.com>.
 """
-from typing import List, Optional
+from typing import List, Literal, Optional
 
 import torch
 from torch import nn
@@ -42,10 +42,11 @@ class NICEModel(BaseModel):
         half_dim = self.input_dim // 2
 
         # We use the same architecture in each layer
-        def mlp():
+        def mlp(partition: Literal["odd", "even"]):
             """Create a new untrained MLP."""
+            output_dim = half_dim if partition == "even" else self.input_dim - half_dim
             return Classifier(
-                output_dim=half_dim,
+                output_dim=output_dim,
                 hidden_dims=mlp_hidden_dims,
                 batch_norm=batch_norm,
                 dropout=dropout,
@@ -53,10 +54,10 @@ class NICEModel(BaseModel):
 
         # We use 4 layers as it was done in the paper
         self.layers = nn.Sequential(
-            AdditiveCouplingLayer("odd", mlp()),
-            AdditiveCouplingLayer("even", mlp()),
-            AdditiveCouplingLayer("odd", mlp()),
-            AdditiveCouplingLayer("even", mlp()),
+            AdditiveCouplingLayer("odd", mlp("odd")),
+            AdditiveCouplingLayer("even", mlp("even")),
+            AdditiveCouplingLayer("odd", mlp("odd")),
+            AdditiveCouplingLayer("even", mlp("even")),
         )
 
         self.log_scaling_factors = nn.Parameter(
