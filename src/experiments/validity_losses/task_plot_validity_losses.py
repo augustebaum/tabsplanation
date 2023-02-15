@@ -34,54 +34,17 @@ class TaskPlotValidityLosses(Task):
 
         df = pd.DataFrame.from_records(results)
 
-        # method 1
-        # xx = df.pivot_table(
-        #     columns=["data_module", "path_method"],
-        #     index="loss",
-        #     aggfunc=["mean", "sem"],
-        # )
+        df = df.groupby(list(df.columns[:-1])).agg(["mean", "sem"])
+        df = df * 100
+        df = df.droplevel(0, axis=1)
 
-        # method 2
-        yy = df.groupby(list(df.columns[:-1])).agg(["mean", "sem"])
-        yy = yy.droplevel(0, axis=1)
-
-        # import numpy as np
-
-        # def highlight_max(x):
-        #     return np.where(x == np.nanmax(x.to_numpy()), "textbf", None)
-
-        # yy = yy.style.highlight_max(
-        #     color=None, props="font-weight: bold;", subset="mean"
-        # )
-        # yy = yy.style.highlight_max(color=None, props="textbf:;", subset="mean")
-
-        # yy = yy.apply(
-        #     lambda row: ("{:.4f}".format(row["mean"]), "{:.4f}".format(row["sem"])),
-        #     axis=1,
-        # )
-        yy = yy.apply(
-            lambda row: "{:.4f}".format(row["mean"])
+        df = df.apply(
+            lambda row: "{:.1f}".format(row["mean"])
             + "±"
-            + "{:.4f}".format(row["sem"]),
+            + "{:.1f}".format(row["sem"]),
             axis=1,
         )
 
-        yy = yy.unstack([0, 1])
+        df = df.unstack([0, 1])
 
-        # yy = yy.apply(
-        #     lambda row: "{:.4f}".format(row["mean"])
-        #     + "±"
-        #     + "{:.4f}".format(row["sem"]),
-        #     axis=1,
-        # )
-
-        # yy.style.highlight_max(color=None, props="bfseries: ;")
-        write(yy.style.to_latex(), produces["results"])
-
-        # df = pd.DataFrame(np.random.randn(5, 2), columns=["A", "B"])
-        # df.style.apply(highlight_max, color='red')
-        # df.style.apply(highlight_max, color='blue', axis=1)
-        # df.style.apply(highlight_max, color='green', axis=None)
-
-        # write("", produces)
-        # pass
+        write(df.style.to_latex(), produces["results"])
