@@ -31,6 +31,11 @@ data_modules:
   dataset:
     class_name: tabsplanation.data.ForestCoverDataset
     args: null
+- seed: ${seed}
+  args: ${data_module_args}
+  dataset:
+    class_name: tabsplanation.data.WineQualityDataset
+    args: null
 
 classifier:
   seed: ${seed}
