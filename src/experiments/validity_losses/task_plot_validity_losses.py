@@ -19,18 +19,20 @@ class TaskPlotValidityLosses(Task):
 
         self.produces |= {"results": self.produces_dir / "results.tex"}
 
+    @staticmethod
+    def parse_result(result):
+        get_object_name = lambda s: parse_full_qualified_object(s)[1]
+        return {
+            "Dataset": get_object_name(result["data_module"]).removesuffix("Dataset"),
+            "Path method": result["path_method"]["name"],
+            "Loss function": get_object_name(result["loss"]),
+            "validity_rate": result["validity_rate"],
+        }
+
     @classmethod
     def task_function(cls, depends_on, produces, cfg):
         results = read(depends_on["results"])
-        results = [
-            {
-                "data_module": parse_full_qualified_object(result["data_module"])[1],
-                "path_method": result["path_method"]["name"],
-                "loss": parse_full_qualified_object(result["loss"])[1],
-                "validity_rate": result["validity_rate"],
-            }
-            for result in results
-        ]
+        results = [TaskPlotValidityLosses.parse_result(result) for result in results]
 
         df = pd.DataFrame.from_records(results)
 
@@ -46,5 +48,8 @@ class TaskPlotValidityLosses(Task):
         )
 
         df = df.unstack([0, 1])
+
+        loss_names_in_order = [r["Loss function"] for r in results][: len(cfg.losses)]
+        df = df.reindex(loss_names_in_order)
 
         write(df.style.to_latex(), produces["results"])

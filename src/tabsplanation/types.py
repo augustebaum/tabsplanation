@@ -19,6 +19,7 @@ B: TypeAlias = "batch"
 D: TypeAlias = "input_dim"
 C: TypeAlias = "output_dim"
 H: TypeAlias = "latent_dim"
+S: TypeAlias = "nb_steps"
 
 InputPoint: TypeAlias = Tensor["input_dim"]
 InputBatch: TypeAlias = Tensor["batch", "input_dim"]
