@@ -77,7 +77,7 @@ class BinaryStretchLoss(ValidityLoss):
     ):
         """Compute the loss for a counterfactual whose original point was predicted as
         class `source`, and whose target class is `target`."""
-        return self.ce_loss(input, target) - self.ce_loss(input, source)
+        return (self.ce_loss(input, target) - self.ce_loss(input, source)) / 2
 
 
 class StretchLoss(ValidityLoss):
@@ -106,7 +106,10 @@ class StretchLoss(ValidityLoss):
 
         # This is the same as adding up for all classes except the target,
         # then removing the target once.
-        return -sum(
-            self.ce_loss(input, class_(class_number))
-            for class_number in range(nb_classes)
-        ) + 2 * self.ce_loss(input, target)
+        return (
+            -sum(
+                self.ce_loss(input, class_(class_number))
+                for class_number in range(nb_classes)
+            )
+            + 2 * self.ce_loss(input, target)
+        ) / nb_classes
