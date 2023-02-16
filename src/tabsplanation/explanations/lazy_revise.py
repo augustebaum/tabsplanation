@@ -4,7 +4,7 @@ import torch
 
 from tabsplanation.explanations.latent_shift import grad, LatentShift
 from tabsplanation.explanations.losses import AwayLoss, BinaryStretchLoss, ValidityLoss
-from tabsplanation.types import B, D, H, Tensor
+from tabsplanation.types import B, D, H, PositiveInt, RelativeFloat, S, Tensor
 
 
 class LazyRevise(LatentShift):
@@ -120,12 +120,34 @@ class LazyRevise(LatentShift):
         self,
         input: Tensor[B, D],
         target_class: Tensor[B, 1],
-    ) -> Tensor["nb_shifts", B, H]:
-        latents: Tensor["nb_shifts", B, H] = self.get_cf_latents(input, target_class)
-        nb_shifts, batch, latent_dim = latents.shape
-        cf_paths = self.autoencoder.decode(latents.reshape(-1, latent_dim)).reshape(
-            nb_shifts, batch, input.shape[-1]
+    ) -> RelativeFloat:
+        latents: Tensor[S, B, H] = self.get_cf_latents(input, target_class)
+
+        # Need to split the computation into sections so that everything fits
+        # in memory
+        def split_latents(nb_sections):
+            return zip(
+                latents.tensor_split(nb_sections, dim=1),
+                target_class.tensor_split(nb_sections),
+            )
+
+        nb_valid = sum(
+            self.nb_valid(latents_sub, target_class_sub)
+            for latents_sub, target_class_sub in split_latents(4)
         )
-        preds = self.classifier.predict(cf_paths)
-        validity_rate = torch.any(preds == target_class, dim=0).mean(dtype=torch.float)
-        return validity_rate
+
+        return nb_valid / len(target_class)
+
+    def nb_valid(
+        self,
+        latents: Tensor[S, B, H],
+        target_class: Tensor[B, 1],
+    ) -> PositiveInt:
+        """Count the number of valid paths in `input` given `target_class`."""
+        s, b, h = latents.shape
+        # We have to reshape the paths before passing them through the AE
+        latents_ae: Tensor[S * B, H] = latents.reshape(-1, h)
+        cf_paths_ae: Tensor[S * B, D] = self.autoencoder.decode(latents_ae)
+        cf_paths: Tensor[S, B, D] = cf_paths_ae.reshape(s, b, -1)
+        preds: Tensor[S, B] = self.classifier.predict(cf_paths)
+        return torch.any(preds == target_class, dim=0).sum(dtype=torch.float)

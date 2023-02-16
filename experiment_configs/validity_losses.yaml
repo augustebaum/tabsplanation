@@ -1,9 +1,9 @@
 seed: 42
-nb_seeds: 2
+nb_seeds: 4
 
 training:
   patience: 5
-  max_epochs: 1
+  max_epochs: -1
 
 data_module_args:
   validation_data_proportion: 0.2
@@ -39,6 +39,7 @@ data_modules:
 
 classifier:
   seed: ${seed}
+  # Will be set in code
   data_module: null
   training: ${training}
   model:
@@ -51,7 +52,9 @@ classifier:
 
 
 autoencoder:
+  # Will be set in code
   seed: null
+  # Will be set in code
   data_module: null
   training: ${training}
   model:
@@ -62,23 +65,41 @@ autoencoder:
       dropout: null
       learning_rate: 1e-3
 
+max_iter: 200
+shift_step: 0.1
 explainers:
+- name: LatentShiftNoDistanceReg
+  class_name: tabsplanation.explanations.LazyRevise
+  args:
+    hparams:
+      max_iter: ${max_iter}
+      shift_step: ${shift_step}
+      gradient_frequency: null
+      distance_regularization: 0
+- name: ReviseNoDistanceReg
+  class_name: tabsplanation.explanations.LazyRevise
+  args:
+    hparams:
+      max_iter: ${max_iter}
+      shift_step: ${shift_step}
+      gradient_frequency: 1
+      distance_regularization: 0
 - name: LatentShift
   class_name: tabsplanation.explanations.LazyRevise
   args:
     hparams:
-      max_iter: 50
+      max_iter: ${max_iter}
+      shift_step: ${shift_step}
       gradient_frequency: null
-      shift_step: 0.1
-      distance_regularization: 0
+      distance_regularization: 0.3
 - name: Revise
   class_name: tabsplanation.explanations.LazyRevise
   args:
     hparams:
-      max_iter: 50
+      max_iter: ${max_iter}
+      shift_step: ${shift_step}
       gradient_frequency: 1
-      shift_step: 0.1
-      distance_regularization: 0
+      distance_regularization: 0.3
 
 losses:
 - tabsplanation.explanations.losses.TargetLoss
