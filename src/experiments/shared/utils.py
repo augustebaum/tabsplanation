@@ -183,8 +183,6 @@ from experiments.shared.utils import save_config, save_full_config
 """
 
         tasks = [self] + self.all_task_deps()
-        # Unique by repr (task class name and id_)
-        tasks = list({hash(str(t)): t for t in tasks}.values())
 
         return imports + "".join(t._define_task() for t in tasks)
 
@@ -192,6 +190,8 @@ from experiments.shared.utils import save_config, save_full_config
         for task in self.task_deps:
             result.append(task)
             result = task.all_task_deps(result=result)
+        # Unique by repr (task class name and id_)
+        result = list({hash(str(t)): t for t in result}.values())
         return result
 
     def __repr__(self) -> str:

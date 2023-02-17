@@ -25,7 +25,7 @@ class TaskPlotPathRegularization(Task):
         return {
             "Dataset": get_object_name(result["data_module"]).removesuffix("Dataset"),
             "Path method": result["path_method"]["name"],
-            "Loss function": get_object_name(result["loss"]),
+            "Loss function": result["loss"]["name"],
             "validity_rate": result["validity_rate"],
         }
 
