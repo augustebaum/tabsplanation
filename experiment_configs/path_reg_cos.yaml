@@ -53,13 +53,14 @@ path_regularized_model:
     patience: 8
     max_epochs: -1
     # val_check_interval: 1.5
-  class_name: PathRegularizedNICE
-  args:
-    classifier: ${classifier}
-    explainer:
-      class_name: LatentShift
-      args:
-        hparams:
-          max_iter: 50
-          shift_step: 0.1
-    autoencoder_args: ${autoencoder.model.args}
+  model:
+    class_name: PathRegularizedNICE
+    args:
+      classifier: ${classifier}
+      explainer:
+        class_name: LatentShift
+        args:
+          hparams:
+            max_iter: 50
+            shift_step: 0.1
+      autoencoder_args: ${autoencoder.model.args}

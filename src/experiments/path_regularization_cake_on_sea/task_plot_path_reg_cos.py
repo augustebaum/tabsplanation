@@ -6,8 +6,8 @@ import matplotlib.pyplot as plt
 from config import BLD_PLOTS, EXPERIMENT_CONFIGS
 from experiments.cf_losses.task_plot_cf_losses import TaskPlotCfLosses
 from experiments.latent_shift.task_plot_class_2_paths import TaskPlotClass2Paths
-from experiments.path_regularization.task_create_plot_data_path_reg import (
-    TaskCreatePlotDataPathRegularization,
+from experiments.path_regularization.task_create_plot_data_path_reg_cos import (
+    TaskCreatePlotDataPathRegularizationCos,
 )
 from experiments.shared.utils import load_mpl_style, read, Task, write
 from tabsplanation.types import Tensor
@@ -23,18 +23,17 @@ def split_title_line(text: str, max_words=3):
     return "\n".join(lines)
 
 
-class TaskPlotPathReg(Task):
+class TaskPlotPathRegCos(Task):
     def __init__(self, cfg):
-        output_dir = BLD_PLOTS / "path_reg"
-        super(TaskPlotPathReg, self).__init__(cfg, output_dir)
+        output_dir = BLD_PLOTS / "path_reg_cos"
+        super(TaskPlotPathRegCos, self).__init__(cfg, output_dir)
 
         task_create_plot_data_path_regularization = (
-            TaskCreatePlotDataPathRegularization(self.cfg)
+            TaskCreatePlotDataPathRegularizationCos(self.cfg)
         )
         self.task_deps = [task_create_plot_data_path_regularization]
 
         self.depends_on = task_create_plot_data_path_regularization.produces
-        self.depends_on |= {"config": EXPERIMENT_CONFIGS / "path_reg.yaml"}
 
         self.produces |= {
             "latent_space_maps": self.produces_dir / "latent_space_maps.svg",
@@ -74,7 +73,7 @@ class TaskPlotPathReg(Task):
         write(fig, produces["test_paths"])
 
         # Plot gradients
-        fig = TaskPlotPathReg.plot_latent_grads_map(results["gradients"])
+        fig = TaskPlotPathRegCos.plot_latent_grads_map(results["gradients"])
 
         write(fig, produces["z_gradients"])
 
@@ -140,5 +139,5 @@ class TaskPlotPathReg(Task):
 from omegaconf import OmegaConf
 
 cfg = OmegaConf.load(EXPERIMENT_CONFIGS / "path_reg.yaml")
-task, task_def = TaskPlotPathReg(cfg).define_task()
+task, task_def = TaskPlotPathRegCos(cfg).define_task()
 exec(task_def)

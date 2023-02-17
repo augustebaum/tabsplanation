@@ -13,7 +13,9 @@ from experiments.cf_losses.task_create_plot_data_cf_losses import (
     get_z0,
     TaskCreatePlotDataCfLosses,
 )
-from experiments.path_regularization.task_train_path_reg_ae import TaskTrainPathRegAe
+from experiments.path_regularization.task_train_path_regularized_ae import (
+    TaskTrainPathRegAe,
+)
 
 from experiments.shared.data.task_get_data_module import TaskGetDataModule
 from experiments.shared.task_train_model import TaskTrainModel
@@ -22,10 +24,10 @@ from tabsplanation.explanations.latent_shift import LatentShift
 from tabsplanation.explanations.revise import Revise
 
 
-class TaskCreatePlotDataPathRegularization(Task):
+class TaskCreatePlotDataPathRegularizationCos(Task):
     def __init__(self, cfg):
-        output_dir = BLD_PLOT_DATA / "path_reg"
-        super(TaskCreatePlotDataPathRegularization, self).__init__(cfg, output_dir)
+        output_dir = BLD_PLOT_DATA / "path_reg_cos"
+        super(TaskCreatePlotDataPathRegularizationCos, self).__init__(cfg, output_dir)
 
         task_get_data_module = TaskGetDataModule(self.cfg.data_module)
 

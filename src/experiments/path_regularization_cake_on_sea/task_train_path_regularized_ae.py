@@ -15,9 +15,7 @@ class TaskTrainPathRegAe(Task):
         super(TaskTrainPathRegAe, self).__init__(cfg, output_dir)
 
         task_get_data_module = TaskGetDataModule(self.cfg.data_module)
-        task_train_classifier = TaskTrainModel(
-            self.cfg.path_regularized_model.args.classifier
-        )
+        task_train_classifier = TaskTrainModel(self.cfg.model.args.classifier)
         self.task_deps = [task_get_data_module, task_train_classifier]
 
         self.depends_on = task_get_data_module.produces
