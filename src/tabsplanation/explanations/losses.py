@@ -3,7 +3,7 @@
 import torch
 from torch import nn
 
-from tabsplanation.types import Tensor
+from tabsplanation.types import B, C, Tensor
 
 
 class ValidityLoss(nn.Module):
@@ -13,13 +13,31 @@ class ValidityLoss(nn.Module):
 
     def forward(
         self,
-        input: Tensor["batch_size", "nb_classes"],
-        source: Tensor["batch_size", int],
-        target: Tensor["batch_size", int],
+        logits: Tensor[B, C],
+        source: Tensor[B, int],
+        target: Tensor[B, int],
     ):
         """Compute the loss for a counterfactual whose original point was predicted as
         class `source`, and whose target class is `target`."""
         raise NotImplementedError("This is an abstract class")
+
+
+class LogitValidityLoss(ValidityLoss):
+    def __init__(self, reg_target):
+        super(ValidityLoss, self).__init__()
+        self.ce_loss = nn.CrossEntropyLoss(reduction="none")
+        self.reg_target = reg_target
+
+    def forward(
+        self,
+        logits: Tensor[B, C],
+        source: Tensor[B],
+        target: Tensor[B],
+    ) -> Tensor[B]:
+        r"""Compute $- (reg_target + 1) x_t + \sum_c x_c$."""
+        target_logits = logits.gather(1, target.reshape(-1, 1))
+
+        return logits.sum(dim=1) - (1 + self.reg_target) * target_logits.squeeze()
 
 
 class AwayLoss(ValidityLoss):
@@ -30,9 +48,9 @@ class AwayLoss(ValidityLoss):
 
     def forward(
         self,
-        input: Tensor["batch_size", "nb_classes"],
-        source: Tensor["batch_size", int],
-        target: Tensor["batch_size", int] = None,
+        logits: Tensor[B, C],
+        source: Tensor[B, int],
+        target: Tensor[B, int] = None,
     ):
         """Compute the loss for a counterfactual whose original point was predicted as
         class `source`, and whose target class is `target`."""
@@ -50,13 +68,13 @@ class TargetLoss(ValidityLoss):
 
     def forward(
         self,
-        input: Tensor["batch_size", "nb_classes"],
-        source: Tensor["batch_size", int],
-        target: Tensor["batch_size", int],
+        logits: Tensor[B, C],
+        source: Tensor[B, int],
+        target: Tensor[B, int],
     ):
         """Compute the loss for a counterfactual whose original point was predicted as
         class `source`, and whose target class is `target`."""
-        return self.ce_loss(input, target)
+        return self.ce_loss(logits, target)
 
 
 class BinaryStretchLoss(ValidityLoss):
@@ -71,13 +89,13 @@ class BinaryStretchLoss(ValidityLoss):
 
     def forward(
         self,
-        input: Tensor["batch_size", "nb_classes"],
-        source: Tensor["batch_size", int],
-        target: Tensor["batch_size", int],
+        logits: Tensor[B, C],
+        source: Tensor[B, int],
+        target: Tensor[B, int],
     ):
         """Compute the loss for a counterfactual whose original point was predicted as
         class `source`, and whose target class is `target`."""
-        return (self.ce_loss(input, target) - self.ce_loss(input, source)) / 2
+        return (self.ce_loss(logits, target) - self.ce_loss(logits, source)) / 2
 
 
 class StretchLoss(ValidityLoss):
@@ -93,23 +111,23 @@ class StretchLoss(ValidityLoss):
 
     def forward(
         self,
-        input: Tensor["batch_size", "nb_classes"],
-        source: Tensor["batch_size", int],
-        target: Tensor["batch_size", int],
+        logits: Tensor[B, C],
+        source: Tensor[B, int],
+        target: Tensor[B, int],
     ):
         """Compute the loss for a counterfactual whose original point was predicted as
         class `source`, and whose target class is `target`."""
-        nb_classes = input.shape[-1]
+        nb_classes = logits.shape[-1]
 
         def class_(class_number):
-            return torch.full((len(input),), class_number).to(input.device)
+            return torch.full((len(logits),), class_number).to(logits.device)
 
         # This is the same as adding up for all classes except the target,
         # then removing the target once.
         return (
             -sum(
-                self.ce_loss(input, class_(class_number))
+                self.ce_loss(logits, class_(class_number))
                 for class_number in range(nb_classes)
             )
-            + 2 * self.ce_loss(input, target)
+            + 2 * self.ce_loss(logits, target)
         ) / nb_classes
