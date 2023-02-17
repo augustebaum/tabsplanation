@@ -4,8 +4,7 @@ from config import BLD_MODELS
 
 from experiments.shared.data.task_get_data_module import TaskGetDataModule
 from experiments.shared.task_train_model import TaskTrainModel
-from experiments.shared.utils import read, setup, Task
-from tabsplanation.explanations.latent_shift import LatentShift
+from experiments.shared.utils import get_object, read, setup, Task
 from tabsplanation.explanations.nice_path_regularized import PathRegularizedNICE
 
 
@@ -14,11 +13,12 @@ class TaskTrainPathRegAe(Task):
         output_dir = BLD_MODELS
         super(TaskTrainPathRegAe, self).__init__(cfg, output_dir)
 
-        task_get_data_module = TaskGetDataModule(self.cfg.data_module)
-        task_train_classifier = TaskTrainModel(self.cfg.model.args.classifier)
-        self.task_deps = [task_get_data_module, task_train_classifier]
+        task_dataset = TaskGetDataModule.task_dataset(self.cfg.data_module)
 
-        self.depends_on = task_get_data_module.produces
+        task_train_classifier = TaskTrainModel(self.cfg.model.args.classifier)
+        self.task_deps = [task_dataset, task_train_classifier]
+
+        self.depends_on = task_dataset.produces
         self.depends_on |= {"classifier": task_train_classifier.produces}
 
         self.produces |= {
@@ -29,20 +29,21 @@ class TaskTrainPathRegAe(Task):
     def task_function(cls, depends_on, produces, cfg):
         device = setup(cfg.seed)
 
-        data_module = read(depends_on["data_module"])
+        data_module = TaskGetDataModule.read_data_module(
+            depends_on, cfg.data_module, device
+        )
 
-        classifier = torch.load(depends_on["classifier"]["model"])
+        classifier = read(depends_on["classifier"]["model"], device=device)
+
+        explainer_cls = get_object(cfg.model.args.explainer.class_name)
 
         model = PathRegularizedNICE(
             classifier=classifier,
-            explainer=LatentShift(
-                classifier=classifier,
-                autoencoder=None,
-                **cfg.path_regularized_model.args.explainer.args
-            ),
+            explainer_cls=explainer_cls,
+            explainer_hparams=cfg.model.args.explainer.args.hparams,
             autoencoder_args={
                 "input_dim": data_module.input_dim,
-                **cfg.path_regularized_model.args.autoencoder_args,
+                **cfg.model.args.autoencoder_args,
             },
         ).to(device)
 
