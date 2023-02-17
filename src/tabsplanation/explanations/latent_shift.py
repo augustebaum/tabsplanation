@@ -53,10 +53,10 @@ def grad(losses: Tensor["rows", 1], inputs: Tensor["rows", "cols"]):
 class LatentShift:
     def __init__(
         self,
-        classifier,
-        autoencoder,
+        classifier: Classifier,
+        autoencoder: AutoEncoder,
         hparams: Dict,
-        validity_loss: ValidityLoss = BinaryStretchLoss,
+        validity_loss: ValidityLoss = BinaryStretchLoss(),
     ):
         self.classifier = classifier
         self.autoencoder = autoencoder
@@ -163,7 +163,7 @@ class LatentShift:
         if target_class is None:
             validity_loss_fn = AwayLoss()
         else:
-            validity_loss_fn = self.validity_loss()
+            validity_loss_fn = self.validity_loss
 
         def clf_decode(z: LatentPoint):
             logits = clf(ae.decode(z))

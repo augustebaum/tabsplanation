@@ -1,5 +1,5 @@
 import random
-from typing import Dict, Iterator, List, TypeAlias, TypedDict
+from typing import Dict, List, Optional, TypeAlias, TypedDict
 
 import torch
 from omegaconf import OmegaConf
@@ -9,15 +9,19 @@ from config import BLD_PLOT_DATA
 from experiments.shared.data.task_get_data_module import TaskGetDataModule
 from experiments.shared.task_train_model import ModelCfg, TaskTrainModel
 from experiments.shared.utils import clone_config, get_object, read, setup, Task, write
-from tabsplanation.explanations.losses import ValidityLoss
 from tabsplanation.explanations.nice_path_regularized import random_targets_like
 from tabsplanation.models import AutoEncoder, Classifier
-from tabsplanation.types import ExplanationPath, PositiveInt, RelativeFloat, Seed
+from tabsplanation.types import PositiveInt, RelativeFloat, Seed
 
 
 class ExplainerCfg:
     class_name: str
     args: Dict
+
+
+class ValidityLossCfg:
+    class_name: str
+    args: Optional[Dict]
 
 
 class ValidityLossesCfg(TypedDict):
@@ -26,7 +30,7 @@ class ValidityLossesCfg(TypedDict):
     classifier: ModelCfg
     autoencoder: ModelCfg
     explainers: List[ExplainerCfg]
-    losses: List[ValidityLoss]
+    losses: List[ValidityLossCfg]
 
 
 DataModuleName: TypeAlias = str
@@ -129,7 +133,7 @@ class TaskCreatePlotDataValidityLosses(Task):
                             "data_module": data_module_name,
                             "path_method": path_method,
                             "seed": seed,
-                            "loss": loss_fn,
+                            "loss": loss_fn.name,
                             "validity_rate": validity_rate,
                         }
 
@@ -145,7 +149,8 @@ class TaskCreatePlotDataValidityLosses(Task):
         y_predict = classifier.predict(test_x)
         target = random_targets_like(y_predict, data_module.dataset.output_dim)
 
-        loss_fn = get_object(loss_fn)
+        loss_cls = get_object(loss_fn.class_name)
+        loss_fn = loss_cls() if loss_fn.args is None else loss_cls(**loss_fn.args)
 
         explainer_cls = get_object(explainer.class_name)
         explainer_hparams = explainer.args.hparams

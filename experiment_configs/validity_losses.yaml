@@ -102,6 +102,20 @@ explainers:
       distance_regularization: 0.3
 
 losses:
-- tabsplanation.explanations.losses.TargetLoss
-- tabsplanation.explanations.losses.BinaryStretchLoss
-- tabsplanation.explanations.losses.StretchLoss
+- name: TargetLoss
+  class_name: tabsplanation.explanations.losses.TargetLoss
+  args: null
+- name: BinaryStretchLoss
+  class_name: tabsplanation.explanations.losses.BinaryStretchLoss
+  args: null
+- name: StretchLoss
+  class_name: tabsplanation.explanations.losses.StretchLoss
+  args: null
+- name: LogitValidityLoss$_{\lambda_t = 1}$
+  class_name: tabsplanation.explanations.losses.LogitValidityLoss
+  args:
+    reg_target: 1
+- name: LogitValidityLoss$_{\lambda_t = 10}$
+  class_name: tabsplanation.explanations.losses.LogitValidityLoss
+  args:
+    reg_target: 10

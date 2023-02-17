@@ -15,7 +15,7 @@ class LazyRevise(LatentShift):
         classifier,
         autoencoder,
         hparams: Dict,
-        validity_loss: ValidityLoss = BinaryStretchLoss,
+        validity_loss: ValidityLoss = BinaryStretchLoss(),
     ):
         """
         gradient_frequency: int (>=1)
@@ -33,7 +33,7 @@ class LazyRevise(LatentShift):
         self,
         input: Tensor[B, D],
         target_class: Tensor[B, 1],
-    ) -> Tensor["nb_shifts", B, H]:
+    ) -> Tensor[S, B, H]:
 
         ae = self.autoencoder
         clf = self.classifier
@@ -53,7 +53,7 @@ class LazyRevise(LatentShift):
         if target_class is None:
             validity_loss_fn = AwayLoss()
         else:
-            validity_loss_fn = self.validity_loss()
+            validity_loss_fn = self.validity_loss
 
         def clf_decode(z: Tensor[B, H], target_class):
             logits = clf(ae.decode(z))
