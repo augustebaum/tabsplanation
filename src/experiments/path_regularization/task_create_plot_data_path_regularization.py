@@ -108,7 +108,8 @@ class TaskCreatePlotDataPathRegularization(Task):
 
                 # Add it to the dependencies
                 self.task_deps.append(task_autoencoder)
-                autoencoder_deps[seed] = task_autoencoder.produces
+                # Path regularized = False
+                autoencoder_deps[(seed, False)] = task_autoencoder.produces
 
                 for explainer_cfg in cfg.explainers:
                     path_regularized_autoencoder_cfg = clone_config(autoencoder_cfg)
@@ -128,11 +129,11 @@ class TaskCreatePlotDataPathRegularization(Task):
 
                     # Add it to the dependencies
                     self.task_deps.append(task_path_regularized_autoencoder)
-                    autoencoder_deps[seed] = task_path_regularized_autoencoder.produces
+                    # Path regularized = True
+                    autoencoder_deps[
+                        (seed, True)
+                    ] = task_path_regularized_autoencoder.produces
 
-        import pdb
-
-        pdb.set_trace()
         self.produces |= {"results": self.produces_dir / "results.pkl"}
 
     @classmethod
@@ -151,7 +152,9 @@ class TaskCreatePlotDataPathRegularization(Task):
 
             classifier = read(values["classifier"]["model"], device=device)
 
-            for seed, autoencoder_path in values["autoencoders"].items():
+            for (seed, path_regularized), autoencoder_path in values[
+                "autoencoders"
+            ].items():
                 autoencoder = read(autoencoder_path["model"], device=device)
 
                 for path_method in cfg.explainers:
@@ -171,6 +174,7 @@ class TaskCreatePlotDataPathRegularization(Task):
                             "data_module": data_module_name,
                             "path_method": path_method,
                             "seed": seed,
+                            "path_regularized": path_regularized,
                             "loss": loss_fn,
                             "validity_rate": validity_rate,
                         }
@@ -187,7 +191,7 @@ class TaskCreatePlotDataPathRegularization(Task):
         y_predict = classifier.predict(test_x)
         target = random_targets_like(y_predict, data_module.dataset.output_dim)
 
-        loss_fn = get_object(loss_fn)
+        loss_fn = get_object(loss_fn.class_name)()
 
         explainer_cls = get_object(explainer.class_name)
         explainer_hparams = explainer.args.hparams
