@@ -18,8 +18,10 @@ class TaskTrainPathRegAe(Task):
         task_train_classifier = TaskTrainModel(self.cfg.model.args.classifier)
         self.task_deps = [task_dataset, task_train_classifier]
 
-        self.depends_on = task_dataset.produces
-        self.depends_on |= {"classifier": task_train_classifier.produces}
+        self.depends_on = {
+            "dataset": task_dataset.produces,
+            "classifier": task_train_classifier.produces,
+        }
 
         self.produces |= {
             "model": self.produces_dir / "model.pt",
@@ -30,7 +32,7 @@ class TaskTrainPathRegAe(Task):
         device = setup(cfg.seed)
 
         data_module = TaskGetDataModule.read_data_module(
-            depends_on, cfg.data_module, device
+            depends_on["dataset"], cfg.data_module, device
         )
 
         classifier = read(depends_on["classifier"]["model"], device=device)
