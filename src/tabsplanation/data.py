@@ -88,69 +88,52 @@ class CakeOnSeaDataset(Dataset):
         return NormalizeInverse.new(self.normalize)
 
 
-class ForestCoverDataset(Dataset):
+class PandasDataset(Dataset):
+    """Dataset from `pandas` `DataFrame`."""
+
+    def __init__(
+        self,
+        csv_path: Path,
+        device: torch.device,
+    ):
+        """Initialize the dataset.
+
+        Inputs:
+        -------
+        * csv_path: Path to CSV where last column is true label and all other columns are floats.
+        """
+        df = pd.read_csv(csv_path)
+
+        X = df.iloc[:, 0:-1].to_numpy()
+        self.X = torch.from_numpy(X.astype(np.float32)).to(device)
+
+        y = df.iloc[:, -1].to_numpy()
+        self.y = torch.from_numpy(y).to(device)
+
+        self.input_dim = self.X.shape[1]
+        self.normalize = Normalize.new(self.X)
+
+    def __len__(self):
+        return len(self.X)
+
+    def __getitem__(self, idx):
+        input, target = self.normalize(self.X[idx]), self.y[idx]
+        return input, target
+
+    @property
+    def normalize_inverse(self):
+        return NormalizeInverse.new(self.normalize)
+
+
+class ForestCoverDataset(PandasDataset):
     """ForestCover without all the binary columns."""
 
     output_dim = 7
 
-    def __init__(
-        self,
-        csv_path: Path,
-        device: torch.device,
-    ):
-        df = pd.read_csv(csv_path)
 
-        X = df.iloc[:, 0:-1].to_numpy()
-        self.X = torch.from_numpy(X.astype(np.float32)).to(device)
-
-        y = df.iloc[:, -1].to_numpy()
-        self.y = torch.from_numpy(y).to(device)
-
-        self.input_dim = self.X.shape[1]
-        self.normalize = Normalize.new(self.X)
-
-    def __len__(self):
-        return len(self.X)
-
-    def __getitem__(self, idx):
-        input, target = self.normalize(self.X[idx]), self.y[idx]
-        return input, target
-
-    @property
-    def normalize_inverse(self):
-        return NormalizeInverse.new(self.normalize)
-
-
-class WineQualityDataset(Dataset):
+class WineQualityDataset(PandasDataset):
 
     output_dim = 3
-
-    def __init__(
-        self,
-        csv_path: Path,
-        device: torch.device,
-    ):
-        df = pd.read_csv(csv_path)
-
-        X = df.iloc[:, 0:-1].to_numpy()
-        self.X = torch.from_numpy(X.astype(np.float32)).to(device)
-
-        y = df.iloc[:, -1].to_numpy()
-        self.y = torch.from_numpy(y).to(device)
-
-        self.input_dim = self.X.shape[1]
-        self.normalize = Normalize.new(self.X)
-
-    def __len__(self):
-        return len(self.X)
-
-    def __getitem__(self, idx):
-        input, target = self.normalize(self.X[idx]), self.y[idx]
-        return input, target
-
-    @property
-    def normalize_inverse(self):
-        return NormalizeInverse.new(self.normalize)
 
 
 @dataclass
