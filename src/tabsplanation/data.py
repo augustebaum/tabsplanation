@@ -11,7 +11,7 @@ import pandas as pd
 import torch
 from torch.utils.data import DataLoader, Dataset, random_split, WeightedRandomSampler
 
-from tabsplanation.types import Tensor
+from tabsplanation.types import D, N, Tensor
 
 
 class CakeOnSeaDataset(Dataset):
@@ -48,19 +48,19 @@ class CakeOnSeaDataset(Dataset):
         """
 
         def load_from(path: Path, dtype) -> Tensor:
-            arr = np.load(path)
-            return torch.tensor(arr).to(device).to(dtype)
+            arr: np.array = np.load(path)
+            return torch.from_numpy(arr.astype(dtype)).to(device)
 
-        self.X = load_from(xs_path, torch.float)
+        self.X = load_from(xs_path, np.float32)
         if nb_dims > 0:
             self.X = self.X[:, :nb_dims]
         self.normalize = Normalize.new(self.X)
         # Classifier requires that the output be 1-dimensional
-        self.y = load_from(ys_path, torch.long).squeeze()
+        self.y = load_from(ys_path, np.int64).squeeze()
 
         self.input_dim = self.X.shape[1]
 
-        self.coefs = load_from(coefs_path, torch.float)
+        self.coefs = load_from(coefs_path, np.int8)
         if nb_dims > 0:
             self.coefs = self.coefs[:, : (nb_dims - 2)]
 
@@ -73,9 +73,7 @@ class CakeOnSeaDataset(Dataset):
         #     input = self.transform(self.X[idx])
         return input, target
 
-    def fill_from_2d_point(
-        self, x: Tensor["nb_points", 2]
-    ) -> Tensor["nb_points", "nb_dims"]:
+    def fill_from_2d_point(self, x: Tensor[N, 2]) -> Tensor[N, D]:
         """Take $x_0$ and $x_1$ (un-normalized) and re-create the other columns using
         the same coefficients that were originally used.
         """
@@ -264,11 +262,11 @@ def standardize(X: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tens
 
 
 class Normalize:
-    def __init__(self, mean: Tensor[1, "input_dim"], stddev: Tensor[1, "input_dim"]):
+    def __init__(self, mean: Tensor[1, D], stddev: Tensor[1, D]):
         self.mean = mean
         self.stddev = stddev
 
-    def __call__(self, tensor: Tensor["nb_points", "input_dim"]):
+    def __call__(self, tensor: Tensor[N, D]):
         """Normalize `tensor`."""
         # TODO: What if there are zeros in self.stddev?
         # In theory, if that is the case all number are equal to the mean so
@@ -276,20 +274,21 @@ class Normalize:
         return (tensor - self.mean) / self.stddev
 
     @staticmethod
-    def new(tensor: Tensor["nb_points", "input_dim"]) -> "Normalize":
+    def new(tensor: Tensor[N, D]) -> "Normalize":
         """Make a new `Normalize` instance from computing the
         mean and standard deviation of `tensor`."""
+
         stddev, mean = torch.std_mean(tensor, dim=0, unbiased=True)
         stddev = torch.nan_to_num(stddev)
         return Normalize(mean, stddev)
 
 
 class NormalizeInverse:
-    def __init__(self, mean: Tensor[1, "input_dim"], stddev: Tensor[1, "input_dim"]):
+    def __init__(self, mean: Tensor[1, D], stddev: Tensor[1, D]):
         self.mean = mean
         self.stddev = stddev
 
-    def __call__(self, tensor: Tensor["nb_points", "input_dim"]):
+    def __call__(self, tensor: Tensor[N, D]):
         """Unnormalize `tensor`."""
         return tensor * self.stddev + self.mean
 
