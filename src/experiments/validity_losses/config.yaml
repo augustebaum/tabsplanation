@@ -1,0 +1,121 @@
+seed: 42
+nb_seeds: 4
+
+training:
+  patience: 5
+  max_epochs: 1
+
+data_module_args:
+  validation_data_proportion: 0.2
+  test_data_proportion: 0.2
+  batch_size: 200
+  correct_for_class_imbalance: false
+
+data_modules:
+- seed: ${seed}
+  args: ${data_module_args}
+  dataset:
+    class_name: tabsplanation.data.CakeOnSeaDataset
+    args: 
+      seed: ${seed}
+      gaussian: false
+      nb_points_initial: 100000
+      nb_dims: 2
+      nb_uncorrelated_dims: 2
+- seed: ${seed}
+  args: 
+    batch_size: 1000
+    validation_data_proportion: ${data_module_args.validation_data_proportion}
+    test_data_proportion: ${data_module_args.test_data_proportion}
+    correct_for_class_imbalance: ${data_module_args.correct_for_class_imbalance}
+  dataset:
+    class_name: tabsplanation.data.ForestCoverDataset
+    args: null
+- seed: ${seed}
+  args: ${data_module_args}
+  dataset:
+    class_name: tabsplanation.data.WineQualityDataset
+    args: null
+
+classifier:
+  seed: ${seed}
+  # Will be set in code
+  data_module: null
+  training: ${training}
+  model:
+    class_name: Classifier
+    args:
+      hidden_dims: [50, 50]
+      batch_norm: False
+      dropout: null
+      learning_rate: 1e-3
+
+
+autoencoder:
+  # Will be set in code
+  seed: null
+  # Will be set in code
+  data_module: null
+  training: ${training}
+  model:
+    class_name: NICEModel
+    args:
+      mlp_hidden_dims: [50, 50, 50, 50]
+      batch_norm: False
+      dropout: null
+      learning_rate: 1e-3
+
+max_iter: 200
+shift_step: 0.1
+explainers:
+- name: LatentShiftNoDistanceReg
+  class_name: tabsplanation.explanations.LazyRevise
+  args:
+    hparams:
+      max_iter: ${max_iter}
+      shift_step: ${shift_step}
+      gradient_frequency: null
+      distance_regularization: 0
+- name: ReviseNoDistanceReg
+  class_name: tabsplanation.explanations.LazyRevise
+  args:
+    hparams:
+      max_iter: ${max_iter}
+      shift_step: ${shift_step}
+      gradient_frequency: 1
+      distance_regularization: 0
+- name: LatentShift
+  class_name: tabsplanation.explanations.LazyRevise
+  args:
+    hparams:
+      max_iter: ${max_iter}
+      shift_step: ${shift_step}
+      gradient_frequency: null
+      distance_regularization: 0.3
+- name: Revise
+  class_name: tabsplanation.explanations.LazyRevise
+  args:
+    hparams:
+      max_iter: ${max_iter}
+      shift_step: ${shift_step}
+      gradient_frequency: 1
+      distance_regularization: 0.3
+
+losses:
+- name: TargetLoss
+  class_name: tabsplanation.explanations.losses.TargetLoss
+  args: null
+- name: BinaryStretchLoss
+  class_name: tabsplanation.explanations.losses.BinaryStretchLoss
+  args: null
+- name: StretchLoss
+  class_name: tabsplanation.explanations.losses.StretchLoss
+  args: null
+- name: LogitValidityLoss$_{\lambda_t = 1}$
+  class_name: tabsplanation.explanations.losses.LogitValidityLoss
+  args:
+    reg_target: 1
+- name: LogitValidityLoss$_{\lambda_t = 10}$
+  class_name: tabsplanation.explanations.losses.LogitValidityLoss
+  args:
+    reg_target: 10

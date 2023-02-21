@@ -14,5 +14,6 @@ BLD_MODELS = BLD / "models"
 BLD_PLOTS = BLD / "plots"
 
 EXPERIMENT_CONFIGS = ROOT / "experiment_configs"
+EXPERIMENTS_PATH = SRC / "experiments"
 
 __all__ = ["BLD", "SRC"]
