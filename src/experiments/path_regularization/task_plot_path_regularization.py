@@ -19,22 +19,12 @@ class TaskPlotPathRegularization(Task):
 
         self.produces |= {"results": self.produces_dir / "results.tex"}
 
-    @staticmethod
-    def parse_result(result):
-        get_object_name = lambda s: parse_full_qualified_object(s)[1]
-        return {
-            "Dataset": get_object_name(result["data_module"]).removesuffix("Dataset"),
-            "Path method": result["path_method"]["name"],
-            "Loss function": result["loss"]["name"],
-            "validity_rate": result["validity_rate"],
-        }
-
     @classmethod
     def task_function(cls, depends_on, produces, cfg):
         results = read(depends_on["results"])
-        results = [
-            TaskPlotPathRegularization.parse_result(result) for result in results
-        ]
+        import pdb
+
+        pdb.set_trace()
 
         df = pd.DataFrame.from_records(results)
 

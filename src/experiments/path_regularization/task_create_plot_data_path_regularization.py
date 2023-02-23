@@ -114,8 +114,7 @@ class TaskCreatePlotDataPathRegularization(Task):
                         (seed, True)
                     ] = task_path_regularized_autoencoder.produces
 
-        # print(experiments.run.tasks_to_collect)
-        self.produces |= {"results": self.produces_dir / "results.pkl"}
+        self.produces |= {"results": self.produces_dir / "results.json"}
 
     @classmethod
     def task_function(cls, depends_on, produces, cfg):
@@ -162,6 +161,23 @@ class TaskCreatePlotDataPathRegularization(Task):
 
                         results.append(result)
 
+        def parse_result(result):
+            get_object_name = lambda s: parse_full_qualified_object(s)[1]
+            return {
+                "Dataset": get_object_name(result["data_module"]).removesuffix(
+                    "Dataset"
+                ),
+                "Path method": result["path_method"]["name"],
+                "Path regularization": result["path_regularized"],
+                "Loss function": result["loss"]["name"],
+                "validity_rate (%)": result["validity_rate"] * 100,
+                "AUC of LOF": result["auc_lof"],
+                r"\Delta t (ns)": result["time_per_iteration_s"] * (10 ** 9),
+                "Mean #BC": result["mean_boundary_crossings"],
+            }
+
+        results = [parse_result(result) for result in results]
+
         write(results, produces["results"])
 
     @staticmethod
@@ -193,7 +209,7 @@ class TaskCreatePlotDataPathRegularization(Task):
             nb_steps, nb_paths, _ = cfs.shape
 
             # Time for one step of one path: Done!
-            time_per_path_step_ms = 1_000 * cf_time_s.time / (nb_paths * nb_steps)
+            time_per_path_step_s = cf_time_s.time / (nb_paths * nb_steps)
 
             cf_preds = classifier.predict(cfs)
 
@@ -215,53 +231,61 @@ class TaskCreatePlotDataPathRegularization(Task):
             # Find where the path number changes, which will tell us how many
             # steps were taken to reach the target for each step
 
-            path_ends: Tensor[nb_valid] = step_numbers[
-                indices_where_changes(path_numbers)
-            ]
-
-            xs: Tensor[nb_valid, S] = torch.stack(
-                [
-                    torch.cat(
-                        [
-                            torch.linspace(0, 1, steps=path_end),
-                            torch.ones(nb_steps - path_end),
-                        ]
-                    )
-                    for path_end in path_ends
+            if nb_valid == 0:
+                mean_auc_lof = 0
+            else:
+                path_ends: Tensor[nb_valid] = step_numbers[
+                    indices_where_changes(path_numbers)
                 ]
-            ).to(cf_preds.device)
 
-            lofs: Tensor[nb_valid, S] = lof(trained_lof, cfs[:, valid_path_numbers]).T
+                xs: Tensor[nb_valid, S] = torch.stack(
+                    [
+                        torch.cat(
+                            [
+                                torch.linspace(0, 1, steps=path_end),
+                                torch.ones(nb_steps - path_end),
+                            ]
+                        )
+                        for path_end in path_ends
+                    ]
+                ).to(cf_preds.device)
 
-            auc_lofs: Tensor[nb_valid] = auc(xs, lofs)
-            # AUC: Done!
-            mean_auc_lof: float = auc_lofs.mean().item()
+                lofs: Tensor[nb_valid, S] = lof(
+                    trained_lof, cfs[:, valid_path_numbers]
+                ).T
 
-            # 1 until the path reaches the target, then 0
-            path_mask: Tensor[nb_valid, S] = torch.stack(
-                [
-                    torch.cat(
-                        [
-                            torch.ones(path_end),
-                            torch.zeros(nb_steps - path_end),
-                        ]
-                    )
-                    for path_end in path_ends
-                ]
-            ).to(cf_preds.device)
+                auc_lofs: Tensor[nb_valid] = auc(xs, lofs)
+                # AUC: Done!
+                mean_auc_lof = auc_lofs.mean().item()
 
-            bound_crossings_before_target: Tensor[nb_valid, S] = (
-                where_changes(valid_cf_preds) * path_mask
-            )
-            mean_boundary_crossings_rate = (
-                bound_crossings_before_target.sum(dim=1).mean().item()
-            )
+            if nb_valid == 0:
+                mean_boundary_crossings_rate = 0
+            else:
+                # 1 until the path reaches the target, then 0
+                path_mask: Tensor[nb_valid, S] = torch.stack(
+                    [
+                        torch.cat(
+                            [
+                                torch.ones(path_end),
+                                torch.zeros(nb_steps - path_end),
+                            ]
+                        )
+                        for path_end in path_ends
+                    ]
+                ).to(cf_preds.device)
+
+                bound_crossings_before_target: Tensor[nb_valid, S] = (
+                    where_changes(valid_cf_preds) * path_mask
+                )
+                mean_boundary_crossings_rate = (
+                    bound_crossings_before_target.sum(dim=1).mean().item()
+                )
 
             batch_size = len(test_x)
             batch_results.append(
                 {
                     "auc_lof": mean_auc_lof * batch_size,
-                    "time_per_iteration_ms": time_per_path_step_ms * batch_size,
+                    "time_per_iteration_s": time_per_path_step_s * batch_size,
                     "validity_rate": validity_rate * batch_size,
                     "mean_boundary_crossings": mean_boundary_crossings_rate
                     * batch_size,

@@ -226,6 +226,11 @@ def write_pkl(obj, file_path):
         pickle.dump(obj, f)
 
 
+def write_json(obj, file_path):
+    s = json.dumps(obj)
+    write_string(s, file_path)
+
+
 def write_svg(obj, file_path):
     obj.savefig(file_path)
 
@@ -236,7 +241,12 @@ def write_string(obj, file_path):
 
 
 def write(obj, file_path: Path) -> None:
-    write_variants = {".pkl": write_pkl, ".svg": write_svg, ".tex": write_string}
+    write_variants = {
+        ".pkl": write_pkl,
+        ".svg": write_svg,
+        ".json": write_json,
+        ".tex": write_string,
+    }
 
     write_fn = write_variants.get(file_path.suffix)
     if write_fn is None:
@@ -254,6 +264,12 @@ def read_pkl(file_path):
     return result
 
 
+def read_json(obj, file_path):
+    with open(file_path, "r") as f:
+        result = json.load(obj)
+    return result
+
+
 def read_pt(file_path, device):
     model = torch.load(file_path).to(device)
     model.eval()
@@ -261,7 +277,7 @@ def read_pt(file_path, device):
 
 
 def read(file_path: Path, **kwargs) -> object:
-    read_variants = {".pkl": read_pkl, ".pt": read_pt}
+    read_variants = {".pkl": read_pkl, ".pt": read_pt, ".json": read_json}
 
     read_fn = read_variants.get(file_path.suffix)
     if read_fn is None:
