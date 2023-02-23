@@ -6,34 +6,45 @@ samples.
 """
 
 from typing import Literal
+from functools import lru_cache
 
 import torch
 from sklearn.metrics import auc as sklearn_auc
 from sklearn.neighbors import LocalOutlierFactor
 
-from tabsplanation.types import ExplanationPath, Tensor
+from tabsplanation.types import D, Tensor
 
 
-def train_lof(train_set):
+@lru_cache()
+def train_lof(train_set: Tensor):
     """
     See <https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.LocalOutlierFactor.html>
     for more information.
     """
+    data = train_set.cpu().numpy()
     lof = LocalOutlierFactor(novelty=True)
-    lof.fit(train_set)
+    lof.fit(data)
     return lof
 
 
-def lof(trained_lof, path: ExplanationPath):
+def lof(trained_lof, points: Tensor[..., D]):
     """
+    Compute the opposite of proper LOF, shifted by 1. From the docs:
+    - Negative scores represent outliers, positive scores represent inliers.
+    - The lower, the more abnormal.
+
     See <https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.LocalOutlierFactor.html>
     for more information.
+
+    Inputs:
+    -------
+    * points: The points for which the LOF is to be computed.
+    * trained_lof: A `LocalOutlierFactor` instance trained on a set of points
+        of the same dimensionality as `points`.
     """
-    # Opposite of proper LOF, shifted by 1
-    # From the docs:
-    # The lower, the more abnormal.
-    # Negative scores represent outliers, positive scores represent inliers.
-    return trained_lof.decision_function(path.xs)
+    points_np = points.view(-1, points.shape[-1]).detach().cpu().numpy()
+    lof_np = trained_lof.decision_function(points_np)
+    return torch.from_numpy(lof_np).to(points.device).view(points.shape[:-1])
 
 
 def auc(y):
