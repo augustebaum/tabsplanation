@@ -5,8 +5,8 @@ MMD implementation, which I fixed to work without the assumption of equally size
 samples.
 """
 
-from typing import Literal
 from functools import lru_cache
+from time import perf_counter
 
 import torch
 from sklearn.metrics import auc as sklearn_auc
@@ -54,3 +54,16 @@ def auc(y):
     """
     x = torch.linspace(0, 1, steps=len(y))
     return sklearn_auc(x, y)
+
+
+# <https://stackoverflow.com/questions/33987060/python-context-manager-that-measures-time>
+class time_measurement:
+    """Context to measure the time it takes to run a code block, in seconds."""
+
+    def __enter__(self):
+        self.time = perf_counter()
+        return self
+
+    def __exit__(self, type, value, traceback):
+        self.time = perf_counter() - self.time
+        self.readout = f"Time: {self.time:.3f} seconds"
