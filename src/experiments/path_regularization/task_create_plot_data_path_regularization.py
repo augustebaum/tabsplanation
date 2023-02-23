@@ -1,67 +1,46 @@
 import random
-from typing import Dict, Iterator, List, TypeAlias, TypedDict
 
+import pandas as pd
 import torch
 from omegaconf import OmegaConf
-from torch.utils.data import Dataset
+from torcheval.metrics.functional import auc
 
 from config import BLD_PLOT_DATA
 from experiments.path_regularization_cake_on_sea.task_train_path_regularized_ae import (
     TaskTrainPathRegAe,
 )
 from experiments.shared.data.task_get_data_module import TaskGetDataModule
-from experiments.shared.task_train_model import ModelCfg, TaskTrainModel
-from experiments.shared.utils import (
-    clone_config,
-    clone_config,
-    get_object,
-    read,
-    setup,
-    Task,
-    write,
-)
+from experiments.shared.task_train_model import TaskTrainModel
+from experiments.shared.utils import clone_config, get_object, read, setup, Task, write
 
-# from tabsplanation.explanations.losses import ValidityLoss
 from tabsplanation.explanations.nice_path_regularized import random_targets_like
-from tabsplanation.models import AutoEncoder, Classifier
-from tabsplanation.types import ExplanationPath, PositiveInt, RelativeFloat, Seed
+from tabsplanation.metrics import lof, time_measurement, train_lof
+from tabsplanation.types import B, H, S, Tensor
 
 
-# class ExplainerCfg:
-#     class_name: str
-#     args: Dict
+def where_changes(tensor: Tensor[B, S], dim=-1) -> Tensor[B, S]:
+    """Return a Tensor containing 1 if the corresponding entry is
+    different from the previous one (according to `dim`), 0 otherwise.
+
+    By convention the result always starts with 0.
+    """
+    prepend = tensor.index_select(dim, torch.tensor([0]).to(tensor.device))
+    diffs = tensor.diff(prepend=prepend, dim=dim)
+    result = torch.zeros_like(tensor).to(tensor.device)
+    result[diffs != 0] = 1
+    return result
 
 
-# class ValidityLossesCfg(TypedDict):
-#     seed: int
-#     nb_seeds: PositiveInt
-#     classifier: ModelCfg
-#     autoencoder: ModelCfg
-#     explainers: List[ExplainerCfg]
-#     losses: List[ValidityLoss]
+def indices_where_changes(tensor: Tensor[S]) -> Tensor[S]:
+    """Return a Tensor containing the indices in `tensor` where the entry is
+    different from the previous one.
 
-
-# DataModuleName: TypeAlias = str
-# ExplainerName: TypeAlias = str
-# ValidityLossName: TypeAlias = str
-
-
-# # Just kind of gave up on this one...
-# class AA(TypedDict):
-#     dataset: Dataset
-#     classifier: Classifier
-#     autoencoders: Dict[Seed, AutoEncoder]
-
-
-# ValidityLossesDependsOn: TypeAlias = Dict[DataModuleName, AA]
-
-
-# class ValidityLossesResult(TypedDict):
-#     data_module: DataModuleName
-#     path_method: ExplainerName
-#     loss: ValidityLossName
-#     seed: Seed
-#     validity_rate: RelativeFloat
+    By convention the result always starts with 0.
+    """
+    if len(tensor) == 0:
+        return tensor
+    zero = torch.tensor([0]).to(tensor.device)
+    return torch.cat([zero, where_changes(tensor).nonzero().squeeze()])
 
 
 class TaskCreatePlotDataPathRegularization(Task):
@@ -134,6 +113,7 @@ class TaskCreatePlotDataPathRegularization(Task):
                         (seed, True)
                     ] = task_path_regularized_autoencoder.produces
 
+        # print(experiments.run.tasks_to_collect)
         self.produces |= {"results": self.produces_dir / "results.pkl"}
 
     @classmethod
@@ -147,7 +127,7 @@ class TaskCreatePlotDataPathRegularization(Task):
             classifier_cfg = OmegaConf.load(values["classifier"]["full_config"])
 
             data_module = TaskGetDataModule.read_data_module(
-                values["dataset"], classifier_cfg.data_module, device
+                values["dataset"], classifier_cfg.data_module, "cpu"
             )
 
             classifier = read(values["classifier"]["model"], device=device)
@@ -160,8 +140,8 @@ class TaskCreatePlotDataPathRegularization(Task):
                 for path_method in cfg.explainers:
 
                     for loss_fn in cfg.losses:
-                        validity_rate = (
-                            TaskCreatePlotDataPathRegularization.validity_rate(
+                        path_results = (
+                            TaskCreatePlotDataPathRegularization.get_path_results(
                                 data_module,
                                 classifier,
                                 autoencoder,
@@ -176,7 +156,7 @@ class TaskCreatePlotDataPathRegularization(Task):
                             "seed": seed,
                             "path_regularized": path_regularized,
                             "loss": loss_fn,
-                            "validity_rate": validity_rate,
+                            **path_results,
                         }
 
                         results.append(result)
@@ -184,12 +164,10 @@ class TaskCreatePlotDataPathRegularization(Task):
         write(results, produces["results"])
 
     @staticmethod
-    def validity_rate(data_module, classifier, autoencoder, loss_fn, explainer):
+    def get_path_results(data_module, classifier, autoencoder, loss_fn, explainer):
         torch.cuda.empty_cache()
-        test_x = data_module.test_data[0][:20_000]
 
-        y_predict = classifier.predict(test_x)
-        target = random_targets_like(y_predict, data_module.dataset.output_dim)
+        trained_lof = train_lof(data_module.dataset.X)
 
         loss_fn = get_object(loss_fn.class_name)()
 
@@ -198,5 +176,98 @@ class TaskCreatePlotDataPathRegularization(Task):
 
         explainer = explainer_cls(classifier, autoencoder, explainer_hparams, loss_fn)
 
-        validity_rate = explainer.validity_rate(test_x, target)
-        return validity_rate
+        batch_results = []
+        total_nb_points = 0
+
+        for test_x, _ in data_module.test_dataloader():
+            # test_x = data_module.test_data[0][:5_000].to(classifier.device)
+            test_x = test_x.to(classifier.device)
+
+            y_predict = classifier.predict(test_x)
+            target = random_targets_like(y_predict, data_module.dataset.output_dim)
+
+            with time_measurement() as cf_time_s:
+                cfs: Tensor[S, B, H] = explainer.get_cfs(test_x, target)
+
+            nb_steps, nb_paths, _ = cfs.shape
+
+            # Time for one step of one path: Done!
+            time_per_path_step_ms = 1_000 * cf_time_s.time / (nb_paths * nb_steps)
+
+            cf_preds = classifier.predict(cfs)
+
+            """We only count the AUC until the target class is first reached.
+            If the target class is never reached, the path is skipped."""
+
+            # path_numbers is a non-decreasing vector containing the path number
+            # of any step where the predicted class equals the target class.
+            # step_numbers contains the step numbers where this is achieved.
+            path_numbers, step_numbers = torch.where((target == cf_preds).T)
+            valid_path_numbers = path_numbers.unique()
+            nb_valid = len(valid_path_numbers)
+
+            # Validity rate: Done!
+            validity_rate = nb_valid / nb_paths
+
+            valid_cf_preds: Tensor[nb_valid, S] = cf_preds.T[valid_path_numbers]
+
+            # Find where the path number changes, which will tell us how many
+            # steps were taken to reach the target for each step
+
+            path_ends: Tensor[nb_valid] = step_numbers[
+                indices_where_changes(path_numbers)
+            ]
+
+            xs: Tensor[nb_valid, S] = torch.stack(
+                [
+                    torch.cat(
+                        [
+                            torch.linspace(0, 1, steps=path_end),
+                            torch.ones(nb_steps - path_end),
+                        ]
+                    )
+                    for path_end in path_ends
+                ]
+            ).to(cf_preds.device)
+
+            lofs: Tensor[nb_valid, S] = lof(trained_lof, cfs[:, valid_path_numbers]).T
+
+            auc_lofs: Tensor[nb_valid] = auc(xs, lofs)
+            # AUC: Done!
+            mean_auc_lof: float = auc_lofs.mean().item()
+
+            # 1 until the path reaches the target, then 0
+            path_mask: Tensor[nb_valid, S] = torch.stack(
+                [
+                    torch.cat(
+                        [
+                            torch.ones(path_end),
+                            torch.zeros(nb_steps - path_end),
+                        ]
+                    )
+                    for path_end in path_ends
+                ]
+            ).to(cf_preds.device)
+
+            bound_crossings_before_target: Tensor[nb_valid, S] = (
+                where_changes(valid_cf_preds) * path_mask
+            )
+            mean_boundary_crossings_rate = (
+                bound_crossings_before_target.sum(dim=1).mean().item()
+            )
+
+            batch_size = len(test_x)
+            batch_results.append(
+                {
+                    "auc_lof": mean_auc_lof * batch_size,
+                    "time_per_iteration_ms": time_per_path_step_ms * batch_size,
+                    "validity_rate": validity_rate * batch_size,
+                    "mean_boundary_crossings": mean_boundary_crossings_rate
+                    * batch_size,
+                }
+            )
+            total_nb_points += batch_size
+
+        results = dict(pd.DataFrame.from_records(batch_results).sum() / total_nb_points)
+
+        return results
