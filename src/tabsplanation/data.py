@@ -182,8 +182,12 @@ class CakeOnSeaDataModule(pl.LightningDataModule):
     def val_dataloader(self):
         return DataLoader(self.val_set, shuffle=False, batch_size=self.batch_size)
 
-    def test_dataloader(self):
-        return DataLoader(self.test_set, shuffle=False, batch_size=self.batch_size)
+    def test_dataloader(self, batch_size=None):
+        return DataLoader(
+            self.test_set,
+            shuffle=False,
+            batch_size=self.batch_size if batch_size is None else batch_size,
+        )
 
     def predict_dataloader(self):
         pass

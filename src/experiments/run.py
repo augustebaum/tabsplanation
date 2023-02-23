@@ -10,7 +10,7 @@ config_filename = "config.yaml"
 run_path = EXPERIMENTS_PATH / "task_run.py"
 
 pytask_options = {
-    "verbose": 2,
+    # "verbose": 2,
     "s": True,
     "pdb": True,
     "pdbcls": ("IPython.terminal.debugger", "TerminalPdb"),
@@ -30,4 +30,4 @@ parse_config = get_object(f"experiments.{experiment_name}.parse_config.parse_con
 global tasks_to_collect
 tasks_to_collect = parse_config(config)
 
-session = pytask.main({"paths": [experiment_path, run_path], **pytask_options})
+session = pytask.main({"paths": [run_path], **pytask_options})

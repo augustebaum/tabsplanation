@@ -107,6 +107,6 @@ class TaskTrainModel(Task):
         model.forward(data_module.train_set[0:2][0].reshape(2, -1))
 
         trainer.fit(model=model, datamodule=data_module)
-        trainer.test(model=model, datamodule=data_module)
+        # trainer.test(model=model, datamodule=data_module)
 
         return model
