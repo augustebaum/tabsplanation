@@ -65,8 +65,11 @@ autoencoder:
       dropout: null
       learning_rate: 1e-3
 
-max_iter: 200
-shift_step: 0.1
+path_reg_hparams:
+  path_loss_regularization: 100
+
+max_iter: 100
+shift_step: 0.01
 explainers:
 - name: LatentShiftNoDistanceReg
   class_name: tabsplanation.explanations.LazyRevise

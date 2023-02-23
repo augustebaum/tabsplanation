@@ -37,16 +37,16 @@ class TaskTrainPathRegAe(Task):
 
         classifier = read(depends_on["classifier"]["model"], device=device)
 
-        explainer_cls = get_object(cfg.model.args.explainer.class_name)
-
+        model_args = cfg.model.args
         model = PathRegularizedNICE(
             classifier=classifier,
-            explainer_cls=explainer_cls,
-            explainer_hparams=cfg.model.args.explainer.args.hparams,
+            explainer_cls=get_object(model_args.explainer.class_name),
+            explainer_hparams=model_args.explainer.args.hparams,
             autoencoder_args={
                 "input_dim": data_module.input_dim,
-                **cfg.model.args.autoencoder_args,
+                **model_args.autoencoder_args,
             },
+            hparams=model_args.hparams,
         ).to(device)
 
         model = TaskTrainModel.train_model(data_module, model, cfg)

@@ -98,6 +98,7 @@ class TaskCreatePlotDataPathRegularization(Task):
                             "classifier": classifier_cfg,
                             "autoencoder_args": autoencoder_cfg.model.args,
                             "explainer": explainer_cfg,
+                            "hparams": cfg.path_reg_hparams,
                         },
                     }
 

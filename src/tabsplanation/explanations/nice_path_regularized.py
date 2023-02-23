@@ -23,6 +23,7 @@ class PathRegularizedNICE(NICEModel):
         explainer_cls: Explainer,
         explainer_hparams: Dict,
         autoencoder_args: Dict,
+        hparams: Dict,
     ):
         super(PathRegularizedNICE, self).__init__(**autoencoder_args)
 
@@ -33,6 +34,7 @@ class PathRegularizedNICE(NICEModel):
         self.nb_classes = self.classifier.layers[-1].out_features
 
         self.path_loss_fn = BoundaryCrossLoss()
+        self.path_loss_reg = hparams["path_loss_regularization"]
 
     def explain(self, x, y_target):
         explainer = self.explainer_cls(self.classifier, self, self.explainer_hparams)
@@ -51,7 +53,7 @@ class PathRegularizedNICE(NICEModel):
             self, self.classifier, latent_paths, y_source, y_target
         )
 
-        loss = nll + path_loss
+        loss = nll + self.path_loss_reg * path_loss
         logs = {"nll": nll, "path_loss": path_loss, "loss": loss}
         return loss, logs
 
