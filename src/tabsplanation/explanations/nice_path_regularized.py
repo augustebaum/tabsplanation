@@ -5,7 +5,7 @@ from torch import nn
 
 from tabsplanation.models.classifier import Classifier
 from tabsplanation.models.normalizing_flow import NICEModel
-from tabsplanation.types import Tensor
+from tabsplanation.types import B, C, H, S, Tensor
 
 Explainer = Any
 
@@ -43,8 +43,8 @@ class PathRegularizedNICE(NICEModel):
         nll, logs = super(PathRegularizedNICE, self).step(batch, batch_idx)
 
         x, _ = batch
-        y_source: Tensor["batch"] = self.classifier.predict(x)
-        y_target: Tensor["batch"] = self.random_targets_like(y_source)
+        y_source: Tensor[B] = self.classifier.predict(x)
+        y_target: Tensor[B] = self.random_targets_like(y_source)
 
         latent_paths = self.explain(x, y_target)
         path_loss = self.path_loss_fn(
@@ -78,32 +78,28 @@ class BoundaryCrossLoss(nn.Module):
         self,
         autoencoder,
         classifier,
-        latents: Tensor["batch", "nb_steps", "latent_dim"],
-        source_class: Tensor["batch"],
-        target_class: Tensor["batch"],
+        latents: Tensor[B, S, H],
+        source_class: Tensor[B],
+        target_class: Tensor[B],
     ):
         latents_2d = latents.reshape(-1, latents.shape[2])
         inputs = autoencoder.decode(latents_2d)
-        prbs: Tensor["batch * nb_steps", "nb_classes"] = classifier.predict_proba(
-            inputs
-        )
-        prbs: Tensor["batch", "nb_steps", "nb_classes"] = prbs.reshape(
+        prbs: Tensor[B * S, C] = classifier.predict_proba(inputs)
+        prbs: Tensor[B, S, C] = prbs.reshape(
             latents.shape[0], latents.shape[1], prbs.shape[1]
         )
-        prbs_filtered: Tensor["batch", "nb_steps", 2] = take_source_and_target(
+        prbs_filtered: Tensor[B, S, 2] = take_source_and_target(
             prbs, source_class, target_class
         )
-        prb_source_plus_target: Tensor["batch", "nb_steps"] = prbs_filtered.max(
-            dim=2
-        ).values
+        prb_source_plus_target: Tensor[B, S] = prbs_filtered.max(dim=2).values
         return 1 - prb_source_plus_target.mean()
 
 
 def take_source_and_target(
-    input: Tensor["batch", "nb_steps", "nb_classes"],
-    source_class: Tensor["batch"],
-    target_class: Tensor["batch"],
-) -> Tensor["batch", "nb_steps", 2]:
+    input: Tensor[B, S, C],
+    source_class: Tensor[B],
+    target_class: Tensor[B],
+) -> Tensor[B, S, 2]:
     """
     Example:
     --------

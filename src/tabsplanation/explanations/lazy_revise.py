@@ -29,10 +29,21 @@ class LazyRevise(LatentShift):
 
         self._gradient_frequency = hparams["gradient_frequency"]
 
+    def get_cfs(
+        self, input: Tensor[B, D], target_class: Tensor[B, 1]
+    ) -> Tensor[S, B, D]:
+        cf_latents = self.get_cf_latents(input, target_class)
+
+        s, b, h = cf_latents.shape
+        # We have to reshape the paths before passing them through the AE
+        latents_ae: Tensor[S * B, H] = cf_latents.view(-1, h)
+        cf_paths_ae: Tensor[S * B, D] = self.autoencoder.decode(latents_ae)
+        cf_paths: Tensor[S, B, D] = cf_paths_ae.reshape(s, b, -1)
+
+        return cf_paths
+
     def get_cf_latents(
-        self,
-        input: Tensor[B, D],
-        target_class: Tensor[B, 1],
+        self, input: Tensor[B, D], target_class: Tensor[B, 1]
     ) -> Tensor[S, B, H]:
 
         ae = self.autoencoder
@@ -90,13 +101,9 @@ class LazyRevise(LatentShift):
         target_class: Tensor[B, 1],
     ) -> Tensor["gradient_frequency", B, H]:
 
-        # source_class = classifier.predict(autoencoder.decode(latents)).detach()
-
         latents.requires_grad = True
         with torch.enable_grad():
             gradient: Tensor[B, H] = grad(clf_decode(latents, target_class), latents)
-
-        # 2) Apply latent shift
 
         nb_shifts = (
             self._gradient_frequency
@@ -117,9 +124,7 @@ class LazyRevise(LatentShift):
         return z_perturbed
 
     def validity_rate(
-        self,
-        input: Tensor[B, D],
-        target_class: Tensor[B, 1],
+        self, input: Tensor[B, D], target_class: Tensor[B, 1]
     ) -> RelativeFloat:
         latents: Tensor[S, B, H] = self.get_cf_latents(input, target_class)
 
@@ -139,9 +144,7 @@ class LazyRevise(LatentShift):
         return nb_valid / len(target_class)
 
     def nb_valid(
-        self,
-        latents: Tensor[S, B, H],
-        target_class: Tensor[B, 1],
+        self, latents: Tensor[S, B, H], target_class: Tensor[B, 1]
     ) -> PositiveInt:
         """Count the number of valid paths in `input` given `target_class`."""
         s, b, h = latents.shape
