@@ -116,10 +116,12 @@ class TaskCreatePlotDataValidityLosses(Task):
             data_module = TaskGetDataModule.read_data_module(
                 values["dataset"], classifier_cfg.data_module, device
             )
+            print(f"Dataset: {data_module.dataset.__class__.__name__}")
 
             classifier = read(values["classifier"]["model"], device=device)
 
             for seed, autoencoder_path in values["autoencoders"].items():
+                print(f"Seed: {seed}")
                 autoencoder = read(autoencoder_path["model"], device=device)
 
                 for path_method in cfg.explainers:
@@ -144,18 +146,26 @@ class TaskCreatePlotDataValidityLosses(Task):
     @staticmethod
     def validity_rate(data_module, classifier, autoencoder, loss_fn, explainer):
         torch.cuda.empty_cache()
-        test_x = data_module.test_data[0][:20_000]
-
-        y_predict = classifier.predict(test_x)
-        target = random_targets_like(y_predict, data_module.dataset.output_dim)
-
-        loss_cls = get_object(loss_fn.class_name)
-        loss_fn = loss_cls() if loss_fn.args is None else loss_cls(**loss_fn.args)
 
         explainer_cls = get_object(explainer.class_name)
         explainer_hparams = explainer.args.hparams
 
+        loss_cls = get_object(loss_fn.class_name)
+        loss_fn = loss_cls() if loss_fn.args is None else loss_cls(**loss_fn.args)
+
         explainer = explainer_cls(classifier, autoencoder, explainer_hparams, loss_fn)
 
-        validity_rate = explainer.validity_rate(test_x, target)
+        for test_x, _ in data_module.test_dataloader():
+            test_x = test_x.to(classifier.device)
+
+            y_predict = classifier.predict(test_x)
+            target = random_targets_like(y_predict, data_module.dataset.output_dim)
+
+            validity_rate = explainer.validity_rate(test_x, target)
+
+            batch_size = len(test_x)
+            validity_rate += validity_rate * batch_size
+
+        validity_rate = validity_rate / len(data_module.test_set)
+
         return validity_rate

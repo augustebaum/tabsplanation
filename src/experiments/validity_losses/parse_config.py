@@ -7,14 +7,16 @@ from experiments.shared.utils import clone_config, setup
 from experiments.validity_losses.task_create_plot_data_validity_losses import (
     TaskCreatePlotDataValidityLosses,
 )
+from experiments.validity_losses.task_plot_validity_losses import TaskPlotValidityLosses
 
 
 def parse_config(cfg):
 
-    task_deps = [TaskCreatePlotDataValidityLosses(cfg)]
+    task_deps = [TaskPlotValidityLosses(cfg)]
+    task_deps.append(TaskCreatePlotDataValidityLosses(cfg))
+
     # Make sure cfg is not modified
     cfg = clone_config(cfg)
-    full_config = []
 
     setup(cfg.seed)
     seeds = [random.randrange(100_000) for _ in range(cfg.nb_seeds)]
@@ -35,14 +37,6 @@ def parse_config(cfg):
 
         # Add it to the dependencies
         task_deps.append(task_classifier)
-        # data_module_name = data_module_cfg.dataset.class_name
-        # depends_on[data_module_name] = {
-        #     "dataset": task_dataset.produces,
-        #     "classifier": task_classifier.produces,
-        #     "autoencoders": {},
-        # }
-        # Short-hand
-        # autoencoder_deps = depends_on[data_module_name]["autoencoders"]
 
         # Then for each seed
         for seed in seeds:
@@ -54,15 +48,6 @@ def parse_config(cfg):
 
             # Add it to the dependencies
             task_deps.append(task_autoencoder)
-            # autoencoder_deps[seed] = task_autoencoder.produces
-
-            # full_config.append(
-            #     {
-            #         "data_module": data_module_cfg,
-            #         "classifier": classifier_cfg,
-            #         "autoencoder": autoencoder_cfg,
-            #     }
-            # )
 
     tasks_to_collect = {}
     for task in task_deps:

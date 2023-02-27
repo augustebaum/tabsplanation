@@ -130,11 +130,14 @@ class TaskCreatePlotDataPathRegularization(Task):
                 values["dataset"], classifier_cfg.data_module, "cpu"
             )
 
+            print(f"Dataset: {data_module.dataset.__class__.__name__}")
+
             classifier = read(values["classifier"]["model"], device=device)
 
             for (seed, path_regularized), autoencoder_path in values[
                 "autoencoders"
             ].items():
+                print(f"Seed: {seed}")
                 autoencoder = read(autoencoder_path["model"], device=device)
 
                 for path_method in cfg.explainers:
@@ -184,6 +187,9 @@ class TaskCreatePlotDataPathRegularization(Task):
     def get_path_results(data_module, classifier, autoencoder, loss_fn, explainer):
         torch.cuda.empty_cache()
 
+        # import pdb
+
+        # pdb.set_trace()
         trained_lof = train_lof(data_module.dataset.X)
 
         loss_fn = get_object(loss_fn.class_name)()
@@ -196,7 +202,7 @@ class TaskCreatePlotDataPathRegularization(Task):
         batch_results = []
         total_nb_points = 0
 
-        for test_x, _ in data_module.test_dataloader():
+        for test_x, _ in data_module.test_dataloader(batch_size=4_000):
             # test_x = data_module.test_data[0][:5_000].to(classifier.device)
             test_x = test_x.to(classifier.device)
 
