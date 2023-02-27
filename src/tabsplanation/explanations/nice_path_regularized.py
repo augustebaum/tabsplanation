@@ -5,7 +5,7 @@ from torch import nn
 
 from tabsplanation.models.classifier import Classifier
 from tabsplanation.models.normalizing_flow import NICEModel
-from tabsplanation.types import B, C, H, S, Tensor
+from tabsplanation.types import B, C, D, H, S, Tensor
 
 Explainer = Any
 
@@ -97,6 +97,30 @@ class BoundaryCrossLoss(nn.Module):
         )
         logit_max_source_and_target: Tensor[B, S] = logits_filtered.max(dim=2).values
         return -logit_max_source_and_target.mean()
+
+
+class PointLoss(nn.Module):
+    """A loss that considers whether the path passed by a given point."""
+
+    def __init__(self, point: Tensor[D]):
+        self.point = point
+
+    def forward(
+        self,
+        autoencoder,
+        classifier,
+        latents: Tensor[B, S, H],
+        source_class: Tensor[B],
+        target_class: Tensor[B],
+    ):
+        latents_2d: Tensor[B * S, H] = latents.view(-1, latents.shape[2])
+        inputs_2d: Tensor[B * S, D] = autoencoder.decode(latents_2d)
+        distances_2d: Tensor[B * S] = torch.linalg.vector_norm(
+            inputs_2d - self.point, dim=-1
+        )
+        distances: Tensor[B, S] = distances_2d.view(latents.shape[0], latents.shape[1])
+        min_distances: Tensor[B] = distances.min(dim=-1)
+        return min_distances.mean()
 
 
 def take_source_and_target(
