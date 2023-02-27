@@ -13,8 +13,9 @@ import torch
 
 from config import BLD_PLOT_DATA
 from experiments.shared.data.task_create_cake_on_sea import TaskCreateCakeOnSea
+from experiments.shared.data.task_get_data_module import TaskGetDataModule
 from experiments.shared.task_train_model import TaskTrainModel
-from experiments.shared.utils import get_data_module, Task
+from experiments.shared.utils import get_data_module, get_object, setup, Task
 from tabsplanation.types import Tensor
 
 
@@ -27,7 +28,9 @@ def get_x0():
 
 
 def get_inputs(x0, data_module):
-    x: Tensor["nb_points", 2] = torch.cartesian_prod(x0, x0)
+    x: Tensor["nb_points", 2] = torch.cartesian_prod(x0, x0).to(
+        data_module.dataset.X.device
+    )
 
     dataset = data_module.dataset
 
@@ -66,14 +69,6 @@ class ResultDict:
         return x
 
 
-# class Gradients(TypedDict):
-#     """Input to `numpy.streamplot`."""
-
-#     x: Tensor["nb_steps", "nb_steps"]
-#     y: Tensor["nb_steps", "nb_steps"]
-#     u: Tensor["nb_steps", "nb_steps"]
-#     v: Tensor["nb_steps", "nb_steps"]
-
 Gradients = Tensor["nb_steps_squared ** 2", 2]
 
 
@@ -103,10 +98,10 @@ class TaskCreatePlotDataCfLosses(Task):
         output_dir = BLD_PLOT_DATA / "cf_losses"
         super(TaskCreatePlotDataCfLosses, self).__init__(cfg, output_dir)
 
-        task_create_cake_on_sea = TaskCreateCakeOnSea(self.cfg)
+        task_dataset = TaskGetDataModule.task_dataset(self.cfg.data_module)
         task_train_classifier = TaskTrainModel(self.cfg.classifier)
         task_train_autoencoder = TaskTrainModel(self.cfg.autoencoder)
-        self.depends_on = task_create_cake_on_sea.produces
+        self.depends_on = {"dataset": task_dataset.produces}
         self.depends_on |= {"classifier": task_train_classifier.produces}
         self.depends_on |= {"autoencoder": task_train_autoencoder.produces}
 
@@ -115,50 +110,48 @@ class TaskCreatePlotDataCfLosses(Task):
     @classmethod
     def task_function(cls, depends_on, produces, cfg):
 
+        device = setup(cfg.seed)
+
         z0 = get_z0()
-        z: Tensor["nb_points", 2] = torch.cartesian_prod(z0, z0)
+        z: Tensor["nb_points", 2] = torch.cartesian_prod(z0, z0).to(device)
 
         x0 = get_x0().to(device)
 
-        data_module = get_data_module(depends_on, cfg, device)
-        normalized_inputs = get_inputs(x0, data_module)
-
-        classifier = torch.load(depends_on["classifier"]["model"])
-        autoencoder = torch.load(depends_on["autoencoder"]["model"])
-
-        # TODO read the classes from config
-        from tabsplanation.explanations.losses import (
-            AwayLoss,
-            BabyStretchLoss,
-            StretchLoss,
+        data_module = TaskGetDataModule.read_data_module(
+            depends_on["dataset"], cfg.data_module, device
         )
 
-        loss_classes = [
-            AwayLoss,
-            BabyStretchLoss,
-            StretchLoss,
-        ]
-        nb_classes = 3
-        classes = range(nb_classes)
+        normalized_inputs = get_inputs(x0, data_module).to(device)
+
+        classifier = torch.load(depends_on["classifier"]["model"]).to(device)
+        autoencoder = torch.load(depends_on["autoencoder"]["model"]).to(device)
+
+        def make_loss(loss_cfg):
+            loss_cls = get_object(loss_cfg.class_name)
+            return loss_cls() if loss_cfg.args is None else loss_cls(**loss_cfg.args)
+
+        loss_fns = [make_loss(loss_cfg) for loss_cfg in cfg.losses]
+
+        classes = range(data_module.dataset.output_dim)
 
         result = {
             "x_losses": TaskCreatePlotDataCfLosses.losses_x(
-                loss_classes,
+                loss_fns,
                 classes,
                 classifier,
                 normalized_inputs,
             ),
             "z_losses": TaskCreatePlotDataCfLosses.losses_z(
-                loss_classes, classes, classifier, autoencoder, z
+                loss_fns, classes, classifier, autoencoder, z
             ),
             "latent_space_map": TaskCreatePlotDataCfLosses.latent_space_map(
                 classifier, autoencoder, normalized_inputs
             ),
             "x_gradients": TaskCreatePlotDataCfLosses.x_gradients(
-                loss_classes, classes, classifier, normalized_inputs
+                loss_fns, classes, classifier, normalized_inputs
             ),
             "z_gradients": TaskCreatePlotDataCfLosses.z_gradients(
-                loss_classes, classes, classifier, autoencoder, normalized_inputs
+                loss_fns, classes, classifier, autoencoder, normalized_inputs
             ),
         }
 
@@ -166,37 +159,37 @@ class TaskCreatePlotDataCfLosses(Task):
             pickle.dump(result, results_file)
 
     @staticmethod
-    def losses_x(loss_classes, classes, classifier, normalized_inputs):
+    def losses_x(loss_fns, classes, classifier, normalized_inputs):
         x = normalized_inputs.clone()
         f_x = classifier(x)
 
-        def fn(loss, class_):
-            return loss()(
+        def fn(loss_fn, class_):
+            return loss_fn(
                 f_x,
                 source=f_x.argmax(dim=-1),
-                target=torch.full((len(f_x),), class_),
+                target=torch.full((len(f_x),), class_).to(f_x.device),
             )
 
         return {
-            loss.__name__: {class_: fn(loss, class_) for class_ in classes}
-            for loss in loss_classes
+            str(loss_fn): {class_: fn(loss_fn, class_) for class_ in classes}
+            for loss_fn in loss_fns
         }
 
     @staticmethod
-    def losses_z(loss_classes, classes, classifier, autoencoder, z):
+    def losses_z(loss_fns, classes, classifier, autoencoder, z):
         x_z = autoencoder.decode(z)
         f_x_z = classifier(x_z)
 
-        def fn(loss, class_):
-            return loss()(
+        def fn(loss_fn, class_):
+            return loss_fn(
                 f_x_z,
                 source=f_x_z.argmax(dim=-1),
-                target=torch.full((len(f_x_z),), class_),
+                target=torch.full((len(f_x_z),), class_).to(f_x_z.device),
             )
 
         return {
-            loss.__name__: {class_: fn(loss, class_) for class_ in classes}
-            for loss in loss_classes
+            str(loss_fn): {class_: fn(loss_fn, class_) for class_ in classes}
+            for loss_fn in loss_fns
         }
 
     @staticmethod
@@ -209,24 +202,24 @@ class TaskCreatePlotDataCfLosses(Task):
         }
 
     @staticmethod
-    def x_gradients(loss_classes, classes, classifier, normalized_inputs):
+    def x_gradients(loss_fns, classes, classifier, normalized_inputs):
         """Return the opposite of the classifier gradient with respect to `x`."""
         x = normalized_inputs
 
         losses_x: ResultDict[Loss] = TaskCreatePlotDataCfLosses.losses_x(
-            loss_classes, classes, classifier, x
+            loss_fns, classes, classifier, x
         )
 
-        def fn(loss, class_):
-            return -grad(losses_x[loss.__name__][class_], x)
+        def fn(loss_fn, class_):
+            return -grad(losses_x[str(loss_fn)][class_], x)
 
         return {
-            loss.__name__: {class_: fn(loss, class_) for class_ in classes}
-            for loss in loss_classes
+            str(loss_fn): {class_: fn(loss_fn, class_) for class_ in classes}
+            for loss_fn in loss_fns
         }
 
     @staticmethod
-    def z_gradients(loss_classes, classes, classifier, autoencoder, normalized_inputs):
+    def z_gradients(loss_fns, classes, classifier, autoencoder, normalized_inputs):
         """Return the opposite of the classifier gradient with respect to `z`, mapped
         back to the input space."""
         x = normalized_inputs.clone()
@@ -235,12 +228,12 @@ class TaskCreatePlotDataCfLosses(Task):
         f_x_z = classifier(x_z)
         original_pred = classifier(x).argmax(dim=-1)
 
-        def fn(loss, class_):
+        def fn(loss_fn, class_):
             grad_z = grad(
-                loss()(
+                loss_fn(
                     f_x_z,
                     source=original_pred,
-                    target=torch.full((len(x),), class_),
+                    target=torch.full((len(x),), class_).to(f_x_z.device),
                 ),
                 z_x,
             )
@@ -250,6 +243,6 @@ class TaskCreatePlotDataCfLosses(Task):
             return x_tilde - x
 
         return {
-            loss.__name__: {class_: fn(loss, class_) for class_ in classes}
-            for loss in loss_classes
+            str(loss_fn): {class_: fn(loss_fn, class_) for class_ in classes}
+            for loss_fn in loss_fns
         }

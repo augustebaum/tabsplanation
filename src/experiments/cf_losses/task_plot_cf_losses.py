@@ -69,13 +69,13 @@ class TaskPlotCfLosses(Task):
         fig.savefig(produces["z_losses"])
 
         # 2.b. Class distribution in latent space
-        z = results["latent_space_map"]["z"].detach()
+        z = results["latent_space_map"]["z"].detach().cpu()
 
         fig, ax = plt.subplots()
         ax.scatter(
             z[:, 0],
             z[:, 1],
-            c=results["latent_space_map"]["class"].detach(),
+            c=results["latent_space_map"]["class"].detach().cpu(),
             alpha=0.5,
             marker="s",
             zorder=1,
@@ -131,34 +131,29 @@ class TaskPlotCfLosses(Task):
         x0, x1 = torch.meshgrid(x_axis, x_axis)
         nb_classes = len(results[list(results.keys())[0]])
 
+        figsize = (nb_classes * 5, len(results) * 4)
         fig, axes = plt.subplots(
-            nrows=nb_classes, ncols=len(results), layout="constrained", figsize=(12, 10)
+            nrows=len(results), ncols=nb_classes, layout="constrained", figsize=figsize
         )
 
         fig.suptitle(title)
 
         # Row labels (class number)
-        for class_ in range(nb_classes):
-            axes[class_, 0].annotate(
-                f"Target class is {class_}",
-                xy=(0, 0.5),
-                xytext=(-axes[class_, 0].yaxis.labelpad - 5, 0),
-                xycoords=axes[class_, 0].yaxis.label,
-                textcoords="offset points",
-                size="large",
-                ha="right",
-                va="center",
-            )
+        put_row_labels(axes, [loss_name for loss_name in results.keys()])
 
-        for col, (loss_name, loss_data) in enumerate(results.items()):
-            for row, class_ in enumerate(range(nb_classes)):
+        for row, (loss_name, loss_data) in enumerate(results.items()):
+            for col, class_ in enumerate(range(nb_classes)):
 
                 ax = axes[row][col]
 
                 cs = ax.contourf(
-                    x0,
-                    x1,
-                    loss_data[class_].detach().reshape((len(x0), len(x0))),
+                    x0.cpu().numpy(),
+                    x1.cpu().numpy(),
+                    loss_data[class_]
+                    .detach()
+                    .reshape((len(x0), len(x0)))
+                    .cpu()
+                    .numpy(),
                     zorder=1,
                     cmap=LinearSegmentedColormap.from_list("", ["white", "red"]),
                     norm=plt.Normalize(),
@@ -168,7 +163,7 @@ class TaskPlotCfLosses(Task):
                 ax.set_xlabel(axis_labels[0])
                 ax.set_ylabel(axis_labels[1])
                 if row == 0:
-                    ax.set_title(loss_name)
+                    ax.set_title(f"target = {class_}")
 
             fig.colorbar(cs, ax=ax, location="bottom")
 
@@ -181,29 +176,22 @@ class TaskPlotCfLosses(Task):
         x0, x1 = torch.meshgrid(x_axis, x_axis, indexing="xy")
         nb_classes = len(results[list(results.keys())[0]])
 
+        figsize = (nb_classes * 5, len(results) * 4)
         fig, axes = plt.subplots(
-            nrows=nb_classes, ncols=len(results), layout="constrained", figsize=(12, 10)
+            nrows=len(results), ncols=nb_classes, layout="constrained", figsize=figsize
         )
 
         fig.suptitle(title)
 
         # Row labels (class number)
-        for class_ in range(nb_classes):
-            axes[class_, 0].annotate(
-                f"Target class is {class_}",
-                xy=(0, 0.5),
-                xytext=(-axes[class_, 0].yaxis.labelpad - 5, 0),
-                xycoords=axes[class_, 0].yaxis.label,
-                textcoords="offset points",
-                size="large",
-                ha="right",
-                va="center",
-            )
+        put_row_labels(axes, [loss_name for loss_name in results.keys()])
 
-        for col, loss_name in enumerate(results.keys()):
-            for row, class_ in enumerate(range(nb_classes)):
+        for row, (loss_name, loss_data) in enumerate(results.items()):
+            for col, class_ in enumerate(range(nb_classes)):
 
                 ax = axes[row][col]
+                if row == 0:
+                    ax.set_title(f"target = {class_}")
 
                 gradients = results[loss_name][class_]
 
@@ -212,14 +200,29 @@ class TaskPlotCfLosses(Task):
                     gradients[:, 1].reshape((len(x0), len(x0))).T.detach(),
                 )
 
-                ax.streamplot(x0.numpy(), x1.numpy(), u.numpy(), v.numpy())
+                ax.streamplot(
+                    x0.cpu().numpy(), x1.cpu().numpy(), u.cpu().numpy(), v.cpu().numpy()
+                )
 
                 ax.axis(axis_limits)
                 ax.set_xlabel(axis_labels[0])
                 ax.set_ylabel(axis_labels[1])
-                if row == 0:
-                    ax.set_title(loss_name)
 
                 ax.imshow(get_map_img(), origin="upper", extent=[0, 50, 0, 50])
 
         return fig
+
+
+def put_row_labels(axes, labels):
+    for i, label in enumerate(labels):
+        ax = axes[i, 0]
+        ax.annotate(
+            label,
+            xy=(0, 0.5),
+            xytext=(-ax.yaxis.labelpad - 5, 0),
+            xycoords=ax.yaxis.label,
+            textcoords="offset points",
+            size="large",
+            ha="right",
+            va="center",
+        )
