@@ -17,6 +17,8 @@ def random_targets_like(y: Tensor, nb_classes: int):
 
 
 class PathRegularizedNICE(NICEModel):
+    """NICE, but regularized with some other loss as well as NLL."""
+
     def __init__(
         self,
         classifier: Classifier,
@@ -86,15 +88,15 @@ class BoundaryCrossLoss(nn.Module):
     ):
         latents_2d = latents.reshape(-1, latents.shape[2])
         inputs = autoencoder.decode(latents_2d)
-        prbs: Tensor[B * S, C] = classifier.predict_proba(inputs)
-        prbs: Tensor[B, S, C] = prbs.reshape(
-            latents.shape[0], latents.shape[1], prbs.shape[1]
+        logits_2d: Tensor[B * S, C] = classifier(inputs)
+        logits: Tensor[B, S, C] = logits_2d.reshape(
+            latents.shape[0], latents.shape[1], logits_2d.shape[1]
         )
-        prbs_filtered: Tensor[B, S, 2] = take_source_and_target(
-            prbs, source_class, target_class
+        logits_filtered: Tensor[B, S, 2] = take_source_and_target(
+            logits, source_class, target_class
         )
-        prb_source_plus_target: Tensor[B, S] = prbs_filtered.max(dim=2).values
-        return 1 - prb_source_plus_target.mean()
+        logit_max_source_and_target: Tensor[B, S] = logits_filtered.max(dim=2).values
+        return -logit_max_source_and_target.mean()
 
 
 def take_source_and_target(
