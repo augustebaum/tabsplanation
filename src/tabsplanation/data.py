@@ -134,6 +134,11 @@ class WineQualityDataset(PandasDataset):
     output_dim = 3
 
 
+class OnlineNewsPopularityDataset(PandasDataset):
+
+    output_dim = 3
+
+
 @dataclass
 class CakeOnSeaDataModule(pl.LightningDataModule):
 

@@ -5,6 +5,9 @@ from experiments.shared.data.task_create_cake_on_sea import TaskCreateCakeOnSea
 from experiments.shared.data.task_preprocess_forest_cover import (
     TaskPreprocessForestCover,
 )
+from experiments.shared.data.task_preprocess_online_news_popularity import (
+    TaskPreprocessOnlineNewsPopularity,
+)
 from experiments.shared.data.task_preprocess_wine_quality import (
     TaskPreprocessWineQuality,
 )
@@ -13,6 +16,7 @@ from tabsplanation.data import (
     CakeOnSeaDataModule,
     CakeOnSeaDataset,
     ForestCoverDataset,
+    OnlineNewsPopularityDataset,
     WineQualityDataset,
 )
 from tabsplanation.types import RelativeFloat
@@ -42,6 +46,13 @@ def init_WineQualityDataset(depends_on, cfg, device):
     )
 
 
+def init_OnlineNewsPopularity(depends_on, cfg, device):
+    return OnlineNewsPopularityDataset(
+        csv_path=depends_on,
+        device=device,
+    )
+
+
 DatasetCfg = Any
 
 
@@ -66,6 +77,10 @@ class TaskGetDataModule(Task):
         "tabsplanation.data.WineQualityDataset": {
             "task": TaskPreprocessWineQuality,
             "init_fn": init_WineQualityDataset,
+        },
+        "tabsplanation.data.OnlineNewsPopularityDataset": {
+            "task": TaskPreprocessOnlineNewsPopularity,
+            "init_fn": init_OnlineNewsPopularity,
         },
     }
 
