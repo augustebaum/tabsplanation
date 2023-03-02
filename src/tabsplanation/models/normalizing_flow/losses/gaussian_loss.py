@@ -2,7 +2,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from tabsplanation.types import Latent, Tensor
+from tabsplanation.types import B, D, Latent, Tensor
 
 _log_two_pi = torch.log(torch.tensor(2 * np.pi))
 
@@ -24,15 +24,15 @@ class GaussianPriorLoss(nn.Module):
         self.avg = avg
 
     @classmethod
-    def log_likelihood(cls, z: Tensor["batch", "input_dim"]) -> Tensor["batch"]:
+    def log_likelihood(cls, z: Tensor[B, D]) -> Tensor[B]:
         """Compute the log-likelihood for a point or batch of latent points,
         with a standard Gaussian prior.
         """
         d = z.shape[1]
         constant = -d * 0.5 * _log_two_pi
-        return -0.5 * (z**2).sum(dim=1) + constant
+        return -0.5 * (z ** 2).sum(dim=1) + constant
 
-    def forward(self, z: Latent, log_scaling_factors: Tensor["input_dim"]):
+    def forward(self, z: Latent, log_scaling_factors: Tensor[D]):
         """Compute the sum or average negative log-likelihood.
 
         The goal is to maximize the likelihood, which is equivalent to minimizing

@@ -22,14 +22,14 @@ C: TypeAlias = "output_dim"
 H: TypeAlias = "latent_dim"
 S: TypeAlias = "nb_steps"
 
-InputPoint: TypeAlias = Tensor["input_dim"]
-InputBatch: TypeAlias = Tensor["batch", "input_dim"]
+InputPoint: TypeAlias = Tensor[D]
+InputBatch: TypeAlias = Tensor[B, D]
 
-OutputPoint: TypeAlias = Tensor["output_dim"]
-OutputBatch: TypeAlias = Tensor["batch", "output_dim"]
+OutputPoint: TypeAlias = Tensor[C]
+OutputBatch: TypeAlias = Tensor[B, C]
 
-LatentPoint: TypeAlias = Tensor["latent_dim"]
-LatentBatch: TypeAlias = Tensor["batch", "latent_dim"]
+LatentPoint: TypeAlias = Tensor[H]
+LatentBatch: TypeAlias = Tensor[B, H]
 
 Input: TypeAlias = Union[InputPoint, InputBatch]
 Output: TypeAlias = Union[OutputPoint, OutputBatch]
