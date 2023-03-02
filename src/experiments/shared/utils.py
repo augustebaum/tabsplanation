@@ -141,7 +141,7 @@ class Task:
             self.cfg = clone_config(cfg)
             self.id_ = hash_(self.cfg)
 
-            self.produces_dir = output_dir / self.id_
+            self.produces_dir = Path(output_dir) / self.id_
             self.produces = {
                 "config": self.produces_dir / "config.yaml",
                 "full_config": self.produces_dir / "full_config.yaml",

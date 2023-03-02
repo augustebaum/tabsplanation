@@ -12,6 +12,7 @@ BLD_DATA = BLD / "data"
 BLD_PLOT_DATA = BLD / "plot_data"
 BLD_MODELS = BLD / "models"
 BLD_PLOTS = BLD / "plots"
+BLD_RUNS = BLD / "runs"
 
 EXPERIMENT_CONFIGS = ROOT / "experiment_configs"
 EXPERIMENTS_PATH = SRC / "experiments"

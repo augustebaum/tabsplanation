@@ -12,42 +12,43 @@ from experiments.validity_losses.task_plot_validity_losses import TaskPlotValidi
 
 def parse_config(cfg):
 
-    task_deps = [TaskPlotValidityLosses(cfg)]
-    task_deps.append(TaskCreatePlotDataValidityLosses(cfg))
+    task = TaskPlotValidityLosses(cfg)
+    task_deps = [task] + task.all_task_deps()
+    # task_deps.append(TaskCreatePlotDataValidityLosses(cfg))
 
     # Make sure cfg is not modified
-    cfg = clone_config(cfg)
+    # cfg = clone_config(cfg)
 
-    setup(cfg.seed)
-    seeds = [random.randrange(100_000) for _ in range(cfg.nb_seeds)]
+    # setup(cfg.seed)
+    # seeds = [random.randrange(100_000) for _ in range(cfg.nb_seeds)]
 
-    # Make sure cfg is not modified
-    cfg = clone_config(cfg)
+    # # Make sure cfg is not modified
+    # cfg = clone_config(cfg)
 
-    # For each dataset
-    for data_module_cfg in cfg.data_modules:
-        # Get the DataModule
-        task_dataset = TaskGetDataModule.task_dataset(data_module_cfg)
-        task_deps.append(task_dataset)
+    # # For each dataset
+    # for data_module_cfg in cfg.data_modules:
+    #     # Get the DataModule
+    #     task_dataset = TaskGetDataModule.task_dataset(data_module_cfg)
+    #     task_deps.append(task_dataset)
 
-        # Train a classifier
-        classifier_cfg = cfg.classifier
-        classifier_cfg.data_module = data_module_cfg
-        task_classifier = TaskTrainModel(classifier_cfg)
+    #     # Train a classifier
+    #     classifier_cfg = cfg.classifier
+    #     classifier_cfg.data_module = data_module_cfg
+    #     task_classifier = TaskTrainModel(classifier_cfg)
 
-        # Add it to the dependencies
-        task_deps.append(task_classifier)
+    #     # Add it to the dependencies
+    #     task_deps.append(task_classifier)
 
-        # Then for each seed
-        for seed in seeds:
-            # Train an autoencoder
-            autoencoder_cfg = cfg.autoencoder
-            autoencoder_cfg.data_module = data_module_cfg
-            autoencoder_cfg.seed = seed
-            task_autoencoder = TaskTrainModel(autoencoder_cfg)
+    #     # Then for each seed
+    #     for seed in seeds:
+    #         # Train an autoencoder
+    #         autoencoder_cfg = cfg.autoencoder
+    #         autoencoder_cfg.data_module = data_module_cfg
+    #         autoencoder_cfg.seed = seed
+    #         task_autoencoder = TaskTrainModel(autoencoder_cfg)
 
-            # Add it to the dependencies
-            task_deps.append(task_autoencoder)
+    #         # Add it to the dependencies
+    #         task_deps.append(task_autoencoder)
 
     tasks_to_collect = {}
     for task in task_deps:
