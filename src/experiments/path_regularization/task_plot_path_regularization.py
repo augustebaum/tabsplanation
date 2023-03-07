@@ -5,7 +5,7 @@ from experiments.path_regularization.task_create_plot_data_path_regularization i
     TaskCreatePlotDataPathRegularization,
 )
 
-from experiments.shared.utils import parse_full_qualified_object, read, Task, write
+from experiments.shared.utils import read, Task, write
 
 
 class TaskPlotPathRegularization(Task):
@@ -28,20 +28,19 @@ class TaskPlotPathRegularization(Task):
 
         df = pd.DataFrame.from_records(results)
 
-        df = df.groupby(list(df.columns[:-1])).agg(["mean", "sem"])
-        df = df * 100
-        df = df.droplevel(0, axis=1)
+        df = df.groupby(list(df.columns[:4])).agg(["mean", "sem"])
 
-        df = df.apply(
-            lambda row: "{:.1f}".format(row["mean"])
-            + "±"
-            + "{:.1f}".format(row["sem"]),
-            axis=1,
-        )
-
-        df = df.unstack([0, 1])
-
-        loss_names_in_order = [r["Loss function"] for r in results][: len(cfg.losses)]
-        df = df.reindex(loss_names_in_order)
+        formats = {
+            ("validity_rate (%)", "mean"): "{:.1f}",
+            ("validity_rate (%)", "sem"): "{:.1f}",
+            (r"\Delta t (ns)", "mean"): "{:.1f}",
+            (r"\Delta t (ns)", "sem"): "{:.1f}",
+            ("Mean #BC", "mean"): "{:.2f}",
+            ("Mean #BC", "sem"): "{:.2f}",
+            ("Mean NLL", "mean"): "{:.1E}",
+            ("Mean NLL", "sem"): "{:.1E}",
+        }
+        for col, format_str in formats.items():
+            df[col] = df[col].apply(format_str.format)
 
         write(df.style.to_latex(), produces["results"])

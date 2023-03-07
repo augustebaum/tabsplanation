@@ -269,9 +269,9 @@ def read_pkl(file_path):
     return result
 
 
-def read_json(obj, file_path):
+def read_json(file_path):
     with open(file_path, "r") as f:
-        result = json.load(obj)
+        result = json.load(f)
     return result
 
 
