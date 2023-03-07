@@ -1,9 +1,11 @@
+import itertools
 import random
 from typing import Dict, List, Optional, TypeAlias, TypedDict
 
 import torch
 from omegaconf import OmegaConf
 from torch.utils.data import Dataset
+from tqdm import tqdm
 
 from config import BLD_PLOT_DATA
 from experiments.shared.data.task_get_data_module import TaskGetDataModule
@@ -124,22 +126,22 @@ class TaskCreatePlotDataValidityLosses(Task):
                 print(f"Seed: {seed}")
                 autoencoder = read(autoencoder_path["model"], device=device)
 
-                for path_method in cfg.explainers:
+                for path_method, loss_fn in tqdm(
+                    list(itertools.product(cfg.explainers, cfg.losses))
+                ):
+                    validity_rate = TaskCreatePlotDataValidityLosses.validity_rate(
+                        data_module, classifier, autoencoder, loss_fn, path_method
+                    )
 
-                    for loss_fn in cfg.losses:
-                        validity_rate = TaskCreatePlotDataValidityLosses.validity_rate(
-                            data_module, classifier, autoencoder, loss_fn, path_method
-                        )
+                    result = {
+                        "data_module": data_module_name,
+                        "path_method": path_method,
+                        "seed": seed,
+                        "loss": loss_fn.name,
+                        "validity_rate": validity_rate,
+                    }
 
-                        result = {
-                            "data_module": data_module_name,
-                            "path_method": path_method,
-                            "seed": seed,
-                            "loss": loss_fn.name,
-                            "validity_rate": validity_rate,
-                        }
-
-                        results.append(result)
+                    results.append(result)
 
         write(results, produces["results"])
 
@@ -155,7 +157,7 @@ class TaskCreatePlotDataValidityLosses(Task):
 
         explainer = explainer_cls(classifier, autoencoder, explainer_hparams, loss_fn)
 
-        for test_x, _ in data_module.test_dataloader():
+        for test_x, _ in data_module.test_dataloader(batch_size=10_000):
             test_x = test_x.to(classifier.device)
 
             y_predict = classifier.predict(test_x)

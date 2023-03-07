@@ -2,7 +2,6 @@ import pickle
 
 import matplotlib.pyplot as plt
 import torch
-from matplotlib.colors import LinearSegmentedColormap
 
 from config import BLD_PLOTS
 from experiments.cf_losses.task_create_plot_data_cf_losses import (
@@ -155,7 +154,6 @@ class TaskPlotCfLosses(Task):
                     .cpu()
                     .numpy(),
                     zorder=1,
-                    cmap=LinearSegmentedColormap.from_list("", ["white", "red"]),
                     norm=plt.Normalize(),
                 )
 

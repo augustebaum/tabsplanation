@@ -106,7 +106,7 @@ class PandasDataset(Dataset):
         self.X = torch.from_numpy(X.astype(np.float32)).to(device)
 
         y = df.iloc[:, -1].to_numpy()
-        self.y = torch.from_numpy(y).to(device)
+        self.y = torch.from_numpy(y.astype(np.int64)).to(device)
 
         self.input_dim = self.X.shape[1]
         self.normalize = Normalize.new(self.X)
@@ -136,7 +136,7 @@ class WineQualityDataset(PandasDataset):
 
 class OnlineNewsPopularityDataset(PandasDataset):
 
-    output_dim = 3
+    output_dim = 4
 
 
 @dataclass

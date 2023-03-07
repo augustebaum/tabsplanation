@@ -2,9 +2,10 @@
 
 from typing import Any, List, Optional
 
+import matplotlib as mpl
 import torch
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 from torch import nn
-
 from torchmetrics import Accuracy
 from torchmetrics.classification import BinaryAccuracy
 
@@ -100,3 +101,15 @@ class Classifier(BaseModel):
 
         self.log_dict({f"test_{k}": v for k, v in logs.items()})
         return loss
+
+
+def plot_confusion_matrix(classifier, data_module) -> mpl.figure.Figure:
+    y_pred = []
+    y_true = []
+    for x, y in data_module.test_dataloader():
+        y_pred.extend(classifier.predict(x).cpu().numpy())
+        y_true.extend(y.cpu().numpy())
+    cm = confusion_matrix(y_true, y_pred)
+    plot = ConfusionMatrixDisplay(confusion_matrix=cm)
+    plot.plot(cmap=mpl.rcParams["image.cmap"])
+    return plot.figure_

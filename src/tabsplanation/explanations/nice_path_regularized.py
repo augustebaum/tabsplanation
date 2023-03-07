@@ -57,7 +57,7 @@ class PathRegularizedNICE(NICEModel):
         )
 
         loss = nll + self.path_loss_reg * path_loss
-        logs = {"nll": nll, "path_loss": path_loss, "loss": loss}
+        logs |= {"path_loss": path_loss, "loss": loss}
         return loss, logs
 
     def random_targets_like(self, y):

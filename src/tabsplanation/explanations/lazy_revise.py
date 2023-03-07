@@ -127,21 +127,7 @@ class LazyRevise(LatentShift):
         self, input: Tensor[B, D], target_class: Tensor[B, 1]
     ) -> RelativeFloat:
         latents: Tensor[S, B, H] = self.get_cf_latents(input, target_class)
-
-        # Need to split the computation into sections so that everything fits
-        # in memory
-        def split_latents(nb_sections):
-            return zip(
-                latents.tensor_split(nb_sections, dim=1),
-                target_class.tensor_split(nb_sections),
-            )
-
-        nb_valid = sum(
-            self.nb_valid(latents_sub, target_class_sub)
-            for latents_sub, target_class_sub in split_latents(4)
-        )
-
-        return nb_valid / len(target_class)
+        return self.nb_valid(latents, target_class) / len(target_class)
 
     def nb_valid(
         self, latents: Tensor[S, B, H], target_class: Tensor[B, 1]
@@ -149,8 +135,8 @@ class LazyRevise(LatentShift):
         """Count the number of valid paths in `input` given `target_class`."""
         s, b, h = latents.shape
         # We have to reshape the paths before passing them through the AE
-        latents_ae: Tensor[S * B, H] = latents.reshape(-1, h)
+        latents_ae: Tensor[S * B, H] = latents.view(-1, h)
         cf_paths_ae: Tensor[S * B, D] = self.autoencoder.decode(latents_ae)
-        cf_paths: Tensor[S, B, D] = cf_paths_ae.reshape(s, b, -1)
+        cf_paths: Tensor[S, B, D] = cf_paths_ae.view(s, b, -1)
         preds: Tensor[S, B] = self.classifier.predict(cf_paths)
         return torch.any(preds == target_class, dim=0).sum(dtype=torch.float)

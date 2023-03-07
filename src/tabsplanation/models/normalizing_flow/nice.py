@@ -80,6 +80,7 @@ class NICEModel(BaseModel):
         loss = self.loss_fn(z, self.log_scaling_factors)
 
         logs = {
+            "nll": loss,
             "loss": loss,
         }
         return loss, logs

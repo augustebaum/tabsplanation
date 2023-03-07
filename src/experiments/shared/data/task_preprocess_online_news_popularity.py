@@ -126,10 +126,13 @@ class TaskPreprocessOnlineNewsPopularity(Task):
         percentiles = [0, 50, 75, 95, 100]
         shares_percentiles = get_shares_percentiles(percentiles)
 
+        import pdb
+
+        pdb.set_trace()
         # Use thresholds on number of shares as the class
         df["popularity"] = pd.cut(
             df.shares, shares_percentiles, labels=range(len(percentiles) - 1)
-        )
+        ).fillna(0)
         del df["shares"]
 
         df.to_csv(produces, index=False)

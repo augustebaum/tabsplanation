@@ -1,9 +1,11 @@
+import itertools
 import random
 
 import pandas as pd
 import torch
 from omegaconf import OmegaConf
 from torcheval.metrics.functional import auc
+from tqdm import tqdm
 
 from config import BLD_PLOT_DATA
 from experiments.path_regularization_cake_on_sea.task_train_path_regularized_ae import (
@@ -140,29 +142,29 @@ class TaskCreatePlotDataPathRegularization(Task):
                 print(f"Seed: {seed}")
                 autoencoder = read(autoencoder_path["model"], device=device)
 
-                for path_method in cfg.explainers:
-
-                    for loss_fn in cfg.losses:
-                        path_results = (
-                            TaskCreatePlotDataPathRegularization.get_path_results(
-                                data_module,
-                                classifier,
-                                autoencoder,
-                                loss_fn,
-                                path_method,
-                            )
+                for path_method, loss_fn in tqdm(
+                    list(itertools.product(cfg.explainers, cfg.losses))
+                ):
+                    path_results = (
+                        TaskCreatePlotDataPathRegularization.get_path_results(
+                            data_module,
+                            classifier,
+                            autoencoder,
+                            loss_fn,
+                            path_method,
                         )
+                    )
 
-                        result = {
-                            "data_module": data_module_name,
-                            "path_method": path_method,
-                            "seed": seed,
-                            "path_regularized": path_regularized,
-                            "loss": loss_fn,
-                            **path_results,
-                        }
+                    result = {
+                        "data_module": data_module_name,
+                        "path_method": path_method,
+                        "seed": seed,
+                        "path_regularized": path_regularized,
+                        "loss": loss_fn,
+                        **path_results,
+                    }
 
-                        results.append(result)
+                    results.append(result)
 
         def parse_result(result):
             get_object_name = lambda s: parse_full_qualified_object(s)[1]
@@ -187,12 +189,10 @@ class TaskCreatePlotDataPathRegularization(Task):
     def get_path_results(data_module, classifier, autoencoder, loss_fn, explainer):
         torch.cuda.empty_cache()
 
-        # import pdb
-
-        # pdb.set_trace()
         trained_lof = train_lof(data_module.dataset.X)
 
-        loss_fn = get_object(loss_fn.class_name)()
+        loss_cls = get_object(loss_fn.class_name)
+        loss_fn = loss_cls() if loss_fn.args is None else loss_cls(**loss_fn.args)
 
         explainer_cls = get_object(explainer.class_name)
         explainer_hparams = explainer.args.hparams
@@ -200,7 +200,6 @@ class TaskCreatePlotDataPathRegularization(Task):
         explainer = explainer_cls(classifier, autoencoder, explainer_hparams, loss_fn)
 
         batch_results = []
-        total_nb_points = 0
 
         for test_x, _ in data_module.test_dataloader(batch_size=4_000):
             # test_x = data_module.test_data[0][:5_000].to(classifier.device)
@@ -265,6 +264,12 @@ class TaskCreatePlotDataPathRegularization(Task):
                 mean_auc_lof = auc_lofs.mean().item()
 
             if nb_valid == 0:
+                mean_nll = 0
+            else:
+                loss, logs = autoencoder.step((test_x, None), None)
+                mean_nll = logs["nll"]
+
+            if nb_valid == 0:
                 mean_boundary_crossings_rate = 0
             else:
                 # 1 until the path reaches the target, then 0
@@ -295,10 +300,12 @@ class TaskCreatePlotDataPathRegularization(Task):
                     "validity_rate": validity_rate * batch_size,
                     "mean_boundary_crossings": mean_boundary_crossings_rate
                     * batch_size,
+                    "mean_nll": mean_nll * batch_size,
                 }
             )
-            total_nb_points += batch_size
 
-        results = dict(pd.DataFrame.from_records(batch_results).sum() / total_nb_points)
+        results = dict(
+            pd.DataFrame.from_records(batch_results).sum() / len(data_module.test_set)
+        )
 
         return results

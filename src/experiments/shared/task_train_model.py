@@ -2,11 +2,6 @@
 Train a model based on a model config, which contains information on
 the data to use for training, the training parameters (batch size, number
 of epochs...) and the model to use (including its hyperparameters).
-
-Assuming the shape of a model config is unlikely to change,
-in order for this module to be versatile we need to parse all config
-files for model configs, where the model configs are identified by
-the key names (either "autoencoder" or "classifier").
 """
 from typing import Dict, TypeAlias, TypedDict
 
@@ -21,7 +16,16 @@ from experiments.shared.data.task_get_data_module import (
     DataModuleCfg,
     TaskGetDataModule,
 )
-from experiments.shared.utils import get_module_object, get_time, hash_, setup, Task
+from experiments.shared.utils import (
+    get_module_object,
+    get_time,
+    hash_,
+    setup,
+    Task,
+    write,
+)
+from tabsplanation.explanations.nice_path_regularized import PathRegularizedNICE
+from tabsplanation.models.classifier.classifier import Classifier, plot_confusion_matrix
 
 
 def _get_class(class_name: str):
@@ -59,6 +63,10 @@ class TaskTrainModel(Task):
         self.task_deps = [task_dataset]
         self.depends_on = task_dataset.produces
         self.produces |= {"model": self.produces_dir / "model.pt"}
+        if self.cfg.model.class_name == "Classifier":
+            self.produces |= {
+                "model_confusion_matrix": self.produces_dir / "confusion_matrix.svg"
+            }
 
     @classmethod
     def task_function(cls, depends_on, produces, cfg):
@@ -76,8 +84,11 @@ class TaskTrainModel(Task):
         ).to(device)
 
         model = TaskTrainModel.train_model(data_module, model, cfg)
+        if isinstance(model, Classifier):
+            plot = plot_confusion_matrix(model.to(device), data_module)
+            write(plot, produces["model_confusion_matrix"])
 
-        torch.save(model, produces["model"])
+        write(model, produces["model"])
 
     @classmethod
     def train_model(cls, data_module, model, cfg):
@@ -89,7 +100,7 @@ class TaskTrainModel(Task):
         tb_logger = TensorBoardLogger(save_dir=BLD_MODELS, version=version)
 
         if torch.cuda.is_available():
-            gpu_kwargs = {"accelerator": "gpu", "devices": 1}
+            gpu_kwargs = {"accelerator": "gpu", "devices": -1}
         else:
             gpu_kwargs = {}
 
@@ -107,6 +118,12 @@ class TaskTrainModel(Task):
         model.forward(data_module.train_set[0:2][0].reshape(2, -1))
 
         trainer.fit(model=model, datamodule=data_module)
-        # trainer.test(model=model, datamodule=data_module)
+        if not isinstance(model, PathRegularizedNICE):
+            trainer = pl.Trainer(
+                devices=1,
+                logger=tb_logger,
+                enable_model_summary=False,
+            )
+            trainer.test(model=model, datamodule=data_module)
 
         return model

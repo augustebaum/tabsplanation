@@ -47,6 +47,24 @@ autoencoder:
 
 
 losses:
+- name: TargetLoss
+  class_name: tabsplanation.explanations.losses.TargetLoss
+  args: null
+- name: BinaryStretchLoss
+  class_name: tabsplanation.explanations.losses.BinaryStretchLoss
+  args: null
+- name: StretchLoss
+  class_name: tabsplanation.explanations.losses.StretchLoss
+  args: null
+- name: LogitValidityLoss$_{\lambda_t = 1}$
+  class_name: tabsplanation.explanations.losses.LogitValidityLoss
+  args:
+    reg_target: 1
+- name: LogitValidityLoss$_{\lambda_t = 10}$
+  class_name: tabsplanation.explanations.losses.LogitValidityLoss
+  args:
+    reg_target: 10
+
 - name: LossPrbTarget
   class_name: tabsplanation.explanations.losses.GeneralValidityLoss
   args:

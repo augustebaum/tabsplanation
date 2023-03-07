@@ -49,10 +49,10 @@ class BaseModel(pl.LightningModule):
 
     def validation_step(self, batch, batch_idx):
         loss, logs = self.step(batch, batch_idx)
-        self.log_dict({f"val_{k}": v for k, v in logs.items()})
+        self.log_dict({f"val_{k}": v for k, v in logs.items()}, sync_dist=True)
         return loss
 
     def test_step(self, batch, batch_idx):
         loss, logs = self.step(batch, batch_idx)
-        self.log_dict({f"test_{k}": v for k, v in logs.items()})
+        self.log_dict({f"test_{k}": v for k, v in logs.items()}, sync_dist=True)
         return loss

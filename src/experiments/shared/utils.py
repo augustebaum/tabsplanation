@@ -240,9 +240,14 @@ def write_string(obj, file_path):
         f.write(obj)
 
 
+def write_pt(obj, file_path):
+    torch.save(obj, file_path)
+
+
 def write(obj, file_path: Path) -> None:
     write_variants = {
         ".pkl": write_pkl,
+        ".pt": write_pt,
         ".svg": write_svg,
         ".json": write_json,
         ".tex": write_string,
