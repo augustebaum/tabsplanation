@@ -1,5 +1,5 @@
 seed: 42
-nb_seeds: 3
+nb_seeds: 4
 
 training:
   patience: 3
@@ -8,40 +8,32 @@ training:
 data_module_args:
   validation_data_proportion: 0.2
   test_data_proportion: 0.2
-  batch_size: 5000
+  batch_size: 12000
   correct_for_class_imbalance: false
 
 data_modules:
-# - seed: ${seed}
-#   args: ${data_module_args}
-#   dataset:
-#     class_name: tabsplanation.data.CakeOnSeaDataset
-#     args: 
-#       seed: ${seed}
-#       gaussian: false
-#       nb_points_initial: 100000
-#       nb_dims: 2
-#       nb_uncorrelated_dims: 2
-# - seed: ${seed}
-#   args: 
-#     batch_size: 15000
-#     validation_data_proportion: ${data_module_args.validation_data_proportion}
-#     test_data_proportion: ${data_module_args.test_data_proportion}
-#     correct_for_class_imbalance: ${data_module_args.correct_for_class_imbalance}
-#   dataset:
-#     class_name: tabsplanation.data.ForestCoverDataset
-#     args: null
-# - seed: ${seed}
-#   args: ${data_module_args}
-#   dataset:
-#     class_name: tabsplanation.data.WineQualityDataset
-#     args: null
 - seed: ${seed}
-  args: 
-    batch_size: 2000
-    validation_data_proportion: ${data_module_args.validation_data_proportion}
-    test_data_proportion: ${data_module_args.test_data_proportion}
-    correct_for_class_imbalance: ${data_module_args.correct_for_class_imbalance}
+  args: ${data_module_args}
+  dataset:
+    class_name: tabsplanation.data.CakeOnSeaDataset
+    args: 
+      seed: ${seed}
+      gaussian: false
+      nb_points_initial: 100000
+      nb_dims: 2
+      nb_uncorrelated_dims: 2
+- seed: ${seed}
+  args: ${data_module_args}
+  dataset:
+    class_name: tabsplanation.data.ForestCoverDataset
+    args: null
+- seed: ${seed}
+  args: ${data_module_args}
+  dataset:
+    class_name: tabsplanation.data.WineQualityDataset
+    args: null
+- seed: ${seed}
+  args: ${data_module_args}
   dataset:
     class_name: tabsplanation.data.OnlineNewsPopularityDataset
     args: null
@@ -59,7 +51,6 @@ classifier:
       dropout: null
       learning_rate: 1e-3
 
-
 autoencoder:
   # Will be set in code
   seed: null
@@ -69,13 +60,13 @@ autoencoder:
   model:
     class_name: NICEModel
     args:
-      mlp_hidden_dims: [50, 50, 50, 50]
+      mlp_hidden_dims: [20, 20]
       batch_norm: False
       dropout: null
       learning_rate: 1e-3
 
-max_iter: 200
-shift_step: 0.1
+max_iter: 100
+shift_step: 0.01
 explainers:
 - name: LatentShiftNoDistanceReg
   class_name: tabsplanation.explanations.LazyRevise
