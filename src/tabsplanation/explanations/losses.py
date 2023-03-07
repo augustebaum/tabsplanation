@@ -5,7 +5,7 @@ from typing import Literal, Optional
 import torch
 from torch import nn
 
-from tabsplanation.types import B, C, Tensor
+from tabsplanation.types import B, C, D, H, S, Tensor
 
 
 class ValidityLoss(nn.Module):
@@ -219,3 +219,108 @@ class StretchLoss(ValidityLoss):
             )
             + 2 * self.ce_loss(logits, target)
         ) / nb_classes
+
+
+def take_source_and_target(
+    input: Tensor[B, S, C],
+    source_class: Tensor[B],
+    target_class: Tensor[B],
+) -> Tensor[B, S, 2]:
+    """
+    Example:
+    --------
+    >>> input = torch.arange(1, 19).reshape(2,3,3)
+    tensor([[[ 1,  2,  3],
+             [ 4,  5,  6],
+             [ 7,  8,  9]],
+
+            [[10, 11, 12],
+             [13, 14, 15],
+             [16, 17, 18]]])
+    >>> source = torch.tensor([0, 0])
+    >>> target = torch.tensor([2, 1])
+    >>> take_source_and_target(input, source, target)
+    tensor([[[ 1,  3],
+             [ 4,  6],
+             [ 7,  9]],
+
+            [[10, 11],
+             [13, 14],
+             [16, 17]]])
+    """
+    return torch.stack(
+        [
+            input[:, i, [src, tgt]]
+            for i, (src, tgt) in enumerate(zip(source_class, target_class))
+        ]
+    )
+
+
+class BoundaryCrossLoss(nn.Module):
+    """A loss that considers the time passed in either the source class or the target
+    class.
+
+    Intuitively, the path should lie as much as possible either in the source class or
+    in the target class.
+    The loss computes the average probability that the path lies in neither of them (so
+    that the goal is indeed to minimize that probability)
+
+    For each `z`, we compute $1 - max{f(Dec(z))_src, f(Dec(z))_tgt}$.
+    """
+
+    def __init__(self):
+        super(BoundaryCrossLoss, self).__init__()
+
+    def forward(
+        self,
+        autoencoder,
+        classifier,
+        latents: Tensor[B, S, H],
+        source_class: Tensor[B],
+        target_class: Tensor[B],
+    ):
+        latents_2d = latents.view(-1, latents.shape[2])
+        inputs = autoencoder.decode(latents_2d)
+        logits_2d: Tensor[B * S, C] = classifier(inputs)
+        logits: Tensor[B, S, C] = logits_2d.view(
+            latents.shape[0], latents.shape[1], logits_2d.shape[1]
+        )
+        logits_filtered: Tensor[B, S, 2] = take_source_and_target(
+            logits, source_class, target_class
+        )
+        logit_max_source_and_target: Tensor[B, S] = logits_filtered.max(dim=2).values
+        return -logit_max_source_and_target.mean()
+
+
+class PointLoss(nn.Module):
+    """A loss that considers whether the path passed by a given point."""
+
+    def __init__(self, point: Tensor[D]):
+        super(PointLoss, self).__init__()
+        self.point = point
+
+    def forward(
+        self,
+        autoencoder,
+        classifier,
+        latents: Tensor[B, S, H],
+        source_class: Tensor[B],
+        target_class: Tensor[B],
+    ):
+        latents_2d: Tensor[B * S, H] = latents.view(-1, latents.shape[2])
+        inputs_2d: Tensor[B * S, D] = autoencoder.decode(latents_2d)
+        distances_2d: Tensor[B * S] = torch.linalg.vector_norm(
+            inputs_2d - self.point, dim=-1
+        )
+        distances: Tensor[B, S] = distances_2d.view(latents.shape[0], latents.shape[1])
+        min_distances: Tensor[B] = distances.min(dim=-1).values
+        return min_distances.mean()
+
+
+class MaxPointLoss(PointLoss):
+    """A loss that considers whether the path passed by the point
+    that has, for each feature, the maximum feature value in the dataset."""
+
+    def __init__(self, dataset: Tensor[B, D]):
+        point = dataset.max(dim=0).values
+        super(MaxPointLoss, self).__init__(point)
