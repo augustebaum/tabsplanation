@@ -198,6 +198,10 @@ class CakeOnSeaDataModule(pl.LightningDataModule):
         pass
 
     @property
+    def train_data(self):
+        return self.train_set.dataset[self.train_set.indices]
+
+    @property
     def test_data(self):
         return self.test_set.dataset[self.test_set.indices]
 
