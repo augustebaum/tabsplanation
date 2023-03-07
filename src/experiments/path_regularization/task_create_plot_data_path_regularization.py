@@ -4,7 +4,6 @@ import random
 import pandas as pd
 import torch
 from omegaconf import OmegaConf
-from torcheval.metrics.functional import auc
 from tqdm import tqdm
 
 from config import BLD_PLOT_DATA
@@ -13,11 +12,19 @@ from experiments.path_regularization_cake_on_sea.task_train_path_regularized_ae 
 )
 from experiments.shared.data.task_get_data_module import TaskGetDataModule
 from experiments.shared.task_train_model import TaskTrainModel
-from experiments.shared.utils import clone_config, get_object, read, setup, Task, write
+from experiments.shared.utils import (
+    clone_config,
+    get_object,
+    parse_full_qualified_object,
+    read,
+    setup,
+    Task,
+    write,
+)
 
 from tabsplanation.explanations.nice_path_regularized import random_targets_like
-from tabsplanation.metrics import lof, time_measurement, train_lof
-from tabsplanation.types import B, H, S, Tensor
+from tabsplanation.metrics import time_measurement
+from tabsplanation.types import B, D, H, S, Tensor
 
 
 def where_changes(tensor: Tensor[B, S], dim=-1) -> Tensor[B, S]:
@@ -67,12 +74,20 @@ class TaskCreatePlotDataPathRegularization(Task):
             classifier_cfg.data_module = data_module_cfg
             task_classifier = TaskTrainModel(classifier_cfg)
 
+            # Train an unregularized autoencoder on the master seed for computing NLL
+            autoencoder_cfg = cfg.autoencoder
+            autoencoder_cfg.data_module = data_module_cfg
+            autoencoder_cfg.seed = cfg.seed
+            task_autoencoder = TaskTrainModel(autoencoder_cfg)
+
             # Add it to the dependencies
             self.task_deps.append(task_classifier)
+            self.task_deps.append(task_autoencoder)
             data_module_name = data_module_cfg.dataset.class_name
             self.depends_on[data_module_name] = {
                 "dataset": task_dataset.produces,
                 "classifier": task_classifier.produces,
+                "autoencoder": task_autoencoder.produces,
                 "autoencoders": {},
             }
 
@@ -81,7 +96,7 @@ class TaskCreatePlotDataPathRegularization(Task):
 
             for seed in seeds:
 
-                # Train an unregularized autoencoder
+                # Train an unregularized autoencoder per seed
                 autoencoder_cfg = cfg.autoencoder
                 autoencoder_cfg.data_module = data_module_cfg
                 autoencoder_cfg.seed = seed
@@ -122,7 +137,6 @@ class TaskCreatePlotDataPathRegularization(Task):
     def task_function(cls, depends_on, produces, cfg):
 
         results = []
-
         for data_module_name, values in depends_on.items():
             device = setup(cfg.seed)
 
@@ -135,6 +149,7 @@ class TaskCreatePlotDataPathRegularization(Task):
             print(f"Dataset: {data_module.dataset.__class__.__name__}")
 
             classifier = read(values["classifier"]["model"], device=device)
+            autoencoder_for_nll = read(values["autoencoder"]["model"], device=device)
 
             for (seed, path_regularized), autoencoder_path in values[
                 "autoencoders"
@@ -152,6 +167,7 @@ class TaskCreatePlotDataPathRegularization(Task):
                             autoencoder,
                             loss_fn,
                             path_method,
+                            autoencoder_for_nll,
                         )
                     )
 
@@ -176,9 +192,9 @@ class TaskCreatePlotDataPathRegularization(Task):
                 "Path regularization": result["path_regularized"],
                 "Loss function": result["loss"]["name"],
                 "validity_rate (%)": result["validity_rate"] * 100,
-                "AUC of LOF": result["auc_lof"],
                 r"\Delta t (ns)": result["time_per_iteration_s"] * (10 ** 9),
                 "Mean #BC": result["mean_boundary_crossings"],
+                "Mean NLL": result["mean_nll"],
             }
 
         results = [parse_result(result) for result in results]
@@ -186,10 +202,10 @@ class TaskCreatePlotDataPathRegularization(Task):
         write(results, produces["results"])
 
     @staticmethod
-    def get_path_results(data_module, classifier, autoencoder, loss_fn, explainer):
+    def get_path_results(
+        data_module, classifier, autoencoder, loss_fn, explainer, autoencoder_for_nll
+    ):
         torch.cuda.empty_cache()
-
-        trained_lof = train_lof(data_module.dataset.X)
 
         loss_cls = get_object(loss_fn.class_name)
         loss_fn = loss_cls() if loss_fn.args is None else loss_cls(**loss_fn.args)
@@ -201,8 +217,7 @@ class TaskCreatePlotDataPathRegularization(Task):
 
         batch_results = []
 
-        for test_x, _ in data_module.test_dataloader(batch_size=4_000):
-            # test_x = data_module.test_data[0][:5_000].to(classifier.device)
+        for test_x, _ in data_module.test_dataloader():
             test_x = test_x.to(classifier.device)
 
             y_predict = classifier.predict(test_x)
@@ -235,39 +250,42 @@ class TaskCreatePlotDataPathRegularization(Task):
 
             # Find where the path number changes, which will tell us how many
             # steps were taken to reach the target for each step
+            path_ends: Tensor[nb_valid] = step_numbers[
+                indices_where_changes(path_numbers)
+            ]
 
-            if nb_valid == 0:
-                mean_auc_lof = 0
-            else:
-                path_ends: Tensor[nb_valid] = step_numbers[
-                    indices_where_changes(path_numbers)
+            valid_paths: Tensor[S, nb_valid, D] = cfs[:, valid_path_numbers]
+
+            path_mask: Tensor[nb_valid, S] = torch.stack(
+                [
+                    torch.cat(
+                        [
+                            torch.ones(path_end),
+                            torch.zeros(nb_steps - path_end),
+                        ]
+                    )
+                    for path_end in path_ends
                 ]
+            ).to(cf_preds.device)
 
-                xs: Tensor[nb_valid, S] = torch.stack(
-                    [
-                        torch.cat(
-                            [
-                                torch.linspace(0, 1, steps=path_end),
-                                torch.ones(nb_steps - path_end),
-                            ]
-                        )
-                        for path_end in path_ends
-                    ]
-                ).to(cf_preds.device)
+            def compute_mean_nll(autoencoder, valid_paths):
+                if nb_valid == 0:
+                    mean_nll = 0
+                else:
+                    z: Tensor[S * nb_valid, H] = autoencoder(
+                        valid_paths.view(-1, valid_paths.shape[-1])
+                    )
+                    nll: Tensor[S * nb_valid] = -(
+                        autoencoder.loss_fn.__class__.log_likelihood(z)
+                        + autoencoder.log_scaling_factors.sum()
+                    )
 
-                lofs: Tensor[nb_valid, S] = lof(
-                    trained_lof, cfs[:, valid_path_numbers]
-                ).T
+                    masked_nll = path_mask * nll.view(nb_steps, valid_paths.shape[1], 1)
+                    mean_nll = masked_nll.mean().item()
 
-                auc_lofs: Tensor[nb_valid] = auc(xs, lofs)
-                # AUC: Done!
-                mean_auc_lof = auc_lofs.mean().item()
+                return mean_nll
 
-            if nb_valid == 0:
-                mean_nll = 0
-            else:
-                loss, logs = autoencoder.step((test_x, None), None)
-                mean_nll = logs["nll"]
+            mean_nll = compute_mean_nll(autoencoder_for_nll, valid_paths)
 
             if nb_valid == 0:
                 mean_boundary_crossings_rate = 0
@@ -295,7 +313,6 @@ class TaskCreatePlotDataPathRegularization(Task):
             batch_size = len(test_x)
             batch_results.append(
                 {
-                    "auc_lof": mean_auc_lof * batch_size,
                     "time_per_iteration_s": time_per_path_step_s * batch_size,
                     "validity_rate": validity_rate * batch_size,
                     "mean_boundary_crossings": mean_boundary_crossings_rate
