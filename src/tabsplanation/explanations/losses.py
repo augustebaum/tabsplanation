@@ -5,7 +5,7 @@ from typing import Literal, Optional
 import torch
 from torch import nn
 
-from tabsplanation.types import B, C, D, H, S, Tensor
+from tabsplanation.types import B, C, D, H, S, Tensor, V
 
 
 class ValidityLoss(nn.Module):
@@ -256,7 +256,22 @@ def take_source_and_target(
     )
 
 
-class BoundaryCrossLoss(nn.Module):
+class PathLoss(nn.Module):
+    def __init__(self):
+        super(PathLoss, self).__init__()
+
+    def forward(
+        self,
+        autoencoder,
+        classifier,
+        latents: Tensor[B, S, H],
+        source_class: Tensor[B],
+        target_class: Tensor[B],
+    ):
+        raise NotImplementedError()
+
+
+class BoundaryCrossLoss(PathLoss):
     """A loss that considers the time passed in either the source class or the target
     class.
 
@@ -292,8 +307,66 @@ class BoundaryCrossLoss(nn.Module):
         return -logit_max_source_and_target.mean()
 
 
-class PointLoss(nn.Module):
-    """A loss that considers whether the path passed by a given point."""
+def where_changes(tensor: Tensor[B, S], dim=-1) -> Tensor[B, S]:
+    """Return a Tensor containing 1 if the corresponding entry is
+    different from the previous one (according to `dim`), 0 otherwise.
+
+    By convention the result always starts with 0.
+    """
+    prepend = tensor.index_select(dim, torch.tensor([0]).to(tensor.device))
+    diffs = tensor.diff(prepend=prepend, dim=dim)
+    result = torch.zeros_like(tensor).to(tensor.device)
+    result[diffs != 0] = 1
+    return result
+
+
+def indices_where_changes(tensor: Tensor[S]) -> Tensor[S]:
+    """Return a Tensor containing the indices in `tensor` where the entry is
+    different from the previous one.
+
+    By convention the result always starts with 0.
+    """
+    if len(tensor) == 0:
+        return tensor
+    zero = torch.tensor([0]).to(tensor.device)
+    return torch.cat([zero, where_changes(tensor).nonzero().squeeze()])
+
+
+def get_path_ends(target: Tensor[B], cf_preds: Tensor[S, B]) -> Tensor[V]:
+    """Find where the path number changes, which will tell us how many
+    steps were taken to reach the target for each step.
+
+    Inputs:
+    -------
+    * target: The target class, for each point in the batch.
+    * cf_preds: The predicted class for each step of each path in the batch.
+    """
+    path_numbers, step_numbers = torch.where((target == cf_preds).T)
+    return step_numbers[indices_where_changes(path_numbers)]
+
+
+def get_path_mask(cf_preds: Tensor[S, B], target: Tensor[B]) -> Tensor[S, B]:
+    """Return a Tensor where each column is 1 until `target` is reached, then 0.
+    If the target is not reached then the whole column is 0 (not 1)."""
+
+    # Tells you whether or not
+    # `target` was reached in column `j` at or before `i`.
+    # `cumsum` is like reducing with a logical "or".
+    target_reached_progression: Tensor[S, B] = (target == cf_preds).cumsum(dim=0).bool()
+    # Tells you if `target` was reached at any point.
+    target_reached: Tensor[B] = target_reached_progression[-1, :]
+    # True until target is reached, then False from the
+    # first index where target is reached.
+    # All False when target is not reached.
+    return target_reached_progression.logical_not() * target_reached
+
+
+class PointLoss(PathLoss):
+    """A loss that considers whether the path passed by a given point *before reaching
+    the target*.
+
+    It finds the minimum of the distances between the point and all points in the path.
+    """
 
     def __init__(self, point: Tensor[D]):
         super(PointLoss, self).__init__()
@@ -303,18 +376,27 @@ class PointLoss(nn.Module):
         self,
         autoencoder,
         classifier,
-        latents: Tensor[B, S, H],
+        latents: Tensor[S, B, H],
         source_class: Tensor[B],
         target_class: Tensor[B],
     ):
-        latents_2d: Tensor[B * S, H] = latents.view(-1, latents.shape[2])
-        inputs_2d: Tensor[B * S, D] = autoencoder.decode(latents_2d)
-        distances_2d: Tensor[B * S] = torch.linalg.vector_norm(
+        s, b, h = latents.shape
+
+        inputs: Tensor[S, B, D] = autoencoder.decode(latents)
+        inputs_2d: Tensor[S * B, D] = inputs.view(-1, inputs.shape[-1])
+        distances_2d: Tensor[S * B] = torch.linalg.vector_norm(
             inputs_2d - self.point, dim=-1
         )
-        distances: Tensor[B, S] = distances_2d.view(latents.shape[0], latents.shape[1])
-        min_distances: Tensor[B] = distances.min(dim=-1).values
-        return min_distances.mean()
+
+        cfs: Tensor[S, B, D] = inputs_2d.reshape(s, b, -1)
+        cf_preds: Tensor[S, B] = classifier.predict(cfs)
+        path_mask: Tensor[S, B] = get_path_mask(cf_preds, target_class)
+
+        distances = torch.masked.masked_tensor(
+            distances_2d.view(s, b), path_mask, requires_grad=True
+        )
+
+        return distances.amin(dim=0).mean().get_data()
 
 
 class MaxPointLoss(PointLoss):
@@ -322,5 +404,5 @@ class MaxPointLoss(PointLoss):
     that has, for each feature, the maximum feature value in the dataset."""
 
     def __init__(self, dataset: Tensor[B, D]):
-        point = dataset.max(dim=0).values
+        point = dataset.max(dim=0).values.to(dataset.device)
         super(MaxPointLoss, self).__init__(point)

@@ -21,6 +21,7 @@ D: TypeAlias = "input_dim"
 C: TypeAlias = "output_dim"
 H: TypeAlias = "latent_dim"
 S: TypeAlias = "nb_steps"
+V: TypeAlias = "nb_valid_paths"
 
 InputPoint: TypeAlias = Tensor[D]
 InputBatch: TypeAlias = Tensor[B, D]

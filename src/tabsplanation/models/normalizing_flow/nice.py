@@ -86,7 +86,7 @@ class NICEModel(BaseModel):
         return loss, logs
 
     def encode(self, x: Input) -> Latent:
-        return self(x)
+        return self(x.flatten(end_dim=-2)).view_as(x)
 
     def decode(self, z: Latent) -> Input:
-        return self.inverse(z)
+        return self.inverse(z.flatten(end_dim=-2)).view_as(z)
