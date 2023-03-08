@@ -13,7 +13,7 @@ from experiments.shared.task_train_model import ModelCfg, TaskTrainModel
 from experiments.shared.utils import clone_config, get_object, read, setup, Task, write
 from tabsplanation.explanations.nice_path_regularized import random_targets_like
 from tabsplanation.models import AutoEncoder, Classifier
-from tabsplanation.types import PositiveInt, RelativeFloat, Seed
+from tabsplanation.types import B, H, PositiveInt, RelativeFloat, S, Seed, Tensor
 
 
 class ExplainerCfg:
@@ -157,17 +157,24 @@ class TaskCreatePlotDataValidityLosses(Task):
 
         explainer = explainer_cls(classifier, autoencoder, explainer_hparams, loss_fn)
 
-        for test_x, _ in data_module.test_dataloader(batch_size=10_000):
+        nb_valid = 0
+        for test_x, _ in data_module.test_dataloader():
             test_x = test_x.to(classifier.device)
 
             y_predict = classifier.predict(test_x)
             target = random_targets_like(y_predict, data_module.dataset.output_dim)
 
-            validity_rate = explainer.validity_rate(test_x, target)
+            cfs: Tensor[S, B, H] = explainer.get_cfs(test_x, target)
+            cf_preds = classifier.predict(cfs)
 
-            batch_size = len(test_x)
-            validity_rate += validity_rate * batch_size
+            path_numbers, step_numbers = torch.where((target == cf_preds).T)
+            valid_path_numbers = path_numbers.unique()
+            nb_valid = nb_valid + len(valid_path_numbers)
+            # validity_rate = nb_valid / nb_paths
 
-        validity_rate = validity_rate / len(data_module.test_set)
+            # batch_size = len(test_x)
+            # validity_rate += validity_rate * batch_size
+
+        validity_rate = nb_valid / len(data_module.test_set)
 
         return validity_rate
