@@ -2,13 +2,13 @@ seed: 42
 nb_seeds: 4
 
 training:
-  patience: 5
-  max_epochs: 0
+  patience: 3
+  max_epochs: -1
 
 data_module_args:
   validation_data_proportion: 0.2
   test_data_proportion: 0.2
-  batch_size: 2000
+  batch_size: 12000
   correct_for_class_imbalance: false
 
 data_modules:
@@ -23,11 +23,7 @@ data_modules:
       nb_dims: 2
       nb_uncorrelated_dims: 2
 - seed: ${seed}
-  args: 
-    batch_size: 10000
-    validation_data_proportion: ${data_module_args.validation_data_proportion}
-    test_data_proportion: ${data_module_args.test_data_proportion}
-    correct_for_class_imbalance: ${data_module_args.correct_for_class_imbalance}
+  args: ${data_module_args}
   dataset:
     class_name: tabsplanation.data.ForestCoverDataset
     args: null
@@ -65,7 +61,7 @@ autoencoder:
   model:
     class_name: NICEModel
     args:
-      mlp_hidden_dims: [50, 50, 50, 50]
+      mlp_hidden_dims: [20, 20]
       batch_norm: False
       dropout: null
       learning_rate: 1e-3
@@ -116,17 +112,17 @@ losses:
 - name: TargetLoss
   class_name: tabsplanation.explanations.losses.TargetLoss
   args: null
-# - name: BinaryStretchLoss
-#   class_name: tabsplanation.explanations.losses.BinaryStretchLoss
-#   args: null
-# - name: StretchLoss
-#   class_name: tabsplanation.explanations.losses.StretchLoss
-#   args: null
-# - name: LogitValidityLoss$_{\lambda_t = 1}$
-#   class_name: tabsplanation.explanations.losses.LogitValidityLoss
-#   args:
-#     reg_target: 1
-# - name: LogitValidityLoss$_{\lambda_t = 10}$
-#   class_name: tabsplanation.explanations.losses.LogitValidityLoss
-#   args:
-#     reg_target: 10
+- name: LossLogitTarget
+  class_name: tabsplanation.explanations.losses.GeneralValidityLoss
+  args:
+    kind: logit
+    classes: target
+- name: LossLogPrbTarget
+  class_name: tabsplanation.explanations.losses.GeneralValidityLoss
+  args:
+    kind: log_prb
+    classes: target
+- name: LogitValidityLoss$_{\lambda_t = 10}$
+  class_name: tabsplanation.explanations.losses.LogitValidityLoss
+  args:
+    reg_target: 10

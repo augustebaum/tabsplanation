@@ -65,8 +65,11 @@ autoencoder:
       dropout: null
       learning_rate: 1e-3
 
-path_reg_hparams:
-  path_loss_regularization: 1
+path_reg:
+  hparams:
+    path_loss_regularization: 1
+  path_loss_fn:
+    class_name: tabsplanation.explanations.losses.BoundaryCrossLoss
 
 max_iter: 100
 shift_step: 0.01
