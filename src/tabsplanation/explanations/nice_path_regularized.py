@@ -22,16 +22,14 @@ class PathRegularizedNICE(NICEModel):
     def __init__(
         self,
         classifier: Classifier,
-        explainer_cls: Explainer,
-        explainer_hparams: Dict,
+        explainer: Explainer,
         autoencoder_args: Dict,
         hparams: Dict,
-        path_loss_fn=BoundaryCrossLoss(),
+        path_loss_fn,
     ):
         super(PathRegularizedNICE, self).__init__(**autoencoder_args)
 
-        self.explainer_cls = explainer_cls
-        self.explainer_hparams = explainer_hparams
+        self.explainer = explainer
         self.classifier = classifier
 
         self.nb_classes = self.classifier.layers[-1].out_features
@@ -39,12 +37,16 @@ class PathRegularizedNICE(NICEModel):
         self.path_loss_fn = path_loss_fn
         self.path_loss_reg = hparams["path_loss_regularization"]
 
+        self.cf_loss_fn = explainer.cf_loss
+        self.cf_loss_reg = hparams["cf_loss_regularization"]
+
     def explain(self, x, y_target):
-        explainer = self.explainer_cls(self.classifier, self, self.explainer_hparams)
+        explainer = self.explainer.__class__(
+            self.classifier, self, self.explainer.hparams, self.cf_loss_fn
+        )
         return explainer.get_cf_latents(x, y_target)
 
     def step(self, batch, batch_idx):
-        # First step: compute likelihood
         nll, logs = super(PathRegularizedNICE, self).step(batch, batch_idx)
 
         x, _ = batch

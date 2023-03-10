@@ -3,7 +3,7 @@ from typing import Callable, Dict
 import torch
 
 from tabsplanation.explanations.latent_shift import grad, LatentShift
-from tabsplanation.explanations.losses import AwayLoss, BinaryStretchLoss, ValidityLoss
+from tabsplanation.explanations.losses import AwayLoss, ValidityLoss
 from tabsplanation.types import B, D, H, PositiveInt, RelativeFloat, S, Tensor
 
 
@@ -15,7 +15,7 @@ class LazyRevise(LatentShift):
         classifier,
         autoencoder,
         hparams: Dict,
-        validity_loss: ValidityLoss = BinaryStretchLoss(),
+        cf_loss: ValidityLoss,
     ):
         """
         gradient_frequency: int (>=1)
@@ -23,10 +23,10 @@ class LazyRevise(LatentShift):
             Setting to 1 is equivalent to Revise.
             Setting to inf is equivalent to Latent Shift.
         """
-        super(LazyRevise, self).__init__(
-            classifier, autoencoder, hparams, validity_loss
-        )
+        super(LazyRevise, self).__init__(classifier, autoencoder, hparams, cf_loss)
 
+        self.hparams = hparams
+        self.cf_loss = cf_loss
         self._gradient_frequency = hparams["gradient_frequency"]
 
     def get_cfs(
@@ -64,7 +64,7 @@ class LazyRevise(LatentShift):
         if target_class is None:
             validity_loss_fn = AwayLoss()
         else:
-            validity_loss_fn = self.validity_loss
+            validity_loss_fn = self.cf_loss
 
         def clf_decode(z: Tensor[B, H], target_class):
             logits = clf(ae.decode(z))

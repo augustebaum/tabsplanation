@@ -52,10 +52,17 @@ def initialize_model(model_args, classifier, data_module):
     else:
         path_loss_fn = path_loss_cls()
 
+    cf_loss_cls = get_object(model_args.explainer.args.cf_loss.class_name)
+    cf_loss = cf_loss_cls(**model_args.explainer.args.cf_loss.args)
+
+    explainer_cls = get_object(model_args.explainer.class_name)
+    explainer = explainer_cls(
+        classifier, None, model_args.explainer.args.hparams, cf_loss
+    )
+
     return PathRegularizedNICE(
         classifier=classifier,
-        explainer_cls=get_object(model_args.explainer.class_name),
-        explainer_hparams=model_args.explainer.args.hparams,
+        explainer=explainer,
         autoencoder_args={
             "input_dim": data_module.input_dim,
             **model_args.autoencoder_args,
