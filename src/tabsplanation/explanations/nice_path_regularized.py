@@ -56,8 +56,18 @@ class PathRegularizedNICE(NICEModel):
             self, self.classifier, latent_paths, y_source, y_target
         )
 
-        loss = nll + self.path_loss_reg * path_loss
-        logs |= {"path_loss": path_loss, "loss": loss}
+        logits = self.classifier(self.decode(latent_paths))
+        cf_loss = self.cf_loss_fn(logits, y_source, y_target)
+
+        loss = nll + self.path_loss_reg * path_loss + self.cf_loss_reg * cf_loss
+        logs |= {
+            "max_memory_gb": torch.cuda.max_memory_allocated(self.device) / (1024 ** 3),
+            "cf_loss": cf_loss.detach().item(),
+            "path_loss": path_loss.detach().item(),
+            "loss": loss.detach().item(),
+        }
+        if loss.isnan():
+            raise ValueError("Loss is NaN")
         return loss, logs
 
     def random_targets_like(self, y):

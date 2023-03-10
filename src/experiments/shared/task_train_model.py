@@ -115,7 +115,20 @@ class TaskTrainModel(Task):
 
         # Run a dummy forward pass to initialize Lazy layers
         # Run with two rows so that batch norm doesn't complain
-        model.forward(data_module.train_set[0:2][0].reshape(2, -1))
+        # model.forward(data_module.train_set[0:2][0].reshape(2, -1))
+
+        # Test the batch size works
+        while True:
+            try:
+                batch = data_module.train_set[: data_module.batch_size]
+                model.zero_grad()
+                loss, logs = model.step(batch, None)
+                loss.backward()
+            except:
+                data_module.batch_size = data_module.batch_size // 2
+                print(f"Trying with batch size of {data_module.batch_size}")
+            break
+        print(f"Final batch size: {data_module.batch_size}")
 
         trainer.fit(model=model, datamodule=data_module)
         if not isinstance(model, PathRegularizedNICE):

@@ -87,7 +87,7 @@ class Classifier(BaseModel):
         y_predicted = self.layers(x)
 
         loss = self.loss_fn(y_predicted, y)
-        logs = {"loss": loss}
+        logs = {"loss": loss.detach().item()}
 
         return loss, logs
 
@@ -97,7 +97,7 @@ class Classifier(BaseModel):
         x, y = batch
         y_predicted = self.layers(x)
 
-        logs["accuracy"] = self.accuracy_fn(y_predicted, y)
+        logs["accuracy"] = self.accuracy_fn(y_predicted, y).detach().item()
 
         self.log_dict({f"test_{k}": v for k, v in logs.items()})
         return loss
