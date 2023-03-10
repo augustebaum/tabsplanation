@@ -68,10 +68,11 @@ autoencoder:
 path_reg:
   hparams:
     path_loss_regularization: 1
+    cf_loss_regularization: 1
   path_loss_fn:
     class_name: tabsplanation.explanations.losses.BoundaryCrossLoss
 
-max_iter: 100
+max_iter: 99
 shift_step: 0.01
 explainers:
 - name: LatentShiftNoDistanceReg

@@ -7,25 +7,32 @@
 
 To get started, create the environment with
 ```console
-$ conda env create
+conda env create -f environment.yml
 ```
 or 
 ```console
-$ mamba create -f environment.yml
+mamba create -f environment.yml
 ```
-
 Then you'll need to install `pytorch-lightning` manually (don't ask me why!).
+```console
+mamba activate tabsplanation
+pip3 install torch==1.13.1+cu117 -f https://download.pytorch.org/whl/torch_stable.html
+pip3 install lightning
+pip3 install -e .
+```
 If the `pip install -e ` doesn't work automatically, enter the environment and
 run it manually. This is the ensure that `tabsplanation/src` is in `sys.path`
 when `pytask` is run.
 
+You might also need a working `latex` install if you want it to be used in the plots.
+
 ## Usage
 
-Activate the environment, then run
+In the root of the project, in the environment, run
 ```console
-$ pytask
+python3 -m src.experiments.run <name-of-experiment>
 ```
-to run all the experiments.
+to run a given experiment. The name is given by the name of the directory in `src/experiments`.
 
 By default, any output is captured by `pytask`. Hence, for visualizing the training of
 a model, it is recommended to use `tensorboard`.

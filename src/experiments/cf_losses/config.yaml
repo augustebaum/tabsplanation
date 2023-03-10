@@ -2,14 +2,14 @@ seed: 42
 
 training:
   patience: 3
-  max_epochs: 1
+  max_epochs: -1
 
 data_module:
   seed: ${seed}
   args:
     validation_data_proportion: 0.2
     test_data_proportion: 0.2
-    batch_size: 5000
+    batch_size: 12000
     correct_for_class_imbalance: false
   dataset:
     class_name: tabsplanation.data.CakeOnSeaDataset
@@ -40,30 +40,97 @@ autoencoder:
   model:
     class_name: NICEModel
     args:
-      mlp_hidden_dims: [50, 50, 50, 50]
+      mlp_hidden_dims: [20, 20]
       batch_norm: False
       dropout: null
       learning_rate: 1e-3
 
 
+# losses:
+# - name: TargetLoss
+#   class_name: tabsplanation.explanations.losses.TargetLoss
+#   args: null
+# - name: BinaryStretchLoss
+#   class_name: tabsplanation.explanations.losses.BinaryStretchLoss
+#   args: null
+# - name: StretchLoss
+#   class_name: tabsplanation.explanations.losses.StretchLoss
+#   args: null
+# - name: LogitValidityLoss$_{\lambda_t = 1}$
+#   class_name: tabsplanation.explanations.losses.LogitValidityLoss
+#   args:
+#     reg_target: 1
+# - name: LogitValidityLoss$_{\lambda_t = 10}$
+#   class_name: tabsplanation.explanations.losses.LogitValidityLoss
+#   args:
+#     reg_target: 10
+
+# - name: LossPrbTarget
+#   class_name: tabsplanation.explanations.losses.GeneralValidityLoss
+#   args:
+#     kind: prb
+#     classes: target
+# - name: LossPrbSource
+#   class_name: tabsplanation.explanations.losses.GeneralValidityLoss
+#   args:
+#     kind: prb
+#     classes: source
+# - name: LossPrbOthers
+#   class_name: tabsplanation.explanations.losses.GeneralValidityLoss
+#   args:
+#     kind: prb
+#     classes: others
+
+# - name: LossLogPrbTarget
+#   class_name: tabsplanation.explanations.losses.GeneralValidityLoss
+#   args:
+#     kind: log_prb
+#     classes: target
+# - name: LossLogPrbSource
+#   class_name: tabsplanation.explanations.losses.GeneralValidityLoss
+#   args:
+#     kind: log_prb
+#     classes: source
+# - name: LossLogPrbOthers
+#   class_name: tabsplanation.explanations.losses.GeneralValidityLoss
+#   args:
+#     kind: log_prb
+#     classes: others
+
+# - name: LossLogitTarget
+#   class_name: tabsplanation.explanations.losses.GeneralValidityLoss
+#   args:
+#     kind: logit
+#     classes: target
+# - name: LossLogitSource
+#   class_name: tabsplanation.explanations.losses.GeneralValidityLoss
+#   args:
+#     kind: logit
+#     classes: source
+# - name: LossLogitOthers
+#   class_name: tabsplanation.explanations.losses.GeneralValidityLoss
+#   args:
+#     kind: logit
+#     classes: others
+
 losses:
-- name: TargetLoss
-  class_name: tabsplanation.explanations.losses.TargetLoss
-  args: null
-- name: BinaryStretchLoss
-  class_name: tabsplanation.explanations.losses.BinaryStretchLoss
-  args: null
-- name: StretchLoss
-  class_name: tabsplanation.explanations.losses.StretchLoss
-  args: null
-- name: LogitValidityLoss$_{\lambda_t = 1}$
-  class_name: tabsplanation.explanations.losses.LogitValidityLoss
-  args:
-    reg_target: 1
-- name: LogitValidityLoss$_{\lambda_t = 10}$
-  class_name: tabsplanation.explanations.losses.LogitValidityLoss
-  args:
-    reg_target: 10
+# - name: TargetLoss
+#   class_name: tabsplanation.explanations.losses.TargetLoss
+#   args: null
+# - name: BinaryStretchLoss
+#   class_name: tabsplanation.explanations.losses.BinaryStretchLoss
+#   args: null
+# - name: StretchLoss
+#   class_name: tabsplanation.explanations.losses.StretchLoss
+#   args: null
+# - name: LogitValidityLoss$_{\lambda_t = 1}$
+#   class_name: tabsplanation.explanations.losses.LogitValidityLoss
+#   args:
+#     reg_target: 1
+# - name: LogitValidityLoss$_{\lambda_t = 10}$
+#   class_name: tabsplanation.explanations.losses.LogitValidityLoss
+#   args:
+#     reg_target: 10
 
 - name: LossPrbTarget
   class_name: tabsplanation.explanations.losses.GeneralValidityLoss
@@ -75,11 +142,11 @@ losses:
   args:
     kind: prb
     classes: source
-- name: LossPrbOthers
-  class_name: tabsplanation.explanations.losses.GeneralValidityLoss
-  args:
-    kind: prb
-    classes: others
+# - name: LossPrbOthers
+#   class_name: tabsplanation.explanations.losses.GeneralValidityLoss
+#   args:
+#     kind: prb
+#     classes: others
 
 - name: LossLogPrbTarget
   class_name: tabsplanation.explanations.losses.GeneralValidityLoss
@@ -112,3 +179,60 @@ losses:
   args:
     kind: logit
     classes: others
+
+- name: LossPrbTarget$_{\lambda = 0.1}$
+  class_name: tabsplanation.explanations.losses.GeneralValidityLoss
+  args:
+    kind: prb
+    classes: target
+    coef: 0.1
+- name: LossPrbSource$_{\lambda = 0.1}$
+  class_name: tabsplanation.explanations.losses.GeneralValidityLoss
+  args:
+    kind: prb
+    classes: source
+    coef: 0.1
+# - name: LossPrbOthers$_{\lambda = 0.1}$
+#   class_name: tabsplanation.explanations.losses.GeneralValidityLoss
+#   args:
+#     kind: prb
+#     classes: others
+#     coef: 0.1
+
+- name: LossLogPrbTarget$_{\lambda = 0.1}$
+  class_name: tabsplanation.explanations.losses.GeneralValidityLoss
+  args:
+    kind: log_prb
+    classes: target
+    coef: 0.1
+- name: LossLogPrbSource$_{\lambda = 0.1}$
+  class_name: tabsplanation.explanations.losses.GeneralValidityLoss
+  args:
+    kind: log_prb
+    classes: source
+    coef: 0.1
+- name: LossLogPrbOthers$_{\lambda = 0.1}$
+  class_name: tabsplanation.explanations.losses.GeneralValidityLoss
+  args:
+    kind: log_prb
+    classes: others
+    coef: 0.1
+
+- name: LossLogitTarget$_{\lambda = 0.1}$
+  class_name: tabsplanation.explanations.losses.GeneralValidityLoss
+  args:
+    kind: logit
+    classes: target
+    coef: 0.1
+- name: LossLogitSource$_{\lambda = 0.1}$
+  class_name: tabsplanation.explanations.losses.GeneralValidityLoss
+  args:
+    kind: logit
+    classes: source
+    coef: 0.1
+- name: LossLogitOthers$_{\lambda = 0.1}$
+  class_name: tabsplanation.explanations.losses.GeneralValidityLoss
+  args:
+    kind: logit
+    classes: others
+    coef: 0.1

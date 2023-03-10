@@ -13,7 +13,11 @@ data_module_args:
 
 data_modules:
 - seed: ${seed}
-  args: ${data_module_args}
+  args: 
+    validation_data_proportion: ${data_module_args.validation_data_proportion}
+    test_data_proportion: ${data_module_args.test_data_proportion}
+    correct_for_class_imbalance: ${data_module_args.correct_for_class_imbalance}
+    batch_size: 12000
   dataset:
     class_name: tabsplanation.data.CakeOnSeaDataset
     args: 
@@ -23,17 +27,29 @@ data_modules:
       nb_dims: 2
       nb_uncorrelated_dims: 2
 - seed: ${seed}
-  args: ${data_module_args}
+  args: 
+    validation_data_proportion: ${data_module_args.validation_data_proportion}
+    test_data_proportion: ${data_module_args.test_data_proportion}
+    correct_for_class_imbalance: ${data_module_args.correct_for_class_imbalance}
+    batch_size: 25000
   dataset:
     class_name: tabsplanation.data.ForestCoverDataset
     args: null
 - seed: ${seed}
-  args: ${data_module_args}
+  args: 
+    validation_data_proportion: ${data_module_args.validation_data_proportion}
+    test_data_proportion: ${data_module_args.test_data_proportion}
+    correct_for_class_imbalance: ${data_module_args.correct_for_class_imbalance}
+    batch_size: 500
   dataset:
     class_name: tabsplanation.data.WineQualityDataset
     args: null
 - seed: ${seed}
-  args: ${data_module_args}
+  args: 
+    validation_data_proportion: ${data_module_args.validation_data_proportion}
+    test_data_proportion: ${data_module_args.test_data_proportion}
+    correct_for_class_imbalance: ${data_module_args.correct_for_class_imbalance}
+    batch_size: 3000
   dataset:
     class_name: tabsplanation.data.OnlineNewsPopularityDataset
     args: null
@@ -69,10 +85,11 @@ autoencoder:
 path_reg:
   hparams:
     path_loss_regularization: 1
+    cf_loss_regularization: 1
   path_loss_fn:
     class_name: tabsplanation.explanations.losses.MaxPointLoss
 
-max_iter: 100
+max_iter: 99
 shift_step: 0.01
 explainers:
 - name: LatentShiftNoDistanceReg
@@ -109,20 +126,21 @@ explainers:
       distance_regularization: 0.3
 
 losses:
-- name: TargetLoss
-  class_name: tabsplanation.explanations.losses.TargetLoss
-  args: null
-- name: LossLogitTarget
+# - name: TargetLoss
+#   class_name: tabsplanation.explanations.losses.TargetLoss
+#   args: null
+- name: LossLogitTarget$_{\lambda=0.1}$
   class_name: tabsplanation.explanations.losses.GeneralValidityLoss
   args:
     kind: logit
     classes: target
-- name: LossLogPrbTarget
-  class_name: tabsplanation.explanations.losses.GeneralValidityLoss
-  args:
-    kind: log_prb
-    classes: target
-- name: LogitValidityLoss$_{\lambda_t = 10}$
-  class_name: tabsplanation.explanations.losses.LogitValidityLoss
-  args:
-    reg_target: 10
+    coef: 0.1
+# - name: LossLogPrbTarget
+#   class_name: tabsplanation.explanations.losses.GeneralValidityLoss
+#   args:
+#     kind: log_prb
+#     classes: target
+# - name: LogitValidityLoss$_{\lambda_t = 10}$
+#   class_name: tabsplanation.explanations.losses.LogitValidityLoss
+#   args:
+#     reg_target: 10
