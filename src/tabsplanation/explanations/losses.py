@@ -1,11 +1,10 @@
 """Different losses to be used for finding counterfactuals."""
-
 from typing import Literal, Optional
 
 import torch
 from torch import nn
 
-from tabsplanation.types import B, C, D, H, S, Tensor, V
+from tabsplanation.types import B, C, D, H, RelativeFloat, S, Tensor, V
 
 
 class ValidityLoss(nn.Module):
@@ -29,6 +28,7 @@ class GeneralValidityLoss(nn.Module):
         self,
         kind: Literal["prb", "log_prb", "logit"],
         classes: Literal["target", "source", "others"],
+        coef: RelativeFloat = 1.0,
     ):
         super(GeneralValidityLoss, self).__init__()
         # self.ce_loss = nn.CrossEntropyLoss(reduction="none")
@@ -36,14 +36,14 @@ class GeneralValidityLoss(nn.Module):
         self._classes = classes
 
         if classes == "target":
-            self.coef_source = 0
-            self.coef_others = 0
+            self.coef_source = 0.0
+            self.coef_others = 0.0
         if classes == "source":
-            self.coef_source = 1
-            self.coef_others = 0
+            self.coef_source = coef
+            self.coef_others = 0.0
         if classes == "others":
-            self.coef_source = 1
-            self.coef_others = 1
+            self.coef_source = coef
+            self.coef_others = coef
 
         if kind == "logit":
             self.kind_fn = GeneralValidityLoss.get_logits
@@ -68,6 +68,7 @@ class GeneralValidityLoss(nn.Module):
             return logits
         if len(classes.shape) == 1:
             return logits.gather(1, classes.view(-1, 1))
+        # logits.gather(2, classes.view(1, -1,1).expand(steps, -1, -1))
         return logits.gather(1, classes)
 
     @staticmethod
@@ -83,7 +84,8 @@ class GeneralValidityLoss(nn.Module):
         logits: Tensor[B, C],
         classes: Optional[Tensor[B, "k"]] = None,
     ) -> Tensor[B, "k"]:
-        log_prbs = logits.softmax(dim=-1).log()
+        # Clamp to avoid infs
+        log_prbs = logits.softmax(dim=-1).clamp(min=10 ** (-18)).log()
         return GeneralValidityLoss.get_logits(log_prbs, classes)
 
     def forward(
@@ -95,13 +97,27 @@ class GeneralValidityLoss(nn.Module):
         """Compute the loss for a counterfactual whose original point was predicted as
         class `source`, and whose target class is `target`."""
 
+        if logits.dim() == 3:
+            # Assume logits has shape S, B, C
+            nb_steps = logits.shape[0]
+            logits = logits.flatten(end_dim=-2)
+            target = target.repeat_interleave(nb_steps)
+            source = source.repeat_interleave(nb_steps)
+
         kind_target: Tensor[B, 1] = self.kind_fn(logits, target)
         kind_source: Tensor[B, 1] = self.kind_fn(logits, source)
 
         kind_all_classes: Tensor[B, C] = self.kind_fn(logits)
+        # Normalize
         kind_others: Tensor[B, 1] = (
             kind_all_classes.sum(dim=1).view(-1, 1) - kind_target - kind_source
         )
+        if (
+            kind_target.isnan().any()
+            or kind_source.isnan().any()
+            or kind_others.isnan().any()
+        ):
+            raise ValueError()
 
         return (
             -kind_target
@@ -370,7 +386,7 @@ class PointLoss(PathLoss):
 
     def __init__(self, point: Tensor[D]):
         super(PointLoss, self).__init__()
-        self.point = point
+        self.register_buffer("point", point)
 
     def forward(
         self,
@@ -391,12 +407,17 @@ class PointLoss(PathLoss):
         cfs: Tensor[S, B, D] = inputs_2d.reshape(s, b, -1)
         cf_preds: Tensor[S, B] = classifier.predict(cfs)
         path_mask: Tensor[S, B] = get_path_mask(cf_preds, target_class)
+        # import pdb
+
+        # pdb.set_trace()
+        # valid_path_idx = path_mask.sum(dim=0).nonzero()
+        # distances_2d.view(s, b)[:, valid_path_idx]
 
         distances = torch.masked.masked_tensor(
             distances_2d.view(s, b), path_mask, requires_grad=True
         )
 
-        return distances.amin(dim=0).mean().get_data()
+        return distances.amin(dim=0).mean().get_data().nan_to_num(torch.tensor(0))
 
 
 class MaxPointLoss(PointLoss):
