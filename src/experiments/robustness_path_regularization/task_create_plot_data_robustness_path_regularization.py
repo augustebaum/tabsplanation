@@ -9,15 +9,15 @@ from experiments.path_regularization.task_create_plot_data_path_regularization i
     get_loss_fn,
     TaskCreatePlotDataPathRegularization,
 )
-from experiments.shared.utils import Task
+from experiments.shared.utils import get_object_name, Task
 from tabsplanation.explanations.losses import get_path_mask, MaxPointLoss
 from tabsplanation.explanations.nice_path_regularized import random_targets_like
 from tabsplanation.metrics import time_measurement
-from tabsplanation.types import B, H, S, Tensor, V
+from tabsplanation.types import B, D, S, Tensor, V
 
 
 def get_mean_distance(data_module, autoencoder, classifier, cfs, target):
-    return MaxPointLoss(data_module.train_data)(
+    return MaxPointLoss(data_module.train_data[0])(
         autoencoder,
         classifier,
         autoencoder.encode(cfs),
@@ -49,16 +49,15 @@ class TaskCreatePlotDataRobustnessPathRegularization(Task):
 
     @staticmethod
     def parse_result(result):
-        get_object_name = lambda s: parse_full_qualified_object(s)[1]
         return {
             "Dataset": get_object_name(result["data_module"]).removesuffix("Dataset"),
             "Path method": result["path_method"]["name"],
             "Path regularization": result["path_regularized"],
             "Loss function": result["loss"]["name"],
-            "validity_rate (%)": result["validity_rate"] * 100,
-            "AUC of LOF": result["auc_lof"],
-            r"\Delta t (ns)": result["time_per_iteration_s"] * (10 ** 9),
-            "Mean #BC": result["mean_boundary_crossings"],
+            r"Validity rate (\%)": result["validity_rate"] * 100,
+            r"\Delta t (ns)": result["time_per_path_step_s"] * (10 ** 9),
+            "Mean NLL": result["mean_nll"],
+            "Mean distance to point": result["mean_distance"],
         }
 
     @staticmethod
@@ -82,7 +81,7 @@ class TaskCreatePlotDataRobustnessPathRegularization(Task):
             target = random_targets_like(y_predict, data_module.dataset.output_dim)
 
             with time_measurement() as cf_time_s:
-                cfs: Tensor[S, B, H] = explainer.get_cfs(test_x, target)
+                cfs: Tensor[S, B, D] = explainer.get_cfs(test_x, target)
 
             nb_steps, nb_paths, _ = cfs.shape
 
@@ -99,9 +98,7 @@ class TaskCreatePlotDataRobustnessPathRegularization(Task):
             metrics["validity_rate"] = len(valid_path_numbers) / nb_paths
 
             path_mask: Tensor[S, B] = get_path_mask(cf_preds, target)
-            metrics["mean_nll"] = compute_mean_nll(
-                autoencoder_for_nll, cfs[:, valid_path_numbers], path_mask
-            )
+            metrics["mean_nll"] = compute_mean_nll(autoencoder_for_nll, cfs, path_mask)
 
             metrics["mean_distance"] = get_mean_distance(
                 data_module, autoencoder, classifier, cfs, target

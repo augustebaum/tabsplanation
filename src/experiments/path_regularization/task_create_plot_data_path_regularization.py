@@ -15,7 +15,7 @@ from experiments.shared.task_train_model import TaskTrainModel
 from experiments.shared.utils import (
     clone_config,
     get_object,
-    parse_full_qualified_object,
+    get_object_name,
     read,
     setup,
     Task,
@@ -52,19 +52,17 @@ def get_loss_fn(loss_fn_cfg):
     return loss_cls(**loss_fn_cfg.args)
 
 
-def compute_mean_nll(autoencoder, valid_paths: Tensor[S, V, D], path_mask):
-    nb_steps, nb_valid = valid_paths.shape[0], valid_paths.shape[1]
-    if nb_valid == 0:
-        mean_nll = 0
-    else:
-        z: Tensor[S * V, H] = autoencoder(valid_paths.view(-1, valid_paths.shape[-1]))
-        nll: Tensor[S * V] = -(
-            autoencoder.loss_fn.__class__.log_likelihood(z)
-            + autoencoder.log_scaling_factors.sum()
-        )
+def compute_mean_nll(autoencoder, cfs: Tensor[S, B, D], path_mask: Tensor[S, B]):
+    # Assuming `encode` keeps dimensions, the way it is in `NICEModel`.
+    z: Tensor[S, B, H] = autoencoder.encode(cfs)
+    nll: Tensor[S * B] = -(
+        autoencoder.loss_fn.__class__.log_likelihood(z.flatten(end_dim=-2))
+        + autoencoder.log_scaling_factors.sum()
+    )
 
-        masked_nll = path_mask * nll.view(nb_steps, nb_valid, 1)
-        mean_nll = masked_nll.mean().item()
+    masked_nll = torch.masked.masked_tensor(nll.view(z.shape[0], z.shape[1]), path_mask)
+
+    mean_nll = masked_nll.mean().item()
 
     return mean_nll
 
@@ -92,6 +90,7 @@ class TaskCreatePlotDataPathRegularization(Task):
 
     @staticmethod
     def setup(cfg):
+        # Make sure self.cfg is not modified
         cfg = clone_config(cfg)
 
         setup(cfg.seed)
@@ -99,8 +98,6 @@ class TaskCreatePlotDataPathRegularization(Task):
 
         task_deps = []
         depends_on = {}
-
-        # Make sure self.cfg is not modified
 
         # For each dataset
         for data_module_cfg in cfg.data_modules:
@@ -147,29 +144,33 @@ class TaskCreatePlotDataPathRegularization(Task):
                 autoencoder_deps[(seed, False)] = task_autoencoder.produces
 
                 for explainer_cfg in cfg.explainers:
-                    path_regularized_autoencoder_cfg = clone_config(autoencoder_cfg)
-                    path_regularized_autoencoder_cfg.model = {
-                        "class_name": "PathRegularizedNICE",
-                        "args": {
-                            "classifier": classifier_cfg,
-                            "autoencoder_args": autoencoder_cfg.model.args,
-                            "explainer": explainer_cfg,
-                            "hparams": cfg.path_reg.hparams,
-                            "path_loss_fn": cfg.path_reg.path_loss_fn,
-                        },
-                    }
+                    for loss in cfg.losses:
+                        explainer_cfg = clone_config(explainer_cfg)
+                        explainer_cfg.args.cf_loss = loss
 
-                    # Train a regularized autoencoder with the same architecture
-                    task_path_regularized_autoencoder = TaskTrainPathRegAe(
-                        path_regularized_autoencoder_cfg
-                    )
+                        path_regularized_autoencoder_cfg = clone_config(autoencoder_cfg)
+                        path_regularized_autoencoder_cfg.model = {
+                            "class_name": "PathRegularizedNICE",
+                            "args": {
+                                "classifier": classifier_cfg,
+                                "autoencoder_args": autoencoder_cfg.model.args,
+                                "explainer": explainer_cfg,
+                                "hparams": cfg.path_reg.hparams,
+                                "path_loss_fn": cfg.path_reg.path_loss_fn,
+                            },
+                        }
 
-                    # Add it to the dependencies
-                    task_deps.append(task_path_regularized_autoencoder)
-                    # Path regularized = True
-                    autoencoder_deps[
-                        (seed, True)
-                    ] = task_path_regularized_autoencoder.produces
+                        # Train a regularized autoencoder with the same architecture
+                        task_path_regularized_autoencoder = TaskTrainPathRegAe(
+                            path_regularized_autoencoder_cfg
+                        )
+
+                        # Add it to the dependencies
+                        task_deps.append(task_path_regularized_autoencoder)
+                        # Path regularized = True
+                        autoencoder_deps[
+                            (seed, True)
+                        ] = task_path_regularized_autoencoder.produces
 
         return task_deps, depends_on
 
@@ -237,7 +238,6 @@ class TaskCreatePlotDataPathRegularization(Task):
 
     @staticmethod
     def parse_result(result):
-        get_object_name = lambda s: parse_full_qualified_object(s)[1]
         return {
             "Dataset": get_object_name(result["data_module"]).removesuffix("Dataset"),
             "Path method": result["path_method"]["name"],

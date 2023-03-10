@@ -55,8 +55,12 @@ def parse_full_qualified_object(object_full_path: str) -> Tuple[str, str]:
     and parse it into ('a.b', 'C')."""
     module_path: List[str] = object_full_path.split(".")
     object_name: str = module_path.pop(-1)
-    module_path: str = ".".join(module_path)
-    return module_path, object_name
+    module_path_str: str = ".".join(module_path)
+    return module_path_str, object_name
+
+
+def get_object_name(object_full_path: str) -> str:
+    return parse_full_qualified_object(object_full_path)[1]
 
 
 def get_module_object(module_path: str, object_name: str):
@@ -164,13 +168,12 @@ task = {cls_name}(OmegaConf.create({self.cfg}))
 @pytask.mark.depends_on(task.depends_on)
 @pytask.mark.produces(task.produces)
 def {camel_to_snake(cls_name)}(depends_on, produces, cfg=task.cfg):
-    {cls_name}.task_function(depends_on, produces, cfg)
     if isinstance(produces, dict):
         if produces.get("full_config") is not None:
             save_full_config(cfg, produces["full_config"])
         if produces.get("config") is not None:
             save_config(cfg, produces["config"])
-
+    {cls_name}.task_function(depends_on, produces, cfg)
 """
 
         return module_import + task_definition
