@@ -1,3 +1,6 @@
+import operator
+from functools import reduce
+
 import pandas as pd
 
 from config import BLD_PLOTS
@@ -40,16 +43,28 @@ class TaskPlotValidityLosses(Task):
         df = df * 100
         df = df.droplevel(0, axis=1)
 
-        df = df.apply(
-            lambda row: "{:.1f}".format(row["mean"])
-            + "±"
-            + "{:.1f}".format(row["sem"]),
-            axis=1,
+        df = df.sort_index()
+
+        print(
+            df.groupby(["Dataset", "Loss function"])
+            .mean()["mean"]
+            .groupby("Dataset")
+            .nlargest(5)
         )
 
-        df = df.unstack([0, 1])
+        df = df.unstack(["Path method"])
+        df.columns = df.columns.reorder_levels([1, 0])
 
-        loss_names_in_order = [r["Loss function"] for r in results][: len(cfg.losses)]
-        df = df.reindex(loss_names_in_order)
+        n = len(df.columns) // 2
+        method = reduce(operator.add, [[i, i] for i in range(n)])
+        all_methods = [m for m, _ in df.columns[0:n]]
+        qty = [0, 1] * n
+        all_qtys = ["mean", "sem"]
+        new_columns = list(
+            zip((all_methods[m] for m in method), (all_qtys[q] for q in qty))
+        )
+        df = df.reindex(new_columns, axis=1)
+
+        df = df.applymap("{:.1f}".format)
 
         write(df.style.to_latex(), produces["results"])
