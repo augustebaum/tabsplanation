@@ -391,28 +391,23 @@ class PointLoss(PathLoss):
         source_class: Tensor[B],
         target_class: Tensor[B],
     ):
-        s, b, h = latents.shape
+        s, b, _ = latents.shape
 
         inputs: Tensor[S, B, D] = autoencoder.decode(latents)
         inputs_2d: Tensor[S * B, D] = inputs.view(-1, inputs.shape[-1])
         distances_2d: Tensor[S * B] = torch.linalg.vector_norm(
             inputs_2d - self.point, dim=-1
         )
+        distances: Tensor[S, B] = distances_2d.view(s, b)
+        min_distances: Tensor[B] = distances.amin(dim=0)
+        return min_distances.mean()
 
-        cfs: Tensor[S, B, D] = inputs_2d.reshape(s, b, -1)
-        cf_preds: Tensor[S, B] = classifier.predict(cfs)
-        path_mask: Tensor[S, B] = get_path_mask(cf_preds, target_class)
-        # import pdb
+        # MaskedTensor is too new; it hogs all the memory
+        # distances = torch.masked.masked_tensor(
+        #     distances_2d.view(s, b), path_mask, requires_grad=True
+        # )
 
-        # pdb.set_trace()
-        # valid_path_idx = path_mask.sum(dim=0).nonzero()
-        # distances_2d.view(s, b)[:, valid_path_idx]
-
-        distances = torch.masked.masked_tensor(
-            distances_2d.view(s, b), path_mask, requires_grad=True
-        )
-
-        return distances.amin(dim=0).mean().get_data().nan_to_num(torch.tensor(0))
+        # return distances.amin(dim=0).mean().get_data().nan_to_num(torch.tensor(0))
 
 
 class MaxPointLoss(PointLoss):
