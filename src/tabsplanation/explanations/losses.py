@@ -31,7 +31,6 @@ class GeneralValidityLoss(nn.Module):
         coef: RelativeFloat = 1.0,
     ):
         super(GeneralValidityLoss, self).__init__()
-        # self.ce_loss = nn.CrossEntropyLoss(reduction="none")
         self._kind = kind
         self._classes = classes
 
@@ -310,17 +309,13 @@ class BoundaryCrossLoss(PathLoss):
         source_class: Tensor[B],
         target_class: Tensor[B],
     ):
-        latents_2d = latents.view(-1, latents.shape[2])
-        inputs = autoencoder.decode(latents_2d)
-        logits_2d: Tensor[B * S, C] = classifier(inputs)
-        logits: Tensor[B, S, C] = logits_2d.view(
-            latents.shape[0], latents.shape[1], logits_2d.shape[1]
+        prbs: Tensor[B, S, C] = classifier.predict_proba(autoencoder.decode(latents))
+        prbs_filtered: Tensor[B, S, 2] = take_source_and_target(
+            prbs, source_class, target_class
         )
-        logits_filtered: Tensor[B, S, 2] = take_source_and_target(
-            logits, source_class, target_class
-        )
-        logit_max_source_and_target: Tensor[B, S] = logits_filtered.max(dim=2).values
-        return -logit_max_source_and_target.mean()
+
+        prb_max_source_and_target: Tensor[B, S] = prbs_filtered.max(dim=2).values
+        return -prb_max_source_and_target.mean()
 
 
 def where_changes(tensor: Tensor[B, S], dim=-1) -> Tensor[B, S]:
