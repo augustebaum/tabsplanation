@@ -93,20 +93,22 @@ class TaskTrainModel(Task):
     @classmethod
     def train_model(cls, data_module, model, cfg):
         early_stopping_cb = EarlyStopping(
-            monitor="val_loss", mode="min", patience=cfg.training.patience
+            monitor="val_loss",
+            mode="min",
+            patience=cfg.training.patience,
+            min_delta=0.001,
         )
 
         version = f"{model.__class__.__name__}_{hash_(cfg)}_{get_time()}"
         tb_logger = TensorBoardLogger(save_dir=BLD_MODELS, version=version)
 
         if torch.cuda.is_available():
-            gpu_kwargs = {"accelerator": "gpu", "devices": -1}
+            gpu_kwargs = {"accelerator": "gpu", "devices": 1}
         else:
             gpu_kwargs = {}
 
         trainer = pl.Trainer(
             max_epochs=cfg.training.max_epochs,
-            # val_check_interval=cfg.training.val_check_interval,
             logger=tb_logger,
             callbacks=[early_stopping_cb],
             enable_model_summary=False,
@@ -115,22 +117,10 @@ class TaskTrainModel(Task):
 
         # Run a dummy forward pass to initialize Lazy layers
         # Run with two rows so that batch norm doesn't complain
-        # model.forward(data_module.train_set[0:2][0].reshape(2, -1))
-
-        # Test the batch size works
-        while True:
-            try:
-                batch = data_module.train_set[: data_module.batch_size]
-                model.zero_grad()
-                loss, logs = model.step(batch, None)
-                loss.backward()
-            except:
-                data_module.batch_size = data_module.batch_size // 2
-                print(f"Trying with batch size of {data_module.batch_size}")
-            break
-        print(f"Final batch size: {data_module.batch_size}")
+        model.forward(data_module.train_set[0:2][0].reshape(2, -1))
 
         trainer.fit(model=model, datamodule=data_module)
+
         if not isinstance(model, PathRegularizedNICE):
             trainer = pl.Trainer(
                 devices=1,
