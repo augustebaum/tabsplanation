@@ -22,9 +22,6 @@ class TaskPlotPathRegularization(Task):
     @classmethod
     def task_function(cls, depends_on, produces, cfg):
         results = read(depends_on["results"])
-        import pdb
-
-        pdb.set_trace()
 
         df = pd.DataFrame.from_records(results)
 

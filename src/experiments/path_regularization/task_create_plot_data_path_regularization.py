@@ -21,20 +21,16 @@ from experiments.shared.utils import (
     Task,
     write,
 )
-from tabsplanation.explanations.losses import (
-    get_path_ends,
-    get_path_mask,
-    where_changes,
-)
+from tabsplanation.explanations.losses import get_path_mask, where_changes
 from tabsplanation.explanations.nice_path_regularized import random_targets_like
 from tabsplanation.metrics import time_measurement
-from tabsplanation.types import B, D, H, S, Tensor, V
+from tabsplanation.types import B, D, H, S, Tensor
 
 
 def batchify_metrics(metrics, batch_size):
     new_metrics = metrics.copy()
-    for k, v in metrics.items():
-        metrics[k] = v * batch_size
+    for k, v in new_metrics.items():
+        new_metrics[k] = v * batch_size
     return new_metrics
 
 
@@ -68,15 +64,20 @@ def compute_mean_nll(autoencoder, cfs: Tensor[S, B, D], path_mask: Tensor[S, B])
 
 
 def compute_mean_boundary_crossings_rate(
-    valid_cf_preds: Tensor[V, S], path_mask: Tensor[V, S]
+    cf_preds: Tensor[B, S], path_mask: Tensor[B, S]
 ):
-    nb_valid = path_mask.shape[0]
+    nb_valid = path_mask[:, 0].sum()
     if nb_valid == 0:
         return 0
-    bound_crossings_before_target: Tensor[V, S] = (
-        where_changes(valid_cf_preds) * path_mask
+
+    validity_rate = nb_valid / path_mask.shape[0]
+
+    bound_crossings_before_target: Tensor[S, B] = where_changes(cf_preds) * path_mask
+    mean_nb_bound_crossings = (
+        bound_crossings_before_target.sum(dim=1).to(torch.float).mean()
     )
-    return bound_crossings_before_target.sum(dim=1).mean().item()
+    # We're not counting the invalid paths, so we can apply this is simple correction
+    return (mean_nb_bound_crossings / validity_rate).item()
 
 
 class TaskCreatePlotDataPathRegularization(Task):
@@ -244,7 +245,7 @@ class TaskCreatePlotDataPathRegularization(Task):
             "Path regularization": result["path_regularized"],
             "Loss function": result["loss"]["name"],
             "validity_rate (%)": result["validity_rate"] * 100,
-            r"\Delta t (ns)": result["time_per_iteration_s"] * (10 ** 9),
+            r"\Delta t (ns)": result["time_per_path_step_s"] * (10 ** 9),
             "Mean #BC": result["mean_boundary_crossings"],
             "Mean NLL": result["mean_nll"],
         }
@@ -278,31 +279,19 @@ class TaskCreatePlotDataPathRegularization(Task):
 
             cf_preds = classifier.predict(cfs)
 
-            # path_numbers is a non-decreasing vector containing the path number
-            # of any step where the predicted class equals the target class.
-            # step_numbers contains the step numbers where this is achieved.
-            path_numbers, step_numbers = torch.where((target == cf_preds).T)
-
-            valid_path_numbers: Tensor[V] = path_numbers.unique()
-
-            metrics["validity_rate"] = len(valid_path_numbers) / nb_paths
-
-            valid_paths: Tensor[S, V, D] = cfs[:, valid_path_numbers]
-            metrics["mean_nll"] = compute_mean_nll(autoencoder_for_nll, valid_paths)
-
-            # Find where the path number changes, which will tell us how many
-            # steps were taken to reach the target for each step
-            path_ends: Tensor[V] = get_path_ends(cf_preds, target)
-            path_mask: Tensor[V, S] = get_path_mask(path_ends, nb_steps).to(
+            path_mask: Tensor[S, B] = get_path_mask(cf_preds, target).to(
                 cf_preds.device
             )
-            valid_cf_preds: Tensor[V, S] = cf_preds.T[valid_path_numbers]
+
+            metrics["validity_rate"] = (path_mask[0, :].sum() / nb_paths).item()
+
+            metrics["mean_nll"] = compute_mean_nll(autoencoder_for_nll, cfs, path_mask)
 
             metrics["mean_boundary_crossings"] = compute_mean_boundary_crossings_rate(
-                valid_cf_preds, path_mask
+                cf_preds.T, path_mask.T
             )
 
-            batch_results.append(batchify_metrics(metrics, len(test_x)))
+            batch_results.append(batchify_metrics(metrics, nb_paths))
 
         results = dict(
             pd.DataFrame.from_records(batch_results).sum() / len(data_module.test_set)
