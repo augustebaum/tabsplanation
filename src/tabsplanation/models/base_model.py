@@ -2,6 +2,7 @@ import hashlib
 import json
 
 import lightning as pl
+import torch
 from torch import optim
 
 
@@ -49,6 +50,11 @@ class BaseModel(pl.LightningModule):
 
     def validation_step(self, batch, batch_idx):
         loss, logs = self.step(batch, batch_idx)
+
+        logs["max_memory_gb"] = torch.cuda.max_memory_allocated(self.device) / (
+            1024 ** 3
+        )
+
         self.log_dict({f"val_{k}": v for k, v in logs.items()}, sync_dist=True)
         return loss
 

@@ -2,7 +2,6 @@ from typing import Any, Dict
 
 import torch
 
-from tabsplanation.explanations.losses import BoundaryCrossLoss
 from tabsplanation.models.classifier import Classifier
 from tabsplanation.models.normalizing_flow import NICEModel
 from tabsplanation.types import B, Tensor
@@ -52,22 +51,31 @@ class PathRegularizedNICE(NICEModel):
         x, _ = batch
         y_source: Tensor[B] = self.classifier.predict(x)
         y_target: Tensor[B] = self.random_targets_like(y_source)
-
         latent_paths = self.explain(x, y_target)
         path_loss = self.path_loss_fn(
             self, self.classifier, latent_paths, y_source, y_target
         )
 
-        logits = self.classifier(self.decode(latent_paths))
-        cf_loss = self.cf_loss_fn(logits, y_source, y_target)
+        if self.cf_loss_reg == 0:
+            loss = nll + self.path_loss_reg * path_loss
 
-        loss = nll + self.path_loss_reg * path_loss + self.cf_loss_reg * cf_loss
-        logs |= {
-            "max_memory_gb": torch.cuda.max_memory_allocated(self.device) / (1024 ** 3),
-            "cf_loss": cf_loss.detach().item(),
-            "path_loss": path_loss.detach().item(),
-            "loss": loss.detach().item(),
-        }
+            logs |= {
+                "path_loss": path_loss.detach().item(),
+                "loss": loss.detach().item(),
+            }
+        else:
+
+            logits = self.classifier(self.decode(latent_paths))
+            cf_loss = self.cf_loss_fn(logits, y_source, y_target).mean()
+
+            loss = nll + self.path_loss_reg * path_loss + self.cf_loss_reg * cf_loss
+
+            logs |= {
+                "cf_loss": cf_loss.detach().item(),
+                "path_loss": path_loss.detach().item(),
+                "loss": loss.detach().item(),
+            }
+
         if loss.isnan():
             raise ValueError("Loss is NaN")
         return loss, logs

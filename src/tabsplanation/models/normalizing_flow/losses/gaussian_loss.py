@@ -21,15 +21,17 @@ class GaussianPriorLoss(nn.Module):
             opposed to just summing).
         """
         super(GaussianPriorLoss, self).__init__()
-        self.avg = avg
+        if avg:
+            self.agg = torch.mean
+        else:
+            self.agg = torch.sum
 
     @classmethod
     def log_likelihood(cls, z: Tensor[B, D]) -> Tensor[B]:
         """Compute the log-likelihood for a point or batch of latent points,
         with a standard Gaussian prior.
         """
-        d = z.shape[1]
-        constant = -d * 0.5 * _log_two_pi
+        constant = -z.shape[1] * 0.5 * _log_two_pi
         return -0.5 * (z ** 2).sum(dim=1) + constant
 
     def forward(self, z: Latent, log_scaling_factors: Tensor[D]):
@@ -52,6 +54,4 @@ class GaussianPriorLoss(nn.Module):
         loss was initialized.
         """
         nll = -(GaussianPriorLoss.log_likelihood(z) + log_scaling_factors.sum())
-        if self.avg:
-            return torch.mean(nll)
-        return torch.sum(nll)
+        return self.agg(nll)
