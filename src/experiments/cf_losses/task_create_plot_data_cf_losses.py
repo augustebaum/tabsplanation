@@ -128,7 +128,10 @@ class TaskCreatePlotDataCfLosses(Task):
 
         def make_loss(loss_cfg):
             loss_cls = get_object(loss_cfg.class_name)
-            return loss_cls() if loss_cfg.args is None else loss_cls(**loss_cfg.args)
+            return (
+                loss_cfg.name,
+                loss_cls() if loss_cfg.args is None else loss_cls(**loss_cfg.args),
+            )
 
         loss_fns = [make_loss(loss_cfg) for loss_cfg in cfg.losses]
 
@@ -171,8 +174,8 @@ class TaskCreatePlotDataCfLosses(Task):
             )
 
         return {
-            str(loss_fn): {class_: fn(loss_fn, class_) for class_ in classes}
-            for loss_fn in loss_fns
+            loss_name: {class_: fn(loss_fn, class_) for class_ in classes}
+            for loss_name, loss_fn in loss_fns
         }
 
     @staticmethod
@@ -188,8 +191,8 @@ class TaskCreatePlotDataCfLosses(Task):
             )
 
         return {
-            str(loss_fn): {class_: fn(loss_fn, class_) for class_ in classes}
-            for loss_fn in loss_fns
+            loss_name: {class_: fn(loss_fn, class_) for class_ in classes}
+            for loss_name, loss_fn in loss_fns
         }
 
     @staticmethod
@@ -210,12 +213,12 @@ class TaskCreatePlotDataCfLosses(Task):
             loss_fns, classes, classifier, x
         )
 
-        def fn(loss_fn, class_):
-            return -grad(losses_x[str(loss_fn)][class_], x)
+        def fn(loss_name, class_):
+            return -grad(losses_x[loss_name][class_], x)
 
         return {
-            str(loss_fn): {class_: fn(loss_fn, class_) for class_ in classes}
-            for loss_fn in loss_fns
+            loss_name: {class_: fn(loss_name, class_) for class_ in classes}
+            for loss_name, loss_fn in loss_fns
         }
 
     @staticmethod
@@ -243,6 +246,6 @@ class TaskCreatePlotDataCfLosses(Task):
             return x_tilde - x
 
         return {
-            str(loss_fn): {class_: fn(loss_fn, class_) for class_ in classes}
-            for loss_fn in loss_fns
+            loss_name: {class_: fn(loss_fn, class_) for class_ in classes}
+            for loss_name, loss_fn in loss_fns
         }
