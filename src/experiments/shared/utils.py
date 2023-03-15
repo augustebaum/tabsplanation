@@ -21,6 +21,7 @@ from tabsplanation.data import CakeOnSeaDataModule, CakeOnSeaDataset
 
 
 def load_mpl_style():
+    # plt.style.use("tableau-colorblind10")
     plt.style.use(Path(__file__).parent.resolve() / "default.mplstyle")
 
 
