@@ -10,20 +10,25 @@ from experiments.path_regularization.task_create_plot_data_path_regularization i
     TaskCreatePlotDataPathRegularization,
 )
 from experiments.shared.utils import get_object_name, Task
-from tabsplanation.explanations.losses import get_path_mask, MaxPointLoss
+from tabsplanation.explanations.losses import get_path_mask
+
 from tabsplanation.explanations.nice_path_regularized import random_targets_like
 from tabsplanation.metrics import time_measurement
-from tabsplanation.types import B, D, S, Tensor, V
+from tabsplanation.types import B, D, S, Tensor
 
 
-def get_mean_distance(data_module, autoencoder, classifier, cfs, target):
-    return MaxPointLoss(data_module.train_data[0])(
-        autoencoder,
-        classifier,
-        autoencoder.encode(cfs),
-        None,
-        target,
+def compute_mean_distance_to_max(
+    autoencoder, cfs: Tensor[S, B, D], path_mask: Tensor[S, B], point: Tensor[D]
+):
+    s, b, d = cfs.shape
+    distances_2d: Tensor[B * S] = torch.linalg.vector_norm(
+        cfs.view(-1, d) - point, dim=-1
     )
+    distances: Tensor[S, B] = torch.masked.masked_tensor(
+        distances_2d.view(s, b), path_mask
+    )
+
+    return distances.amin(dim=0).mean().get_data().nan_to_num(torch.tensor(0))
 
 
 class TaskCreatePlotDataRobustnessPathRegularization(Task):
@@ -57,7 +62,7 @@ class TaskCreatePlotDataRobustnessPathRegularization(Task):
             r"Validity rate (\%)": result["validity_rate"] * 100,
             r"\Delta t (ns)": result["time_per_path_step_s"] * (10 ** 9),
             "Mean NLL": result["mean_nll"],
-            "Mean distance to point": result["mean_distance"],
+            "Mean distance to max": result["mean_distance_to_max"],
         }
 
     @staticmethod
@@ -72,7 +77,11 @@ class TaskCreatePlotDataRobustnessPathRegularization(Task):
 
         batch_results = []
 
-        for test_x, _ in data_module.test_dataloader():
+        max_point: Tensor[D] = (
+            data_module.train_data[0].amax(dim=0).to(classifier.device)
+        )
+
+        for test_x, _ in data_module.test_dataloader(batch_size=4_000):
             metrics = {}
 
             test_x = test_x.to(classifier.device)
@@ -87,24 +96,21 @@ class TaskCreatePlotDataRobustnessPathRegularization(Task):
 
             metrics["time_per_path_step_s"] = cf_time_s.time / (nb_paths * nb_steps)
 
-            cf_preds: Tensor[S, B] = classifier.predict(cfs)
+            cf_preds = classifier.predict(cfs)
 
-            # path_numbers is a non-decreasing vector containing the path number
-            # of any step where the predicted class equals the target class.
-            # step_numbers contains the step numbers where this is achieved.
-            path_numbers, step_numbers = torch.where((target == cf_preds).T)
-
-            valid_path_numbers: Tensor[V] = path_numbers.unique()
-            metrics["validity_rate"] = len(valid_path_numbers) / nb_paths
-
-            path_mask: Tensor[S, B] = get_path_mask(cf_preds, target)
-            metrics["mean_nll"] = compute_mean_nll(autoencoder_for_nll, cfs, path_mask)
-
-            metrics["mean_distance"] = get_mean_distance(
-                data_module, autoencoder, classifier, cfs, target
+            path_mask: Tensor[S, B] = get_path_mask(cf_preds, target).to(
+                cf_preds.device
             )
 
-            batch_results.append(batchify_metrics(metrics, len(test_x)))
+            metrics["validity_rate"] = (path_mask[0, :].sum() / nb_paths).item()
+
+            metrics["mean_nll"] = compute_mean_nll(autoencoder_for_nll, cfs, path_mask)
+
+            metrics["mean_distance_to_max"] = compute_mean_distance_to_max(
+                autoencoder, cfs, path_mask, max_point
+            )
+
+            batch_results.append(batchify_metrics(metrics, nb_paths))
 
         results = dict(
             pd.DataFrame.from_records(batch_results).sum() / len(data_module.test_set)
