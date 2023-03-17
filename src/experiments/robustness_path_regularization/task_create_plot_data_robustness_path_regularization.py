@@ -28,7 +28,7 @@ def compute_mean_distance_to_max(
         distances_2d.view(s, b), path_mask
     )
 
-    return distances.amin(dim=0).mean().get_data().nan_to_num(torch.tensor(0))
+    return distances.amin(dim=0).mean().get_data().nan_to_num(torch.tensor(0)).item()
 
 
 class TaskCreatePlotDataRobustnessPathRegularization(Task):

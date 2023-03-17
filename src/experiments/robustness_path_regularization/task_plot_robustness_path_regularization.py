@@ -22,26 +22,24 @@ class TaskPlotRobustnessPathRegularization(Task):
     @classmethod
     def task_function(cls, depends_on, produces, cfg):
         results = read(depends_on["results"])
-        import pdb
-
-        pdb.set_trace()
 
         df = pd.DataFrame.from_records(results)
 
-        df = df.groupby(list(df.columns[:-1])).agg(["mean", "sem"])
-        df = df * 100
-        df = df.droplevel(0, axis=1)
+        df = df.groupby(list(df.columns[:4])).agg(["mean", "sem"])
 
-        df = df.apply(
-            lambda row: "{:.1f}".format(row["mean"])
-            + "±"
-            + "{:.1f}".format(row["sem"]),
-            axis=1,
-        )
+        formats = {
+            (r"Validity rate (\%)", "mean"): "{:.1f}",
+            (r"Validity rate (\%)", "sem"): "{:.1f}",
+            (r"\Delta t (ns)", "mean"): "{:.1f}",
+            (r"\Delta t (ns)", "sem"): "{:.1f}",
+            ("Mean NLL", "mean"): "{:.1E}",
+            ("Mean NLL", "sem"): "{:.1E}",
+            ("Mean distance to max", "mean"): "{:.2f}",
+            ("Mean distance to max", "sem"): "{:.2f}",
+        }
+        for col, format_str in formats.items():
+            df[col] = df[col].apply(format_str.format)
 
-        df = df.unstack([0, 1])
-
-        loss_names_in_order = [r["Loss function"] for r in results][: len(cfg.losses)]
-        df = df.reindex(loss_names_in_order)
+        df = df.stack([0, 1]).unstack([1, 2, 3, 5])
 
         write(df.style.to_latex(), produces["results"])
