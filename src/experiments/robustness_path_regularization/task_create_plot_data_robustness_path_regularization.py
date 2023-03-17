@@ -27,7 +27,6 @@ def compute_mean_distance_to_max(
     distances: Tensor[S, B] = torch.masked.masked_tensor(
         distances_2d.view(s, b), path_mask
     )
-
     return distances.amin(dim=0).mean().get_data().nan_to_num(torch.tensor(0)).item()
 
 
@@ -83,7 +82,6 @@ class TaskCreatePlotDataRobustnessPathRegularization(Task):
 
         for test_x, _ in data_module.test_dataloader(batch_size=4_000):
             metrics = {}
-
             test_x = test_x.to(classifier.device)
 
             y_predict = classifier.predict(test_x)
