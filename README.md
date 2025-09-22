@@ -3,6 +3,10 @@
 [![pre-commit.ci status](https://results.pre-commit.ci/badge/github/augustebaum/tabsplanation/main.svg)](https://results.pre-commit.ci/latest/github/augustebaum/tabsplanation/main)
 [![image](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
+This repository contains various experiments exploring a technique called
+Latent Shift, coined by Cohen _et al._ in their paper "Gifsplanation".
+Read more about it at https://mlmed.org/gifsplanation/
+
 ## Installation
 
 To get started, create the environment with
@@ -42,10 +46,7 @@ tensorboard --logdir=bld/models/lightning_logs
 ```
 and follow the instructions.
 
-## Rationale
-
-This repository contains various experiments exploring a technique called
-Latent Shift, coined by Cohen _et al._ in their paper "Gifsplanation".
+## Project architecture
 
 The point of `pytask` is to offer an elegant way to make data-related
 workflows cacheable, i.e. when each individual part of a workflow
