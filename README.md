@@ -7,6 +7,8 @@ This repository contains various experiments exploring a technique called
 Latent Shift, coined by Cohen _et al._ in their paper "Gifsplanation".
 Read more about it at https://mlmed.org/gifsplanation/
 
+My MSc thesis, which this repository implements, can be found at https://github.com/augustebaum/masters-thesis/blob/main/MSc_thesis_Auguste_Baum.pdf
+
 ## Installation
 
 To get started, create the environment with
